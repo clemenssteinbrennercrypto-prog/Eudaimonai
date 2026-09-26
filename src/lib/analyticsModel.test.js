@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildAnalyticsStory,
-  buildAnalyticsExport,
   buildCohortProgress,
-  buildExplorerSummary,
+  buildDetailsSummary,
   buildFocusDistribution,
   buildInterventionSummary,
+  filterDetailsSessions,
   knownComparableSessions,
 } from './analyticsModel'
 
@@ -95,7 +95,7 @@ describe('Analytics model — data', () => {
     ])
     expect(result.count).toBe(3)
     expect(result.median).toBe(50)
-    expect(result.bins.map(bin => bin.count)).toEqual([1, 0, 1, 0, 1])
+    expect(result.values).toEqual([10, 50, 90])
   })
 
   it('keeps unrated sessions visible as an inbox', () => {
@@ -103,70 +103,134 @@ describe('Analytics model — data', () => {
     expect(story.unratedSessions.map(item => item.id)).toEqual(['s-1'])
   })
 
-  it('aggregates facets, quality, activity, and versioned score components', () => {
-    const result = buildExplorerSummary([
-      session(1, {
-        workspace: { id: 'desk', name: 'Desk', revision: 1 },
-        energyLevel: 'high',
-        activityAlignment: { secondsByKind: { aligned: 900, off_goal: 120 } },
-        focusPhases: { seconds: { deep: 600, steady: 300 } },
-        timeline: [{ second: 5, scoreTrace: { version: 1, components: { face_present_base: 68, phone_confirmed: -45 } } }],
-      }),
-    ])
-    expect(result.facets.workspace[0]).toMatchObject({ label: 'Desk', sessions: 1, averageFocus: 70, outcomeRate: null })
-    expect(result.activity.aligned).toBe(900)
-    expect(result.phases.deep).toBe(600)
-    expect(result.scoreComponents).toMatchObject({ tracedSessions: 1, traceSamples: 1 })
-    expect(result.scoreComponents.components.find(item => item.id === 'phone_confirmed').averageDeltaWhenActive).toBe(-45)
+})
+
+describe('Analytics model — redesigned Details', () => {
+  it('applies range, outcome, and workspace to one comparable dataset', () => {
+    const now = new Date(2026, 8, 26, 12).getTime()
+    const rows = [
+      session(1, { timestamp: now - 5 * 86400000, goalOutcome: 'yes', workspace: { id: 'desk', name: 'Desk' } }),
+      session(2, { timestamp: now - 10 * 86400000, goalOutcome: 'no', workspace: { id: 'desk', name: 'Desk' } }),
+      session(3, { timestamp: now - 60 * 86400000, goalOutcome: 'yes', workspace: { id: 'desk', name: 'Desk' } }),
+      session(4, { timestamp: now - 2 * 86400000, goalOutcome: 'yes', workspace: { id: 'office', name: 'Office' } }),
+      session(5, { timestamp: now - 100 * 86400000, attentionScoringVersion: 1, goalOutcome: 'yes', workspace: { id: 'desk', name: 'Desk' } }),
+    ]
+
+    expect(filterDetailsSessions(rows, { range: '30', outcome: 'yes', workspace: 'desk', now }).map(row => row.id))
+      .toEqual(['s-1'])
   })
 
-  it('withholds intervention comparisons until both sides have three sessions', () => {
-    const thin = buildExplorerSummary([
-      session(1, { distractionEvents: 1 }),
-      session(2, { distractionEvents: 0 }),
+  it('keeps missing measurements as gaps and out of the distribution', () => {
+    const result = buildDetailsSummary([
+      session(1, { avgFocusScore: 82, goalOutcome: 'yes' }),
+      session(2, { scoreMeasured: false, goalOutcome: 'no' }),
+      session(3, { avgFocusScore: 64, goalOutcome: null }),
     ])
-    expect(thin.interventionComparisons.alerts.focusDelta).toBeNull()
 
-    const ready = buildExplorerSummary(Array.from({ length: 6 }, (_, index) => session(index, {
-      distractionEvents: index < 3 ? 1 : 0,
-      avgFocusScore: index < 3 ? 50 : 70,
-    })))
-    expect(ready.interventionComparisons.alerts.focusDelta).toBe(-20)
+    expect(result.timeline.map(row => row.averageAttention)).toEqual([82, null, 64])
+    expect(result.distribution.sessions.map(row => row.id)).toEqual(['s-1', 's-3'])
+    expect(result).toMatchObject({
+      sessionCount: 3,
+      measuredCount: 2,
+      outcomes: { yes: 1, partly: 0, no: 1, unrated: 1 },
+    })
   })
 
-  it('requires three measured sessions on both sides of an intervention comparison', () => {
-    const rows = Array.from({ length: 6 }, (_, index) => session(index, {
-      distractionEvents: index < 3 ? 1 : 0,
-      ...(index === 0 ? {} : index < 3 ? { scoreMeasured: false } : {}),
+  it('keeps unreliable sessions visible but excludes them from cross-session statistics', () => {
+    const result = buildDetailsSummary([
+      session(1, { avgFocusScore: 82 }),
+      session(2, { avgFocusScore: 91, trackingFaulted: true }),
+      session(3, { avgFocusScore: 20, actualSeconds: 60, measuredSeconds: 60, focusedSeconds: 40 }),
+    ])
+
+    expect(result.timeline).toHaveLength(3)
+    expect(result.timeline.find(row => row.id === 's-2')).toMatchObject({ qualified: false, trackingFaulted: true })
+    expect(result.distribution.sessions.map(row => row.id)).toEqual(['s-1'])
+    expect(result.distribution.values).toEqual([82])
+    expect(result.duration.map(row => row.id)).toEqual(['s-1'])
+  })
+
+  it('names strong conditions only after the refusal thresholds are met', () => {
+    const morning = new Date(2026, 8, 1, 10).getTime()
+    const afternoon = new Date(2026, 8, 1, 16).getTime()
+    const rows = [
+      ...Array.from({ length: 4 }, (_, index) => session(index, {
+        timestamp: morning + index * 86400000,
+        avgFocusScore: 86,
+        workspace: { id: 'office', name: 'Office', revision: 1 },
+      })),
+      ...Array.from({ length: 4 }, (_, index) => session(index + 4, {
+        timestamp: afternoon + index * 86400000,
+        avgFocusScore: 52,
+        workspace: { id: 'home', name: 'Home', revision: 1 },
+      })),
+    ]
+
+    const result = buildDetailsSummary(rows)
+    expect(result.conditions.timeOfDay.comparison).toMatchObject({
+      ready: true,
+      best: { id: 'morning', averageAttention: 86 },
+      worst: { id: 'afternoon', averageAttention: 52 },
+    })
+    expect(result.conditions.workspace.comparison).toMatchObject({
+      ready: true,
+      best: { label: 'Office' },
+      worst: { label: 'Home' },
+    })
+
+    const thin = buildDetailsSummary(rows.slice(0, 7))
+    expect(thin.conditions.timeOfDay.comparison.ready).toBe(false)
+    expect(thin.conditions.timeOfDay.comparison.best).toBeNull()
+  })
+
+  it('places a session by its recorded start instead of its later end time', () => {
+    const startedAt = new Date(2026, 8, 1, 16).getTime()
+    const endedAt = new Date(2026, 8, 1, 19).getTime()
+    const rows = Array.from({ length: 8 }, (_, index) => session(index, {
+      startedAt: startedAt + index * 86400000,
+      timestamp: endedAt + index * 86400000,
+      actualSeconds: 60 * 60,
+      avgFocusScore: 72,
     }))
-    const result = buildExplorerSummary(rows)
-    expect(result.interventionComparisons.alerts.with).toMatchObject({ sessionCount: 3, measuredCount: 1 })
-    expect(result.interventionComparisons.alerts.focusDelta).toBeNull()
+
+    const result = buildDetailsSummary(rows)
+    expect(result.conditions.timeOfDay.rows.find(row => row.id === 'afternoon')).toMatchObject({
+      sessions: 8,
+      averageAttention: 72,
+    })
+    expect(result.conditions.timeOfDay.rows.find(row => row.id === 'evening').sessions).toBe(0)
   })
 
-  it('does not treat sessions without a protection ledger as zero interventions', () => {
-    const result = buildExplorerSummary([
-      session(1, { protectionEvents: [{ kind: 'app_hidden' }] }),
-      session(2, { protectionEvents: [] }),
-      session(3),
+  it('shows qualified condition averages without naming noise as a pattern', () => {
+    const morning = new Date(2026, 8, 1, 10).getTime()
+    const afternoon = new Date(2026, 8, 1, 16).getTime()
+    const result = buildDetailsSummary([
+      ...Array.from({ length: 4 }, (_, index) => session(index, {
+        timestamp: morning + index * 86400000,
+        avgFocusScore: 70,
+      })),
+      ...Array.from({ length: 4 }, (_, index) => session(index + 4, {
+        timestamp: afternoon + index * 86400000,
+        avgFocusScore: 65,
+      })),
     ])
-    expect(result.interventionComparisons.protection.with.sessionCount).toBe(1)
-    expect(result.interventionComparisons.protection.without.sessionCount).toBe(1)
+
+    expect(result.conditions.timeOfDay.comparison).toEqual({ ready: true, best: null, worst: null })
   })
 
-  it('exports the selected derived evidence without claiming to be the raw archive', () => {
-    const exported = buildAnalyticsExport([session(1, { plannedDuration: 60 })], {
-      generatedAt: '2026-09-16T12:00:00.000Z',
-      scope: { range: 'all' },
-    })
-    expect(exported).toMatchObject({
-      schemaVersion: 1,
-      generatedAt: '2026-09-16T12:00:00.000Z',
-      scope: { range: 'all' },
-      generation: 2,
-    })
-    expect(exported.sessions[0]).toMatchObject({ id: 's-1', averageFocus: 70 })
-    expect(exported.summary.facets.duration[0].label).toBe('60 min planned')
-    expect(exported.sessions[0]).not.toHaveProperty('timeline')
+  it('summarizes only stored, finite attention-phase time', () => {
+    const result = buildDetailsSummary([
+      session(1, { focusPhases: { seconds: { lock_in: 600, drift: 120, recovery: Number.NaN } } }),
+      session(2),
+    ])
+
+    expect(result.phases).toMatchObject({ tracedSessions: 1, totalSeconds: 720 })
+    expect(result.phases.rows).toEqual([
+      { id: 'lock_in', seconds: 600, sharePct: 83 },
+      { id: 'drift', seconds: 120, sharePct: 17 },
+    ])
+    expect(result).not.toHaveProperty('activity')
+    expect(result).not.toHaveProperty('interventions')
+    expect(result).not.toHaveProperty('scoreComponents')
   })
 })

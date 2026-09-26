@@ -1,4 +1,9 @@
-import { isUsable } from './calibration'
+import {
+  isUsable,
+  MIN_MEANINGFUL_GAP_PCT,
+  MIN_PER_BUCKET,
+  MIN_SESSIONS,
+} from './calibration'
 import {
   aggregateAverageFocus,
   aggregateDeepFocusTime,
@@ -6,7 +11,7 @@ import {
   sessionAverageFocus,
 } from './historyTrend'
 import { SCOREABLE_SCORING_VERSIONS } from './focusMetric'
-import { summarizeSessionAlignment } from './sessionIntent'
+import { sessionStartedAt } from './sessionTiming'
 
 export const COHORT_SIZE = 8
 
@@ -128,20 +133,8 @@ export function buildFocusDistribution(sessions = []) {
     .map(sessionAverageFocus)
     .filter(value => value != null)
     .sort((a, b) => a - b)
-  const bins = [
-    { label: '0–19', min: 0, max: 19, count: 0 },
-    { label: '20–39', min: 20, max: 39, count: 0 },
-    { label: '40–59', min: 40, max: 59, count: 0 },
-    { label: '60–79', min: 60, max: 79, count: 0 },
-    { label: '80–100', min: 80, max: 100, count: 0 },
-  ]
-  for (const value of values) {
-    const bin = bins.find(item => value >= item.min && value <= item.max)
-    if (bin) bin.count += 1
-  }
   return {
     values,
-    bins,
     count: values.length,
     mean: values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null,
     median: values.length ? Math.round(quantile(values, 0.5)) : null,
@@ -160,7 +153,6 @@ export function buildAnalyticsStory(sessions = []) {
       .sort((a, b) => timestampOf(b) - timestampOf(a)),
     progress: buildCohortProgress(safe),
     interventions: buildInterventionSummary(safe),
-    distribution: buildFocusDistribution(safe),
     learning: {
       qualified: usable.length,
       requiredForPatterns: 8,
@@ -174,36 +166,10 @@ function mean(values) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
 }
 
-function facetRows(sessions, keyFor) {
-  const buckets = new Map()
-  for (const session of sessions) {
-    const key = keyFor(session)
-    if (!key?.id) continue
-    if (!buckets.has(key.id)) buckets.set(key.id, { id: key.id, label: key.label, sessions: [], focus: [] })
-    const bucket = buckets.get(key.id)
-    bucket.sessions.push(session)
-    const average = sessionAverageFocus(session)
-    if (average != null) bucket.focus.push(average)
-  }
-  return [...buckets.values()].map(bucket => {
-    const outcomes = { yes: 0, partly: 0, no: 0, unrated: 0 }
-    for (const session of bucket.sessions) outcomes[normalizedOutcome(session) || 'unrated'] += 1
-    const rated = outcomes.yes + outcomes.partly + outcomes.no
-    return {
-      id: bucket.id,
-      label: bucket.label,
-      sessions: bucket.sessions.length,
-      measured: bucket.focus.length,
-      averageFocus: bucket.focus.length ? Math.round(mean(bucket.focus)) : null,
-      rated,
-      outcomeRate: rated >= 3 ? Math.round((outcomes.yes / rated) * 100) : null,
-      outcomes,
-    }
-  }).sort((a, b) => b.sessions - a.sessions || a.label.localeCompare(b.label))
-}
-
 function partOfDay(session) {
-  const date = new Date(session.timestamp)
+  const startedAt = sessionStartedAt(session)
+  if (startedAt == null) return null
+  const date = new Date(startedAt)
   if (Number.isNaN(date.getTime())) return null
   const hour = date.getHours()
   if (hour >= 6 && hour < 9) return { id: 'early', label: 'Early morning' }
@@ -214,180 +180,195 @@ function partOfDay(session) {
   return { id: 'night', label: 'Late night' }
 }
 
-export function buildScoreComponentSummary(sessions = []) {
-  const components = new Map()
-  let traceSamples = 0
+export const DETAILS_TIME_BUCKETS = [
+  { id: 'early', label: 'Early morning', range: '06–09' },
+  { id: 'morning', label: 'Late morning', range: '09–12' },
+  { id: 'midday', label: 'Midday', range: '12–15' },
+  { id: 'afternoon', label: 'Afternoon', range: '15–18' },
+  { id: 'evening', label: 'Evening', range: '18–22' },
+  { id: 'night', label: 'Late night', range: '22–06' },
+]
+
+/**
+ * One filter contract for every Details chart. Keeping this pure prevents a
+ * chart from quietly answering on a different range than the controls above
+ * it. The newest explicit measurement generation is selected before any
+ * averages are produced; missing versions remain refused.
+ */
+export function filterDetailsSessions(sessions = [], filters = {}) {
+  const {
+    range = 'all',
+    outcome = 'all',
+    workspace = 'all',
+    now = Date.now(),
+  } = filters
+  const cutoff = range === '30'
+    ? now - 30 * 86400000
+    : range === '90' ? now - 90 * 86400000 : null
+
+  return knownComparableSessions(sessions).filter(session => {
+    if (cutoff && (!Number.isFinite(session.timestamp) || session.timestamp < cutoff)) return false
+    if (outcome !== 'all' && (normalizedOutcome(session) || 'unrated') !== outcome) return false
+    if (workspace !== 'all' && session.workspace?.id !== workspace) return false
+    return true
+  })
+}
+
+function conditionRows(sessions, keyFor, order = null) {
+  const buckets = new Map()
+  for (const session of sessions) {
+    if (!isUsable(session)) continue
+    const key = keyFor(session)
+    const attention = sessionAverageFocus(session)
+    if (!key?.id || attention == null) continue
+    if (!buckets.has(key.id)) buckets.set(key.id, { ...key, values: [], sessions: [] })
+    const bucket = buckets.get(key.id)
+    bucket.values.push(attention)
+    bucket.sessions.push(session)
+  }
+
+  const rows = [...buckets.values()]
+    .map(bucket => ({
+      id: bucket.id,
+      label: bucket.label,
+      range: bucket.range,
+      revision: bucket.revision,
+      sessions: bucket.sessions.length,
+      averageAttention: bucket.sessions.length >= MIN_PER_BUCKET
+        ? Math.round(mean(bucket.values))
+        : null,
+      outcomeRate: outcomeFitForDetails(bucket.sessions),
+    }))
+
+  if (Array.isArray(order)) {
+    const orderById = new Map(order.map((item, index) => [item.id, index]))
+    rows.sort((a, b) => (orderById.get(a.id) ?? Infinity) - (orderById.get(b.id) ?? Infinity))
+  } else {
+    rows.sort((a, b) => (b.averageAttention ?? -1) - (a.averageAttention ?? -1) || b.sessions - a.sessions)
+  }
+  return rows
+}
+
+function outcomeFitForDetails(sessions) {
+  const rated = sessions.filter(session => normalizedOutcome(session))
+  if (rated.length < MIN_PER_BUCKET) return null
+  const reached = rated.filter(session => normalizedOutcome(session) === 'yes').length
+  return Math.round((reached / rated.length) * 100)
+}
+
+function conditionComparison(rows, usableCount) {
+  const qualified = rows.filter(row => row.averageAttention != null)
+  if (usableCount < MIN_SESSIONS || qualified.length < 2) {
+    return { ready: false, best: null, worst: null }
+  }
+  const ranked = [...qualified].sort((a, b) => b.averageAttention - a.averageAttention)
+  const best = ranked[0]
+  const worst = ranked[ranked.length - 1]
+  const meaningful = best.averageAttention - worst.averageAttention >= MIN_MEANINGFUL_GAP_PCT
+  return { ready: true, best: meaningful ? best : null, worst: meaningful ? worst : null }
+}
+
+const PHASE_ORDER = ['arrival', 'ramp', 'lock_in', 'fade', 'recovery', 'drift']
+
+function phaseSummary(sessions) {
+  const seconds = Object.fromEntries(PHASE_ORDER.map(phase => [phase, 0]))
   let tracedSessions = 0
   for (const session of sessions) {
-    let sessionTraced = false
-    for (const sample of Array.isArray(session.timeline) ? session.timeline : []) {
-      if (!sample?.scoreTrace?.version || !sample.scoreTrace.components) continue
-      traceSamples += 1
-      sessionTraced = true
-      for (const [id, delta] of Object.entries(sample.scoreTrace.components)) {
-        if (!Number.isFinite(delta)) continue
-        const current = components.get(id) || { id, activeSamples: 0, totalDelta: 0, positiveSamples: 0, negativeSamples: 0 }
-        current.activeSamples += 1
-        current.totalDelta += delta
-        if (delta > 0) current.positiveSamples += 1
-        if (delta < 0) current.negativeSamples += 1
-        components.set(id, current)
-      }
+    const stored = session.focusPhases?.seconds
+    if (!stored || typeof stored !== 'object') continue
+    let sessionHasPhase = false
+    for (const phase of PHASE_ORDER) {
+      const value = stored[phase]
+      if (!Number.isFinite(value) || value <= 0) continue
+      seconds[phase] += value
+      sessionHasPhase = true
     }
-    if (sessionTraced) tracedSessions += 1
+    if (sessionHasPhase) tracedSessions += 1
   }
+  const totalSeconds = Object.values(seconds).reduce((sum, value) => sum + value, 0)
   return {
     tracedSessions,
-    traceSamples,
-    components: [...components.values()]
-      .map(component => ({
-        ...component,
-        averageDeltaWhenActive: component.activeSamples
-          ? Math.round((component.totalDelta / component.activeSamples) * 10) / 10
-          : null,
-        activeSharePct: traceSamples ? Math.round((component.activeSamples / traceSamples) * 100) : 0,
-      }))
-      .sort((a, b) => Math.abs(b.totalDelta) - Math.abs(a.totalDelta)),
-  }
-}
-
-function interventionComparison(sessions, hasIntervention, isTracked = () => true) {
-  const tracked = sessions.filter(isTracked)
-  const withIntervention = tracked.filter(hasIntervention)
-  const withoutIntervention = tracked.filter(session => !hasIntervention(session))
-  const withStats = cohortStats(withIntervention)
-  const withoutStats = cohortStats(withoutIntervention)
-  const focusReady = withStats.measuredCount >= 3 && withoutStats.measuredCount >= 3 &&
-    withStats.averageFocus != null && withoutStats.averageFocus != null
-  const outcomeReady = withStats.ratedCount >= 3 && withoutStats.ratedCount >= 3
-  return {
-    with: withStats,
-    without: withoutStats,
-    focusDelta: focusReady ? withStats.averageFocus - withoutStats.averageFocus : null,
-    outcomeDelta: outcomeReady && withStats.hitRate != null && withoutStats.hitRate != null
-      ? withStats.hitRate - withoutStats.hitRate
-      : null,
-  }
-}
-
-export function buildExplorerSummary(sessions = []) {
-  const comparable = knownComparableSessions(sessions)
-  const distribution = buildFocusDistribution(comparable)
-  const outcomes = { yes: 0, partly: 0, no: 0, unrated: 0 }
-  const phases = {}
-  const activity = {}
-  let activeSeconds = 0
-  let measuredSeconds = 0
-  let trackingFaults = 0
-  let watchedOutput = 0
-  let outputMoved = 0
-
-  for (const session of comparable) {
-    outcomes[normalizedOutcome(session) || 'unrated'] += 1
-    activeSeconds += Number.isFinite(session.actualSeconds) ? Math.max(0, session.actualSeconds) : 0
-    measuredSeconds += Number.isFinite(session.measuredSeconds) ? Math.max(0, session.measuredSeconds) : 0
-    if (session.trackingFaulted) trackingFaults += 1
-    for (const [phase, seconds] of Object.entries(session.focusPhases?.seconds || {})) {
-      if (Number.isFinite(seconds) && seconds > 0) phases[phase] = (phases[phase] || 0) + seconds
-    }
-    const alignment = summarizeSessionAlignment(session.activityAlignment, session.actualSeconds || 0)
-    for (const [kind, seconds] of Object.entries(alignment.secondsByKind || {})) {
-      if (Number.isFinite(seconds) && seconds > 0) activity[kind] = (activity[kind] || 0) + seconds
-    }
-    if (session.outputEvidence?.watched) {
-      watchedOutput += 1
-      const output = session.outputEvidence
-      if ((output.filesChanged || 0) + (output.filesCreated || 0) + (output.commits || 0) > 0) outputMoved += 1
-    }
-  }
-
-  const trend = [...comparable].reverse().map(session => ({
-    id: session.id,
-    timestamp: session.timestamp,
-    averageFocus: sessionAverageFocus(session),
-    outcome: normalizedOutcome(session),
-    durationMinutes: Number.isFinite(session.actualSeconds) ? Math.round(session.actualSeconds / 60) : null,
-  }))
-
-  return {
-    generation: comparable[0]?.attentionScoringVersion ?? null,
-    sessionCount: comparable.length,
-    distribution,
-    outcomes,
-    quality: {
-      measuredSessions: distribution.count,
-      unmeasuredSessions: comparable.length - distribution.count,
-      trackingFaults,
-      activeSeconds,
-      measuredSeconds,
-      coveragePct: activeSeconds > 0 ? Math.round((measuredSeconds / activeSeconds) * 100) : null,
-    },
-    phases,
-    activity,
-    output: { watchedSessions: watchedOutput, movedSessions: outputMoved },
-    interventions: buildInterventionSummary(comparable),
-    interventionComparisons: {
-      alerts: interventionComparison(
-        comparable,
-        session => Number.isFinite(session.distractionEvents)
-          ? session.distractionEvents > 0
-          : session.distractionLog.length > 0,
-        session => Number.isFinite(session.distractionEvents) || Array.isArray(session.distractionLog),
-      ),
-      nudges: interventionComparison(comparable, session =>
-        (session.phaseInterventions?.gentleReminders || 0) + (session.phaseInterventions?.preDriftNudges || 0) > 0,
-      session => session.phaseInterventions != null),
-      protection: interventionComparison(comparable, session =>
-        session.protectionEvents.length > 0,
-      session => Array.isArray(session.protectionEvents)),
-    },
-    scoreComponents: buildScoreComponentSummary(comparable),
-    trend,
-    facets: {
-      workspace: facetRows(comparable, session => session.workspace?.id
-        ? { id: `${session.workspace.id}:${session.workspace.revision ?? 0}`, label: session.workspace.name || session.workspace.id }
-        : null),
-      energy: facetRows(comparable, session => session.energyLevel
-        ? { id: session.energyLevel, label: session.energyLevel }
-        : null),
-      timeOfDay: facetRows(comparable, partOfDay),
-      duration: facetRows(comparable, session => Number.isFinite(session.plannedDuration) && session.plannedDuration > 0
-        ? { id: String(session.plannedDuration), label: `${session.plannedDuration} min planned` }
-        : null),
-    },
+    totalSeconds,
+    rows: PHASE_ORDER
+      .filter(phase => seconds[phase] > 0)
+      .map(phase => ({
+        id: phase,
+        seconds: seconds[phase],
+        sharePct: totalSeconds ? Math.round((seconds[phase] / totalSeconds) * 100) : 0,
+      })),
   }
 }
 
 /**
- * A portable, derived Analytics report. This is intentionally separate from
- * the lossless archive: it captures the currently selected evidence and its
- * refusal states without pretending to be a backup of every raw event.
+ * The single view-model for Analytics → Details. It contains facts that can be
+ * shown immediately and explicit qualification states for cross-session
+ * claims. It deliberately has no activity, intervention, energy, planned-time,
+ * output, or score-component inference.
  */
-export function buildAnalyticsExport(sessions = [], options = {}) {
+export function buildDetailsSummary(sessions = []) {
   const comparable = knownComparableSessions(sessions)
+  const qualified = comparable.filter(isUsable)
+  const distribution = buildFocusDistribution(qualified)
+  const outcomes = { yes: 0, partly: 0, no: 0, unrated: 0 }
+  for (const session of comparable) outcomes[normalizedOutcome(session) || 'unrated'] += 1
+
+  const timeline = [...comparable].reverse().map(session => ({
+    id: session.id,
+    timestamp: sessionStartedAt(session) ?? session.timestamp,
+    averageAttention: sessionAverageFocus(session),
+    outcome: normalizedOutcome(session),
+    durationMinutes: Number.isFinite(session.actualSeconds) && session.actualSeconds > 0
+      ? Math.round(session.actualSeconds / 60)
+      : null,
+    workspace: session.workspace?.name || null,
+    qualified: isUsable(session),
+    trackingFaulted: session.trackingFaulted === true,
+  }))
+  const measured = timeline.filter(row => row.averageAttention != null)
+  const qualifiedMeasured = measured.filter(row => row.qualified)
+  const usableCount = qualified.length
+
+  const timeRows = conditionRows(
+    comparable,
+    session => {
+      const bucket = partOfDay(session)
+      const definition = DETAILS_TIME_BUCKETS.find(item => item.id === bucket?.id)
+      return definition || bucket
+    },
+    DETAILS_TIME_BUCKETS,
+  )
+  const workspaceRows = conditionRows(comparable, session => session.workspace?.id
+    ? {
+        id: `${session.workspace.id}:${session.workspace.revision ?? 0}`,
+        label: session.workspace.name || session.workspace.id,
+        revision: session.workspace.revision ?? 0,
+      }
+    : null)
+
   return {
-    schemaVersion: 1,
-    generatedAt: options.generatedAt || new Date().toISOString(),
-    scope: options.scope || {},
     generation: comparable[0]?.attentionScoringVersion ?? null,
-    summary: buildExplorerSummary(comparable),
-    cohortProgress: buildCohortProgress(comparable),
-    sessions: comparable.map(session => ({
-      id: session.id,
-      timestamp: session.timestamp,
-      task: session.task || '',
-      workspace: session.workspace
-        ? { id: session.workspace.id, name: session.workspace.name, revision: session.workspace.revision }
-        : null,
-      plannedDuration: session.plannedDuration ?? null,
-      actualSeconds: session.actualSeconds ?? null,
-      measuredSeconds: session.measuredSeconds ?? null,
-      averageFocus: sessionAverageFocus(session),
-      goalOutcome: normalizedOutcome(session),
-      attentionScoringVersion: session.attentionScoringVersion,
-      scoreTraceVersion: session.scoreTraceVersion ?? null,
-      analysisVersion: session.analysisSnapshot?.version ?? null,
-      protectionEvents: Array.isArray(session.protectionEvents) ? session.protectionEvents.length : null,
-    })),
+    sessionCount: comparable.length,
+    measuredCount: measured.length,
+    timeline,
+    distribution: {
+      ...distribution,
+      sessions: qualifiedMeasured,
+    },
+    outcomes,
+    conditions: {
+      usableCount,
+      required: MIN_SESSIONS,
+      timeOfDay: {
+        rows: DETAILS_TIME_BUCKETS.map(definition =>
+          timeRows.find(row => row.id === definition.id) || { ...definition, sessions: 0, averageAttention: null, outcomeRate: null }),
+        comparison: conditionComparison(timeRows, usableCount),
+      },
+      workspace: {
+        rows: workspaceRows,
+        comparison: conditionComparison(workspaceRows, usableCount),
+      },
+    },
+    duration: qualifiedMeasured.filter(row => row.durationMinutes != null),
+    phases: phaseSummary(comparable),
   }
 }

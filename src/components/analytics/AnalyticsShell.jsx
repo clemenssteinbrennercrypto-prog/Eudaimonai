@@ -75,7 +75,7 @@ export default function AnalyticsShell({ onClose, onHistoryCleared = () => {} })
   const [loadError, setLoadError] = useState(null)
   const [mutationError, setMutationError] = useState(null)
 
-  // Overview and Patterns both run over the full history (calibration needs
+  // Overview and Details both run over the full history (calibration needs
   // every qualifying session), so the shell loads once and shares the result
   // rather than having each view fetch its own copy.
   const refresh = useCallback(async () => {
@@ -202,7 +202,14 @@ export default function AnalyticsShell({ onClose, onHistoryCleared = () => {} })
                 onUpdateSession={handleUpdateSession}
               />
             )}
-            {view === 'data' && <DataExplorer sessions={sessions} />}
+            {view === 'data' && (
+              <DataExplorer
+                sessions={sessions}
+                selectedSessionId={selectedSessionId}
+                onSelectSession={setSelectedSessionId}
+                onUpdateSession={handleUpdateSession}
+              />
+            )}
           </>
         )}
       </div>

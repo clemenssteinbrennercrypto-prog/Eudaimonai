@@ -7,7 +7,7 @@ import SessionOverview from './SessionOverview'
  * one compact overview, a duration-only attention breakdown, and the editable
  * outcome. Raw timelines and audit data remain in the stored/exported record.
  */
-export default function SessionDetailView({ session, allSessions, onBack, onUpdateSession }) {
+export default function SessionDetailView({ session, allSessions, onBack, onUpdateSession, backLabel = '← Session history' }) {
   const priorSessions = useMemo(
     () => allSessions.filter(s => s.id !== session.id),
     [allSessions, session.id]
@@ -21,7 +21,7 @@ export default function SessionDetailView({ session, allSessions, onBack, onUpda
 
   return (
     <div className="analytics-session-detail">
-      <button type="button" className="analytics-detail-back" onClick={onBack}>← Session history</button>
+      <button type="button" className="analytics-detail-back" onClick={onBack}>{backLabel}</button>
       <SessionOverview
         session={session}
         analysis={analysis}
