@@ -137,11 +137,68 @@ describe('shared measured-span accumulation', () => {
       inFlow: true,
       flowQualified: false,
     })
-    expect(DEEP_FOCUS_TIME_VERSION).toBe(1)
+    expect(DEEP_FOCUS_TIME_VERSION).toBe(2)
     expect(inFlow.flowSeconds).toBe(22)
     expect(belowFlowThreshold.flowSeconds).toBe(20)
     expect(noisyFrame.flowSeconds).toBe(20)
     expect(noisyFrame.timelineSample).toMatchObject({ inFlow: true, deepFocused: false })
+  })
+
+  it('credits a successful warm-up once the 90-second gate is reached', () => {
+    const warming = accumulateMeasuredSpan({ flowSeconds: 0, flowCandidateSeconds: 88 }, {
+      sampleSeconds: 1,
+      elapsedSecs: 89,
+      score: 80,
+      msSinceDistraction: Infinity,
+      inFlow: false,
+      flowQualified: true,
+    })
+    expect(warming).toMatchObject({ flowSeconds: 0, flowCandidateSeconds: 89, flowActive: false })
+
+    const entered = accumulateMeasuredSpan(warming, {
+      sampleSeconds: 1,
+      elapsedSecs: 90,
+      score: 80,
+      msSinceDistraction: Infinity,
+      inFlow: true,
+      flowQualified: true,
+    })
+    expect(entered).toMatchObject({ flowSeconds: 90, flowCandidateSeconds: 0, flowActive: true })
+  })
+
+  it('discards an unsuccessful warm-up and withholds brief interruptions', () => {
+    const reset = accumulateMeasuredSpan({ flowSeconds: 0, flowCandidateSeconds: 60 }, {
+      sampleSeconds: 2,
+      elapsedSecs: 62,
+      score: 50,
+      msSinceDistraction: 0,
+      inFlow: false,
+      flowQualified: false,
+    })
+    expect(reset).toMatchObject({ flowSeconds: 0, flowCandidateSeconds: 0, flowActive: false })
+
+    const interrupted = accumulateMeasuredSpan({ flowSeconds: 100, flowActive: true }, {
+      sampleSeconds: 2,
+      elapsedSecs: 102,
+      score: 80,
+      msSinceDistraction: Infinity,
+      inFlow: true,
+      flowQualified: false,
+    })
+    expect(interrupted).toMatchObject({ flowSeconds: 100, flowActive: true })
+  })
+
+  it('retains earned warm-up across a brief withheld interruption', () => {
+    const interrupted = accumulateMeasuredSpan({ flowSeconds: 0, flowCandidateSeconds: 60 }, {
+      sampleSeconds: 1,
+      elapsedSecs: 61,
+      score: 50,
+      msSinceDistraction: 0,
+      inFlow: false,
+      flowQualified: false,
+      flowWarmupRetained: true,
+    })
+    expect(interrupted).toMatchObject({ flowSeconds: 0, flowCandidateSeconds: 60, flowActive: false })
   })
 
   it('forces a final timeline sample even inside the current snapshot bucket', () => {

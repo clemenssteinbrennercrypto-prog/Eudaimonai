@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { FOCUS_METRIC_V1, getFocusPeriodWindow } from '../../lib/focusMetric'
 import { buildVersionedFocusPeriod } from '../../lib/focusMetricV2'
+import { FOCUS_METRIC_V3 } from '../../lib/focusMetricV3'
+import { buildPeriodTimeSummary } from '../../lib/dashboardData'
 import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
 import { useCurrentTime } from '../../lib/useCurrentTime'
 import FocusScoreExplanation, { focusScoreLabel } from '../FocusScoreExplanation'
-import { formatMinutes } from '../../lib/durationFormat'
 
 /**
  * The product's daily Focus Score — distinct from a single session's "time
@@ -16,14 +17,11 @@ export default function FocusScorePanel({ ledger, sessions }) {
   const [periodStart, setPeriodStart] = useState(null)
   const now = useCurrentTime()
   const period = useMemo(
-    () => buildVersionedFocusPeriod(ledger, { range, periodStart, sessions, now, metricVersion: FOCUS_METRIC_V1.version }),
+    () => buildVersionedFocusPeriod(ledger, { range, periodStart, sessions, now, metricVersion: FOCUS_METRIC_V3.version }),
     [ledger, sessions, range, periodStart, now]
   )
+  const time = useMemo(() => buildPeriodTimeSummary(sessions, period, now), [sessions, period, now])
   const dayView = range === 'day'
-  const measuredMinutes = Math.round(period.measuredSeconds / 60)
-  const qualificationPct = dayView
-    ? Math.min(100, Math.round((measuredMinutes / FOCUS_METRIC_V1.fullDayMinutes) * 100))
-    : null
   const barWidth = range === 'year' ? 3 : range === 'month' ? 10 : 28
   const movePeriod = delta => {
     if (delta < 0) {
@@ -86,36 +84,29 @@ export default function FocusScorePanel({ ledger, sessions }) {
         >→</button>
       </div>
 
-      <FocusScoreExplanation period={period} />
+      <FocusScoreExplanation period={period} time={time} />
+
+      {time.sessionCount > 0 && (
+        <div className="history-stats-grid" style={{ display: 'grid', gap: 10, marginTop: 22 }}>
+          {[
+            { label: 'Focus time', value: time.focusSeconds == null ? '--' : fmtDuration(time.focusSeconds), detail: 'Breaks excluded' },
+            {
+              label: 'Deep Focus',
+              value: time.deepFocusSeconds == null ? '--' : fmtDuration(time.deepFocusSeconds),
+              detail: time.deepFocusSeconds == null ? 'Not recorded for every session' : 'Sustained high attention',
+            },
+          ].map(item => (
+            <div key={item.label} style={{ background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 12, padding: '13px 8px', textAlign: 'center' }}>
+              <p style={{ fontSize: 21, fontWeight: 300, color: 'var(--text)', margin: 0 }}>{item.value}</p>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, margin: '4px 0 0' }}>{item.label}</p>
+              <small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 4 }}>{item.detail}</small>
+            </div>
+          ))}
+        </div>
+      )}
 
       {period.score != null && (
         <>
-          <div className="history-stats-grid" style={{ display: 'grid', gap: 10, marginTop: 22 }}>
-            {[
-              { label: 'Average attention', value: period.efficiency == null ? '--' : `${period.efficiency}/100` },
-              { label: 'Measured', value: fmtDuration(period.measuredSeconds) },
-              { label: 'Focus time', value: fmtDuration(Math.round(period.deepFocusMinutes * 60)) },
-              { label: 'Measured days', value: `${period.activeDays}/${period.elapsedDays}` },
-            ].map(item => (
-              <div key={item.label} style={{ background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 12, padding: '13px 8px', textAlign: 'center' }}>
-                <p style={{ fontSize: 21, fontWeight: 300, color: 'var(--text)', margin: 0 }}>{item.value}</p>
-                <p style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, margin: '4px 0 0' }}>{item.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {dayView && (
-            <div style={{ marginTop: 18 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, color: 'var(--text-muted)', marginBottom: 7 }}>
-                <span>Duration adjustment</span>
-                <span>{fmtDuration(period.measuredSeconds)} / {formatMinutes(FOCUS_METRIC_V1.fullDayMinutes)} measured</span>
-              </div>
-              <div style={{ height: 7, borderRadius: 999, overflow: 'hidden', background: 'rgba(122,152,255,0.08)' }}>
-                <div style={{ width: `${qualificationPct}%`, height: '100%', borderRadius: 999, background: 'var(--ultra-bright)' }} />
-              </div>
-            </div>
-          )}
-
           {!dayView && period.days.length > 0 && (
             <div style={{ overflowX: 'auto', marginTop: 18, paddingBottom: 2 }}>
               <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', minWidth: period.days.length * (barWidth + 3), height: 62 }}>

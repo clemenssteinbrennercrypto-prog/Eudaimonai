@@ -6,6 +6,7 @@ import { useCompanionStatus } from '../lib/useCompanionStatus'
 import { useCurrentTime } from '../lib/useCurrentTime'
 import FocusScoreExplanation, { focusScoreLabel } from './FocusScoreExplanation'
 import { fmtDuration } from '../lib/sessionAnalysisPresentation'
+import { FOCUS_METRIC_V3 } from '../lib/focusMetricV3'
 
 const PERIOD_RANGES = [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']]
 
@@ -102,21 +103,12 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
     periodStart: periodSelection.periodStart,
     now: dashboardNow,
     nativeStatus,
-    metricVersion: 1,
+    metricVersion: FOCUS_METRIC_V3.version,
   }), [source, focusModeEnabled, periodSelection, dashboardNow, nativeStatus])
-  const { period } = data
-  // V1 already stores one versioned, phase-weighted time contribution for
-  // every qualifying historical session. The newer exact Flow accumulator is
-  // forward-only; summing its known subset made a week containing old sessions
-  // look like it contained only today's couple of minutes. Period surfaces use
-  // the complete V1 time ruler, while session details may still show exact
-  // forward-recorded Flow time.
-  const displayedFocusSeconds = period.score == null
-    ? null
-    : Math.round(period.deepFocusMinutes * 60)
-  const focusTimeDetail = period.range === 'day'
-    ? 'Estimated from measured focus phases'
-    : `Across ${period.activeDays} measured ${period.activeDays === 1 ? 'day' : 'days'} · estimated`
+  const { period, time } = data
+  const deepFocusDetail = time.deepFocusSeconds == null
+    ? time.sessionCount > 0 ? 'Not recorded for every session' : 'No sessions in this period'
+    : 'Sustained high-attention blocks'
   const hasAttentionSignal = data.attention.some(bin => !['inactive', 'no-signal', 'paused', 'future'].includes(bin.state))
   const selectRange = range => setPeriodSelection({ range, periodStart: null })
   const movePeriod = delta => setPeriodSelection(current => {
@@ -167,12 +159,14 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
         <div className="lab-metric-rail">
           <Metric
             label="Focus time"
-            value={displayedFocusSeconds == null ? null : fmtDuration(displayedFocusSeconds)}
-            detail={focusTimeDetail}
+            value={time.focusSeconds == null ? null : fmtDuration(time.focusSeconds)}
+            detail="Active session time · breaks excluded"
           />
-          <Metric label="Measured work" value={period.measuredSeconds > 0 ? fmtDuration(period.measuredSeconds) : null} />
-          <Metric label="Average attention" value={period.efficiency} suffix="/100" />
-          <Metric label="Measured days" value={`${period.activeDays}/${period.elapsedDays}`} suffix="days" />
+          <Metric
+            label="Deep Focus"
+            value={time.deepFocusSeconds == null ? null : fmtDuration(time.deepFocusSeconds)}
+            detail={deepFocusDetail}
+          />
         </div>
 
         <button className="lab-session-orb" type="button" onClick={onSession} aria-label="Open session setup">
@@ -181,7 +175,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
         </button>
       </section>
 
-      <FocusScoreExplanation period={period} />
+      <FocusScoreExplanation period={period} time={time} />
 
       <section className="lab-attention-section">
         <div className="lab-section-head">

@@ -3,6 +3,7 @@
 // No V1 contributions, phase weights or saved session fields are rewritten.
 import { buildFocusPeriod, localDayKey } from './focusMetric'
 import { normalizeFocusScoreSchedule } from './focusScoreSchedule'
+import { buildFocusPeriodV3 } from './focusMetricV3'
 
 export const FOCUS_METRIC_V2 = Object.freeze({
   version: 2,
@@ -85,5 +86,7 @@ export function buildFocusPeriodV2(ledger, options = {}) {
 }
 
 export function buildVersionedFocusPeriod(ledger, options = {}) {
-  return options.metricVersion === 1 ? buildFocusPeriod(ledger, options) : buildFocusPeriodV2(ledger, options)
+  if (options.metricVersion === 3) return buildFocusPeriodV3(ledger, options)
+  if (options.metricVersion === 2) return buildFocusPeriodV2(ledger, options)
+  return buildFocusPeriod(ledger, options)
 }

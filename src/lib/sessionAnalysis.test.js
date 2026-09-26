@@ -17,7 +17,7 @@ function session({ actualSeconds = 1000, pct = 70, goalOutcome, extra = {} } = {
     scoreMeasured: true,
     attentionScoringVersion: ATTENTION_SCORING_VERSION,
     attentionAccumulationVersion: 2,
-    deepFocusTimeVersion: 1,
+    deepFocusTimeVersion: 2,
     flowSeconds: 300,
     plannedDuration: 30,
     goal: 'Draft the intro chapter',

@@ -21,7 +21,7 @@ function session(index, extra = {}) {
     scoreSum: average * actualSeconds,
     avgFocusScore: average,
     scoreMeasured: true,
-    deepFocusTimeVersion: 1,
+    deepFocusTimeVersion: 2,
     flowSeconds: 300,
     attentionScoringVersion: 2,
     goalOutcome: 'yes',

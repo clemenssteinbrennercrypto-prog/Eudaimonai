@@ -199,32 +199,36 @@ scoring or detection.**
    `focusMetricV2.js`: continuous measured-time credit × mean attention, plus
    a period consistency factor from dated workday plans. It reads the exact
    qualified ledger accumulators without changing saved V1 session/ledger
-   fields. The active Lab briefly stopped presenting either composite on 22
-   Sep 2026, but Clemens reversed that decision after real use: as of 23 Sep,
-   V1 is again the primary Lab score because it gives existing history an
-   immediately useful number. As of 26 Sep, that same score is the only
-   user-visible Focus Score throughout Lab and Analytics; the alternative
-   formula and its selector remain internal rather than appearing as a second
-   product system. This
-   derived metric version is independent of the native V2 camera generation.
-   Do not mix a V1 baseline into V2, or apply new workday plans to past dates. See
+   fields. Focus Metric V3, introduced 26 Sep 2026 in `focusMetricV3.js`, is the
+   active Lab and Analytics score: `scoreSum / measuredSeconds`, on the existing
+   0–100 attention scale. Duration, phases, Deep Focus and workday plans do not
+   enter V3. A period weights every qualifying measured second equally. The
+   existing five-minute session eligibility and camera-generation isolation
+   still apply; camera gaps are absent rather than zero. V1 and V2 remain
+   versioned and unchanged, and no V1/V2 baseline is presented as a V3
+   comparison. This derived metric version is independent of the native V2
+   camera generation. Do not mix a baseline across metric versions, or apply
+   new workday plans to past dates. See
    `docs/focus-score-audit-2026-09-15.md` for the formula, estimates and limits.
 10. **Exact Flow and historical focus time are two different rulers.** The
     per-session exact metric records `flowSeconds` only while the live Flow state is active, the
     current span remains Flow-qualified and the score is still at least
     `FLOW_SCORE` (72). Entering Flow requires 90 seconds of qualified,
-    distraction-free attention. A 1.5-second interruption debounce prevents a
+    distraction-free attention. A five-second interruption debounce prevents a
     noisy landmark frame from erasing the warm-up, while those unqualified
-    spans do not count; a sustained interruption resets the gate. The warm-up
-    does not count. `focusedSeconds` starts at 40 and the old
+    spans do not count; a sustained interruption resets the gate. Once entry
+    succeeds, the qualified warm-up seconds are credited retroactively. A
+    failed warm-up earns nothing. Head stability is already part of the score
+    and must not be required a second time by the Flow gate. `focusedSeconds`
+    starts at 40 and the old
     `deepFocusSeconds` field is a weighted V1 estimate, so neither may be shown
-    as literal Flow time. Sessions without `deepFocusTimeVersion: 1` remain
+    as literal Flow time. Sessions without `deepFocusTimeVersion: 2` remain
     unknown instead of being backfilled from those looser fields. The Lab does
-    not aggregate this forward-only subset: doing so made a week containing old
-    sessions look like it held only today's minutes. Its period rail instead
-    shows V1's complete phase-weighted `deepFocusSeconds` as `Focus time`, with
-    the value marked as estimated and its weighting explained in the score
-    details. Exact Flow remains a per-session diagnostic.
+    not show a partial Deep Focus subtotal: every session in the selected period
+    must carry valid V2 exact time, otherwise the period value is unavailable.
+    `Focus time` is instead the sum of active session `actualSeconds`, excluding
+    pauses. Measurement coverage stays internal unless it falls below 90%, when
+    the UI warns that the score used measured time only.
     A selected single historical day may render on its own camera generation;
     multi-day periods still use one generation and never blend camera measurement methods.
 

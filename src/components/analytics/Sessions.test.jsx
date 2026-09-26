@@ -124,7 +124,7 @@ describe('Sessions — detail view', () => {
     const s = session({ id: 'a', extra: {
       task: 'Write docs',
       goalOutcome: 'yes',
-      deepFocusTimeVersion: 1,
+      deepFocusTimeVersion: 2,
       flowSeconds: 300,
     } })
     const html = render([s], { selectedSessionId: 'a' })

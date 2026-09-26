@@ -14,7 +14,7 @@ function fixtureSession() {
     focusedSeconds: 1500,
     avgFocusScore: 83,
     scoreMeasured: true,
-    deepFocusTimeVersion: 1,
+    deepFocusTimeVersion: 2,
     flowSeconds: 300,
     attentionScoringVersion: 1,
     attentionAccumulationVersion: 2,

@@ -18,7 +18,7 @@ beforeEach(() => {
 
 function render(sessionData) {
   return renderToString(React.createElement(EndScreen, {
-    sessionData: { id: 'sess-1', deepFocusTimeVersion: 1, flowSeconds: 300, attentionScoringVersion: 1, scoreMeasured: true, ...sessionData },
+    sessionData: { id: 'sess-1', deepFocusTimeVersion: 2, flowSeconds: 300, attentionScoringVersion: 1, scoreMeasured: true, ...sessionData },
     onOutcomeChange() {},
     onRestart() {},
     onPrimaryAction() {},

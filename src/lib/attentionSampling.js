@@ -10,13 +10,13 @@ export const ATTENTION_ACCUMULATION_VERSION = 2
 // separate ruler from `focusedSeconds` (score >= 40) and the V1 weighted
 // `deepFocusSeconds` estimate. Historical sessions without this accumulator
 // stay unknown rather than being relabelled after the fact.
-export const DEEP_FOCUS_TIME_VERSION = 1
+export const DEEP_FOCUS_TIME_VERSION = 2
 export const MAX_MEASUREMENT_SPAN_MS = 3_000
 export const FLOW_ENTRY_MS = 90_000
 // A single noisy landmark frame must not erase almost 90 seconds of valid
 // focus. Brief failures are withheld from Deep Focus time, then the gate resets
 // only when the interruption itself is sustained.
-export const FLOW_INTERRUPTION_HOLD_MS = 1_500
+export const FLOW_INTERRUPTION_HOLD_MS = 5_000
 
 export function advanceFlowGate(current = {}, sample = {}) {
   const sampleMs = Number.isFinite(sample.sampleMs) && sample.sampleMs > 0 ? sample.sampleMs : 0
@@ -81,7 +81,26 @@ export function accumulateMeasuredSpan(current = {}, sample = {}) {
   ) return null
 
   const focused = isFocusedSecond(roundedScore)
-  const deepFocused = sample.inFlow === true && sample.flowQualified === true && roundedScore >= FLOW_SCORE
+  const flowQualified = sample.flowQualified === true && roundedScore >= FLOW_SCORE
+  const wasFlowActive = current.flowActive === true
+  const candidateSeconds = nonNegative(current.flowCandidateSeconds)
+  let flowSeconds = nonNegative(current.flowSeconds)
+  let nextFlowCandidateSeconds = candidateSeconds
+  let flowActive = wasFlowActive
+  let deepFocused = false
+  if (sample.inFlow === true && flowQualified) {
+    // The 90-second entry gate is evidence that the whole uninterrupted span
+    // qualified. Credit that warm-up once, only after the gate succeeds.
+    flowSeconds += (wasFlowActive ? 0 : candidateSeconds) + sampleSeconds
+    nextFlowCandidateSeconds = 0
+    flowActive = true
+    deepFocused = true
+  } else if (sample.inFlow !== true && flowQualified) {
+    nextFlowCandidateSeconds += sampleSeconds
+  } else if (sample.inFlow !== true && sample.flowWarmupRetained !== true) {
+    nextFlowCandidateSeconds = 0
+    flowActive = false
+  }
   const goodStreakSeconds = roundedScore >= GOOD_STREAK_SCORE
     ? nonNegative(current.goodStreakSeconds) + sampleSeconds
     : 0
@@ -116,7 +135,9 @@ export function accumulateMeasuredSpan(current = {}, sample = {}) {
     measuredSeconds: nonNegative(current.measuredSeconds) + sampleSeconds,
     scoreSum: nonNegative(current.scoreSum) + roundedScore * sampleSeconds,
     focusedSeconds: nonNegative(current.focusedSeconds) + (focused ? sampleSeconds : 0),
-    flowSeconds: nonNegative(current.flowSeconds) + (deepFocused ? sampleSeconds : 0),
+    flowSeconds,
+    flowCandidateSeconds: nextFlowCandidateSeconds,
+    flowActive,
     preDriftSeconds: nonNegative(current.preDriftSeconds) + (sample.preDriftActive === true ? sampleSeconds : 0),
     currentStreak,
     longestStreak,

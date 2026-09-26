@@ -935,6 +935,8 @@ export default function SessionScreen({
   // ── Session stats refs ────────────────────────────────────────────────────
   const focusedSecondsRef    = useRef(0)
   const flowSecondsRef       = useRef(0)
+  const flowCandidateSecondsRef = useRef(0)
+  const flowActiveRef        = useRef(false)
   const measuredSecondsRef   = useRef(0)
   const scoreSumRef          = useRef(0)
   const statsSampleAtRef     = useRef(startTimeRef.current)
@@ -1116,6 +1118,8 @@ export default function SessionScreen({
     lastFrameTsRef.current = 0
     scoreLowSinceRef.current = null
     flowGateRef.current = { qualifiedMs: 0, interruptionMs: 0, inFlow: false }
+    flowCandidateSecondsRef.current = 0
+    flowActiveRef.current = false
     flowSampleObservedRef.current = false
     flowSampleQualifiedRef.current = false
     distractedSinceRef.current = null
@@ -1397,6 +1401,8 @@ export default function SessionScreen({
       scoreSum: scoreSumRef.current,
       focusedSeconds: focusedSecondsRef.current,
       flowSeconds: flowSecondsRef.current,
+      flowCandidateSeconds: flowCandidateSecondsRef.current,
+      flowActive: flowActiveRef.current,
       preDriftSeconds: preDriftSecondsRef.current,
       currentStreak: currentStreakRef.current,
       longestStreak: longestStreakRef.current,
@@ -1412,6 +1418,7 @@ export default function SessionScreen({
       preDriftActive: preDriftRiskRef.current.active,
       inFlow: inFlowRef.current,
       flowQualified: flowSampleObservedRef.current && flowSampleQualifiedRef.current,
+      flowWarmupRetained: flowGateRef.current.qualifiedMs > 0,
       timelineIntervalSeconds: SCORE_UPDATE_SECS,
       forceTimelineSample,
       activity: {
@@ -1426,6 +1433,8 @@ export default function SessionScreen({
     scoreSumRef.current = result.scoreSum
     focusedSecondsRef.current = result.focusedSeconds
     flowSecondsRef.current = result.flowSeconds
+    flowCandidateSecondsRef.current = result.flowCandidateSeconds
+    flowActiveRef.current = result.flowActive
     setDeepFocusSeconds(result.flowSeconds)
     setFlowWarmupSeconds(flowGateRef.current.qualifiedMs / 1000)
     flowSampleObservedRef.current = false
@@ -2301,16 +2310,15 @@ export default function SessionScreen({
     }
 
     // ── Flow state detection ─────────────────────────────────────────────────
-    // Conditions (science: Csikszentmihalyi 1990; fNIRS research on flow = stable gaze,
-    // low head movement, suppressed blink rate, consistent task engagement):
+    // Conditions:
     //   • Score ≥ 72 (good, not just OK)
-    //   • Low head fidget (stable gaze)
     //   • No active distraction reason
     //   • 90s of qualified frames, with brief landmark noise withheld rather
     //     than letting one frame erase the entire warm-up
+    // Head stability already contributes to the score. Requiring the same
+    // signal again here would silently double-penalize natural movement.
     const flowConditions = !trackingUncertain &&
       focusScoreRef.current >= FLOW_SCORE &&
-      fidgetVariance <= HEAD_DRIFT_THRESH * 0.5 &&
       primaryReason === 'focused'
     const nextFlowGate = advanceFlowGate(flowGateRef.current, {
       qualified: flowConditions,

@@ -263,3 +263,43 @@ as phase-weighted; it is not relabelled as literal Flow. Exact `flowSeconds`
 remains available in individual session analysis. A selected historical day is
 read on the camera generation that actually measured that day, while weekly and
 monthly calculations still refuse to combine camera generations.
+
+## Quality-only Focus Score and exact time hierarchy — 26 September 2026
+
+The earlier composite still made session length look like concentration: at the
+same attention quality, a short useful session received a much lower headline
+score than a long one. That conflated three separate questions and made the
+score unnecessarily discouraging.
+
+Focus Metric V3 is now the only user-visible Focus Score in Lab and Analytics:
+
+```text
+Focus Score V3 = sum(attention score × measured seconds) / measured seconds
+```
+
+It is average measured attention quality on the existing 0–100 scale. Duration,
+phase weights, workday consistency and Deep Focus do not enter the formula. The
+existing five-minute-per-session eligibility rule, missing-camera refusal and
+camera-generation isolation remain intact. Multi-session periods weight each
+measured second equally. V1 and V2 remain unchanged in code and storage; their
+scores and baselines are not presented as V3 history.
+
+The user-visible hierarchy is now:
+
+- **Focus Score:** measured attention quality, 0–100.
+- **Focus Time:** active session duration (`actualSeconds`), excluding pauses.
+- **Deep Focus:** exact time in sustained high-attention blocks.
+
+Measured time is a technical coverage field, not a fourth result. It becomes
+visible only as a warning when less than 90% of Focus Time was measurable; gaps
+are excluded from the score rather than filled as focus or distraction.
+
+Deep Focus time advances to version 2. The score threshold remains 72 and entry
+still requires 90 seconds, but ordinary movement is no longer required twice:
+head stability already contributes to the attention score, so the separate
+head-fidget gate was removed. The interruption hold is five seconds. A
+successful entry credits the qualified warm-up seconds retroactively; an
+abandoned warm-up earns zero, and interruption seconds never count. Historical
+version-1 exact values are retained but not relabelled. Period Deep Focus is
+shown only when every included session has a valid version-2 value, preventing
+a known subset from masquerading as the whole period.

@@ -228,3 +228,27 @@ use one generation.
   manifest is version `0.1.2609242019`, notes build 148 / `0bbaee1`, contains
   only `darwin-aarch64`, and carries the expected 440-byte signature. This
   moves the internal channel only; no public release was created.
+
+## Separate attention quality from time — 26 September 2026
+
+The active Focus Score now reports measured attention quality only. Focus Time
+reports active session duration with pauses excluded, while version-2 Deep
+Focus reports exact sustained high-attention blocks. Measured time is hidden in
+normal operation and surfaces only when coverage falls below 90%. Stored V1/V2
+derived scores and version-1 Deep Focus values remain unchanged and are not
+reinterpreted.
+
+Deep Focus now credits the qualified 90-second warm-up after successful entry,
+tolerates up to five seconds of interruption without counting the gap, and no
+longer double-requires head stability outside the attention score. A failed
+warm-up still earns nothing, and period totals remain unavailable when any
+included session lacks the new exact version.
+
+- `npm test -- --run`: **69 files, 741 tests passed**. New coverage pins the
+  duration-independent score, measured-second weighting, camera-generation and
+  minimum-duration boundaries, successful warm-up credit, failed warm-up
+  refusal, incomplete period refusal and low-coverage warning.
+- `npm run build` and `git diff --check`: passed with the existing
+  MediaPipe/non-module and chunk-size warnings.
+- No Rust source changed. Native camera behaviour and the new five-second
+  interruption boundary still require real-use confirmation on the target Mac.

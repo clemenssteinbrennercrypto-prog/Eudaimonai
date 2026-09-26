@@ -1,7 +1,9 @@
 import { FOCUSED_SCORE, FLOW_SCORE } from './attention'
 import { FOCUS_METRIC_V1, SCOREABLE_SCORING_VERSIONS, getFocusPeriodWindow } from './focusMetric'
 import { buildVersionedFocusPeriod } from './focusMetricV2'
+import { FOCUS_METRIC_V3 } from './focusMetricV3'
 import { activeFocusGeneration, focusGenerationOf } from './historyTrend'
+import { DEEP_FOCUS_TIME_VERSION } from './attentionSampling'
 import { sessionEndedAt, sessionPauseIntervals, sessionStartedAt, timelineWallSecond } from './sessionTiming'
 import { getProtectionReadiness } from './protectionReadiness'
 
@@ -79,7 +81,45 @@ function outcomeLabel(session) {
   return 'Unset'
 }
 
-export function buildDashboardData({ ledger, sessions, focusConfig, focusModeEnabled, nativeStatus, range = 'day', offset = 0, periodStart = null, now = Date.now(), metricVersion = 2, schedule }) {
+export function buildPeriodTimeSummary(sessions, period, now = Date.now()) {
+  const start = period?.start instanceof Date ? period.start.getTime() : Number.NaN
+  const end = period?.endExclusive instanceof Date ? period.endExclusive.getTime() : Number.NaN
+  const nowMs = new Date(now).getTime()
+  const selected = (Array.isArray(sessions) ? sessions : []).filter(session => {
+    const startedAt = sessionStartedAt(session)
+    return Number.isFinite(startedAt) && startedAt >= start && startedAt < end && startedAt <= nowMs
+  })
+  const validDuration = selected.filter(session => Number.isFinite(session?.actualSeconds) && session.actualSeconds >= 0)
+  const focusSeconds = validDuration.length > 0
+    ? validDuration.reduce((sum, session) => sum + session.actualSeconds, 0)
+    : null
+  const coverageKnown = validDuration.length > 0 && validDuration.length === selected.length && validDuration.every(session =>
+    Number.isFinite(session?.measuredSeconds) && session.measuredSeconds >= 0 && session.measuredSeconds <= session.actualSeconds + 1)
+  const measuredSeconds = coverageKnown
+    ? validDuration.reduce((sum, session) => sum + session.measuredSeconds, 0)
+    : null
+  const measurementCoverage = focusSeconds > 0 && measuredSeconds != null
+    ? Math.min(1, measuredSeconds / focusSeconds)
+    : null
+  const deepFocusComplete = validDuration.length > 0 && validDuration.length === selected.length && validDuration.every(session =>
+    session?.deepFocusTimeVersion === DEEP_FOCUS_TIME_VERSION &&
+    Number.isFinite(session?.flowSeconds) && session.flowSeconds >= 0 &&
+    Number.isFinite(session?.measuredSeconds) && session.flowSeconds <= session.measuredSeconds + 1)
+
+  return {
+    sessionCount: selected.length,
+    focusSeconds,
+    deepFocusSeconds: deepFocusComplete
+      ? validDuration.reduce((sum, session) => sum + session.flowSeconds, 0)
+      : null,
+    deepFocusComplete,
+    measuredSeconds,
+    measurementCoverage,
+    measurementWarning: measurementCoverage != null && measurementCoverage < 0.9,
+  }
+}
+
+export function buildDashboardData({ ledger, sessions, focusConfig, focusModeEnabled, nativeStatus, range = 'day', offset = 0, periodStart = null, now = Date.now(), metricVersion = FOCUS_METRIC_V3.version, schedule }) {
   const period = buildVersionedFocusPeriod(ledger, {
     range: ['day', 'week', 'month'].includes(range) ? range : 'day',
     offset,
@@ -119,6 +159,7 @@ export function buildDashboardData({ ledger, sessions, focusConfig, focusModeEna
 
   return {
     period,
+    time: buildPeriodTimeSummary(sessions, period, now),
     attention: buildAttentionField(sessions, { range, offset, periodStart, now }),
     protection,
     recentSessions,

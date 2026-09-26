@@ -75,7 +75,7 @@ describe('session focus measurement', () => {
   it('reports only exact forward-recorded Flow time as deep focus', () => {
     const exact = sessionAt(NOW, 80, {
       measuredSeconds: 3600,
-      deepFocusTimeVersion: 1,
+      deepFocusTimeVersion: 2,
       flowSeconds: 900,
     })
     const historical = sessionAt(NOW, 80, {
@@ -103,7 +103,7 @@ describe('session focus measurement', () => {
   it('refuses malformed exact Flow time', () => {
     const malformed = sessionAt(NOW, 80, {
       measuredSeconds: 600,
-      deepFocusTimeVersion: 1,
+      deepFocusTimeVersion: 2,
       flowSeconds: 601,
     })
     expect(sessionDeepFocusSeconds(malformed)).toBeNull()

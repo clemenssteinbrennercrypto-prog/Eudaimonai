@@ -328,6 +328,40 @@ describe('dashboard data', () => {
     expect(result.recentSessions[0]).not.toHaveProperty('durationMinutes')
   })
 
+  it('reports active time separately and refuses a partial Deep Focus subtotal', () => {
+    const startedAt = new Date(2026, 7, 25, 9).getTime()
+    const result = buildDashboardData({
+      ledger: emptyFocusLedger(),
+      sessions: [
+        { id: 'old', startedAt, actualSeconds: 600, measuredSeconds: 580, deepFocusTimeVersion: 1, flowSeconds: 300 },
+        { id: 'new', startedAt: startedAt + 700_000, actualSeconds: 300, measuredSeconds: 290, deepFocusTimeVersion: 2, flowSeconds: 120 },
+      ],
+      focusConfig: {}, focusModeEnabled: false, now: NOW,
+    })
+    expect(result.time).toMatchObject({
+      sessionCount: 2,
+      focusSeconds: 900,
+      deepFocusSeconds: null,
+      deepFocusComplete: false,
+      measuredSeconds: 870,
+      measurementWarning: false,
+    })
+  })
+
+  it('shows exact zero Deep Focus and warns only about material measurement gaps', () => {
+    const startedAt = new Date(2026, 7, 25, 9).getTime()
+    const result = buildDashboardData({
+      ledger: emptyFocusLedger(),
+      sessions: [{
+        id: 'current', startedAt, actualSeconds: 600, measuredSeconds: 400,
+        deepFocusTimeVersion: 2, flowSeconds: 0,
+      }],
+      focusConfig: {}, focusModeEnabled: false, now: NOW,
+    })
+    expect(result.time).toMatchObject({ deepFocusSeconds: 0, deepFocusComplete: true, measurementWarning: true })
+    expect(result.time.measurementCoverage).toBeCloseTo(2 / 3)
+  })
+
   it('refuses a thin session focus value even when focusedSeconds exists', () => {
     const result = buildDashboardData({
       ledger: emptyFocusLedger(),
