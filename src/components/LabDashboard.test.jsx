@@ -430,12 +430,15 @@ describe('LabDashboard metric labels', () => {
     expect(view.container).not.toHaveTextContent('Thesis intro — Word')
     expect(view.container).not.toHaveTextContent('scholar.google.com')
 
+    const field = view.container.querySelector('.attention-field')
     const measuredBar = view.container.querySelector('.attention-bin[aria-label^="Write the chapter"]')
-    fireEvent.mouseEnter(measuredBar)
-    expect(screen.getByRole('tooltip')).toHaveTextContent('SessionWrite the chapter')
+    const measuredIndex = [...field.querySelectorAll('.attention-bin')].indexOf(measuredBar)
+    vi.spyOn(field, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 960 })
+    fireEvent.mouseMove(field, { clientX: measuredIndex * 10 + 5 })
+    expect(screen.getByRole('tooltip')).toHaveTextContent('SessionWrite the chapter13:49–14:00')
     expect(screen.getByRole('tooltip')).toHaveClass('is-visible')
 
-    fireEvent.mouseLeave(view.container.querySelector('.attention-field'))
+    fireEvent.mouseLeave(field)
     expect(screen.getByRole('tooltip')).not.toHaveClass('is-visible')
   })
 })

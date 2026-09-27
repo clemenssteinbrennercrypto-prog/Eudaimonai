@@ -125,7 +125,11 @@ describe('dashboard data', () => {
       ],
     }], { range: 'day', now: NOW, bins: 24 })
 
-    expect(bins[8]).toMatchObject({ sessionName: 'Write the chapter' })
+    expect(bins[8]).toMatchObject({
+      sessionName: 'Write the chapter',
+      sessionStartedAt: start,
+      sessionEndedAt: start + 10 * 60 * 1000,
+    })
     expect(bins[8]).not.toHaveProperty('activity')
     expect(bins[8]).not.toHaveProperty('activities')
   })

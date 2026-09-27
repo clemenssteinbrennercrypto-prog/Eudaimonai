@@ -30,6 +30,16 @@ function Metric({ label, value, suffix, detail }) {
   )
 }
 
+function formatSessionTime(bin) {
+  if (!Number.isFinite(bin?.sessionStartedAt) || !Number.isFinite(bin?.sessionEndedAt)) return ''
+  const format = timestamp => new Date(timestamp).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  return `${format(bin.sessionStartedAt)}–${format(bin.sessionEndedAt)}`
+}
+
 function AttentionField({ bins, range, title }) {
   const [hoveredBinIndex, setHoveredBinIndex] = useState(null)
   const start = bins[0]?.timestamp
@@ -64,6 +74,14 @@ function AttentionField({ bins, range, title }) {
   const tooltipPosition = hoveredBin
     ? `${((hoveredBin.index + 0.5) / bins.length) * 100}%`
     : '50%'
+  const sessionTime = formatSessionTime(hoveredBin)
+  const followPointer = event => {
+    const bounds = event.currentTarget.getBoundingClientRect()
+    if (bounds.width <= 0) return
+    const position = Math.min(0.999999, Math.max(0, (event.clientX - bounds.left) / bounds.width))
+    const bin = bins[Math.floor(position * bins.length)]
+    setHoveredBinIndex(current => current === bin?.index ? current : bin?.sessionName ? bin.index : null)
+  }
 
   return (
     <div className="attention-timeline">
@@ -71,6 +89,7 @@ function AttentionField({ bins, range, title }) {
         className={`attention-field${hoveredBin?.sessionName ? ' has-hover' : ''}`}
         role="img"
         aria-label={`Attention field for ${title}`}
+        onMouseMove={followPointer}
         onMouseLeave={() => setHoveredBinIndex(null)}
       >
         {bins.map(bin => (
@@ -90,7 +109,10 @@ function AttentionField({ bins, range, title }) {
           style={{ '--attention-tooltip-x': tooltipPosition }}
         >
           <small>Session</small>
-          <strong>{hoveredBin?.sessionName || ''}</strong>
+          <span>
+            <strong>{hoveredBin?.sessionName || ''}</strong>
+            {sessionTime && <time>{sessionTime}</time>}
+          </span>
         </div>
       </div>
       <div className="attention-axis" aria-hidden="true">

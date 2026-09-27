@@ -26,7 +26,7 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
   const safeBins = Math.max(12, Math.min(160, Math.trunc(bins) || 96))
   const buckets = Array.from({ length: safeBins }, () => ({
     scores: [],
-    sessionNames: new Map(),
+    sessions: new Map(),
     active: false,
     paused: false,
   }))
@@ -49,13 +49,20 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
     const firstBin = Math.max(0, Math.floor(((sessionStartMs - start) / width) * safeBins))
     const lastBin = Math.min(safeBins - 1, Math.floor(((sessionEndMs - start) / width) * safeBins))
     const sessionName = String(session?.task || '').trim() || 'Untitled session'
+    const sessionKey = `${session?.id || sessionName}\u0000${sessionStartMs}\u0000${sessionEndMs}`
     for (let i = firstBin; i <= lastBin; i++) {
       buckets[i].active = true
       const binStart = start + (i / safeBins) * width
       const binEnd = start + ((i + 1) / safeBins) * width
       const overlapMs = Math.max(0, Math.min(sessionEndMs, binEnd) - Math.max(sessionStartMs, binStart))
       if (overlapMs > 0) {
-        buckets[i].sessionNames.set(sessionName, (buckets[i].sessionNames.get(sessionName) || 0) + overlapMs)
+        const current = buckets[i].sessions.get(sessionKey) || {
+          name: sessionName,
+          startedAt: sessionStartMs,
+          endedAt: sessionEndMs,
+          overlapMs: 0,
+        }
+        buckets[i].sessions.set(sessionKey, { ...current, overlapMs: current.overlapMs + overlapMs })
       }
     }
 
@@ -78,21 +85,26 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
 
   return buckets.map((bucket, index) => {
     const bucketStart = start + (index / safeBins) * width
-    const sessionName = [...bucket.sessionNames.entries()]
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null
-    if (bucketStart >= nowMs) return { index, timestamp: bucketStart, state: 'future', score: null, sessionName: null }
+    const session = [...bucket.sessions.values()]
+      .sort((a, b) => b.overlapMs - a.overlapMs || a.startedAt - b.startedAt || a.name.localeCompare(b.name))[0] || null
+    const sessionDetails = session
+      ? { sessionName: session.name, sessionStartedAt: session.startedAt, sessionEndedAt: session.endedAt }
+      : { sessionName: null, sessionStartedAt: null, sessionEndedAt: null }
+    if (bucketStart >= nowMs) {
+      return { index, timestamp: bucketStart, state: 'future', score: null, sessionName: null, sessionStartedAt: null, sessionEndedAt: null }
+    }
     if (bucket.scores.length === 0) {
       return {
         index,
         timestamp: bucketStart,
         state: bucket.paused ? 'paused' : bucket.active ? 'no-signal' : 'inactive',
         score: null,
-        sessionName,
+        ...sessionDetails,
       }
     }
     const score = Math.round(bucket.scores.reduce((sum, value) => sum + value, 0) / bucket.scores.length)
     const state = score >= FLOW_SCORE ? 'strong' : score >= FOCUSED_SCORE ? 'focused' : 'drift'
-    return { index, timestamp: bucketStart, state, score, sessionName }
+    return { index, timestamp: bucketStart, state, score, ...sessionDetails }
   })
 }
 

@@ -1438,7 +1438,7 @@ body {
   align-items: end;
   gap: 1px;
   padding: 5px 0 6px;
-  overflow: hidden;
+  overflow: visible;
   border-bottom: 1px solid rgba(231, 236, 255, 0.38);
   background: repeating-linear-gradient(90deg, transparent 0, transparent calc(12.5% - 1px), rgba(231, 236, 255, 0.11) 12.5%);
 }
@@ -1464,16 +1464,16 @@ body {
 .attention-bin.is-inactive { height: 10%; background: rgba(122, 152, 255, 0.1); }
 .attention-bin.is-future { height: 10%; background: rgba(122, 152, 255, 0.035); }
 
-.attention-timeline { min-width: 0; }
+.attention-timeline { min-width: 0; padding-top: 34px; }
 .attention-session-tooltip {
   position: absolute;
   z-index: 2;
-  top: 5px;
-  left: clamp(84px, var(--attention-tooltip-x), calc(100% - 84px));
+  top: -32px;
+  left: clamp(104px, var(--attention-tooltip-x), calc(100% - 104px));
   display: grid;
-  min-width: 112px;
-  max-width: 210px;
-  gap: 1px;
+  min-width: 150px;
+  max-width: 240px;
+  gap: 2px;
   overflow: hidden;
   padding: 6px 9px;
   border: 1px solid rgba(231, 236, 255, 0.18);
@@ -1482,12 +1482,14 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -3px);
-  transition: left 90ms linear, opacity var(--t-fast) var(--ease-soft), transform var(--t-fast) var(--ease-out);
+  transform: translate(-50%, 3px);
+  transition: left 140ms var(--ease-out), opacity var(--t-fast) var(--ease-soft), transform var(--t-fast) var(--ease-out);
 }
 .attention-session-tooltip.is-visible { opacity: 1; transform: translate(-50%, 0); }
 .attention-session-tooltip small { color: rgba(231, 236, 255, 0.58); font-size: 7px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-.attention-session-tooltip strong { overflow: hidden; color: #fff; font-size: 10px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.attention-session-tooltip span { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 12px; }
+.attention-session-tooltip strong { min-width: 0; overflow: hidden; color: #fff; font-size: 10px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.attention-session-tooltip time { flex: 0 0 auto; color: rgba(231, 236, 255, 0.72); font-family: var(--font-mono, var(--mono)); font-size: 8px; font-weight: 600; }
 
 .attention-axis {
   position: relative;
