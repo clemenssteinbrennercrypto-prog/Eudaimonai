@@ -24,7 +24,12 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
   const width = Math.max(1, endExclusive - start)
   const measurementEnd = Math.min(nowMs, endExclusive)
   const safeBins = Math.max(12, Math.min(160, Math.trunc(bins) || 96))
-  const buckets = Array.from({ length: safeBins }, () => ({ scores: [], active: false, paused: false }))
+  const buckets = Array.from({ length: safeBins }, () => ({
+    scores: [],
+    activities: new Map(),
+    active: false,
+    paused: false,
+  }))
   const scoreableSessions = (Array.isArray(sessions) ? sessions : []).filter(session =>
     SCOREABLE_SCORING_VERSIONS.includes(session?.attentionScoringVersion) &&
     new Date(session.timestamp ?? session.startedAt) <= windowNow)
@@ -59,18 +64,34 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
       if (pointTime < start || pointTime >= measurementEnd) continue
       const index = Math.min(safeBins - 1, Math.max(0, Math.floor(((pointTime - start) / width) * safeBins)))
       buckets[index].scores.push(point.score)
+      const activityLabel = String(point?.activity?.label || '').trim()
+      if (activityLabel && !['No activity data', 'Unknown'].includes(activityLabel)) {
+        const kind = String(point?.activity?.kind || 'unclear').trim() || 'unclear'
+        const key = `${kind}\u0000${activityLabel}`
+        const current = buckets[index].activities.get(key) || { label: activityLabel, kind, samples: 0 }
+        buckets[index].activities.set(key, { ...current, samples: current.samples + 1 })
+      }
     }
   }
 
   return buckets.map((bucket, index) => {
     const bucketStart = start + (index / safeBins) * width
-    if (bucketStart >= nowMs) return { index, timestamp: bucketStart, state: 'future', score: null }
+    const activities = [...bucket.activities.values()].sort((a, b) => b.samples - a.samples || a.label.localeCompare(b.label))
+    const activity = activities[0] || null
+    if (bucketStart >= nowMs) return { index, timestamp: bucketStart, state: 'future', score: null, activity: null, activities: [] }
     if (bucket.scores.length === 0) {
-      return { index, timestamp: bucketStart, state: bucket.paused ? 'paused' : bucket.active ? 'no-signal' : 'inactive', score: null }
+      return {
+        index,
+        timestamp: bucketStart,
+        state: bucket.paused ? 'paused' : bucket.active ? 'no-signal' : 'inactive',
+        score: null,
+        activity,
+        activities,
+      }
     }
     const score = Math.round(bucket.scores.reduce((sum, value) => sum + value, 0) / bucket.scores.length)
     const state = score >= FLOW_SCORE ? 'strong' : score >= FOCUSED_SCORE ? 'focused' : 'drift'
-    return { index, timestamp: bucketStart, state, score }
+    return { index, timestamp: bucketStart, state, score, activity, activities }
   })
 }
 

@@ -345,4 +345,39 @@ describe('LabDashboard metric labels', () => {
     expect(html).not.toContain('Measured focus')
     expect(html).not.toContain('78 focus')
   })
+
+  it('shows locally recorded activity names in the attention timeline', () => {
+    const startedAt = Date.now() - 620_000
+    const saved = saveSession({
+      task: 'Write the chapter',
+      startedAt,
+      timestamp: startedAt + 620_000,
+      actualSeconds: 620,
+      measuredSeconds: 600,
+      scoreSum: 46_800,
+      focusedSeconds: 480,
+      attentionScoringVersion: NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
+      attentionMeasurementSource: NATIVE_CAMERA_MEASUREMENT_V2.id,
+      focusMetricVersion: FOCUS_METRIC_V1.version,
+      focusMetricRejection: null,
+      sessionEfficiency: 78,
+      timeline: [
+        { second: 30, score: 82, activity: { kind: 'aligned', label: 'Thesis intro — Word' } },
+        { second: 300, score: 55, activity: { kind: 'supportive', label: 'scholar.google.com' } },
+      ],
+    })
+
+    render(React.createElement(LabDashboard, {
+      focusModeEnabled: false,
+      sessions: [saved],
+      ledger: loadFocusLedger(),
+      onSession() {},
+      onProtection() {},
+      onAnalytics() {},
+    }))
+
+    expect(screen.getByLabelText('Recorded activities on the timeline')).toHaveTextContent('scholar.google.com')
+    expect(screen.getByLabelText('Activities in this period')).toHaveTextContent('Thesis intro — Word')
+    expect(screen.getByLabelText('Activities in this period')).toHaveTextContent('scholar.google.com')
+  })
 })

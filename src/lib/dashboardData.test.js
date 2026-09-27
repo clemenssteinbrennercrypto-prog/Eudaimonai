@@ -60,6 +60,28 @@ describe('dashboard data', () => {
     expect(bins[10]).toMatchObject({ state: 'drift', score: 22 })
   })
 
+  it('keeps measured activity names with their attention bins', () => {
+    const start = new Date(2026, 7, 25, 8, 0, 0).getTime()
+    const bins = buildAttentionField([{
+      startedAt: start,
+      timestamp: start + 10 * 60 * 1000,
+      actualSeconds: 10 * 60,
+      attentionScoringVersion: NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
+      timeline: [
+        { second: 60, score: 82, activity: { kind: 'aligned', label: 'Thesis intro — Word' } },
+        { second: 120, score: 78, activity: { kind: 'aligned', label: 'Thesis intro — Word' } },
+        { second: 180, score: 76, activity: { kind: 'supportive', label: 'scholar.google.com' } },
+        { second: 240, score: 75, activity: { kind: 'unclear', label: 'No activity data' } },
+      ],
+    }], { range: 'day', now: NOW, bins: 24 })
+
+    expect(bins[8].activity).toEqual({ kind: 'aligned', label: 'Thesis intro — Word', samples: 2 })
+    expect(bins[8].activities).toEqual([
+      { kind: 'aligned', label: 'Thesis intro — Word', samples: 2 },
+      { kind: 'supportive', label: 'scholar.google.com', samples: 1 },
+    ])
+  })
+
   it('keeps resumed work at its wall-clock time and marks the pause separately', () => {
     const startedAt = new Date(2026, 7, 25, 14, 0, 0).getTime()
     const endedAt = new Date(2026, 7, 25, 18, 0, 0).getTime()

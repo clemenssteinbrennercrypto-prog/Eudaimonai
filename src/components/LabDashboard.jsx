@@ -30,6 +30,43 @@ function Metric({ label, value, suffix, detail }) {
   )
 }
 
+const ACTIVITY_KIND_LABELS = {
+  aligned: 'On task',
+  supportive: 'Supporting',
+  off_goal: 'Off task',
+  distraction: 'Distraction',
+  blocked: 'Blocked',
+  unclear: 'Unclassified',
+}
+
+function buildActivityDisplay(bins) {
+  const totals = new Map()
+  const segments = []
+
+  bins.forEach((bin, index) => {
+    for (const activity of bin.activities || []) {
+      const key = `${activity.kind}\u0000${activity.label}`
+      const current = totals.get(key) || { ...activity, samples: 0 }
+      totals.set(key, { ...current, samples: current.samples + activity.samples })
+    }
+
+    if (!bin.activity) return
+    const previous = segments.at(-1)
+    if (previous && previous.label === bin.activity.label && previous.kind === bin.activity.kind && previous.end === index) {
+      previous.end = index + 1
+      return
+    }
+    segments.push({ ...bin.activity, start: index, end: index + 1 })
+  })
+
+  return {
+    segments,
+    activities: [...totals.values()]
+      .sort((a, b) => b.samples - a.samples || a.label.localeCompare(b.label))
+      .slice(0, 5),
+  }
+}
+
 function AttentionField({ bins, range, title }) {
   const start = bins[0]?.timestamp
   const interval = bins.length > 1 ? bins[1].timestamp - start : 0
@@ -59,18 +96,39 @@ function AttentionField({ bins, range, title }) {
         timestamp: start + ((end - start) * index) / (tickCount - 1),
       }))
     : []
+  const activityDisplay = buildActivityDisplay(bins)
 
   return (
     <div className="attention-timeline">
-      <div className="attention-field" role="img" aria-label={`Attention field for ${title}`}>
-        {bins.map(bin => (
-          <i
-            key={bin.index}
-            className={`attention-bin is-${bin.state}`}
-            style={{ '--attention-height': bin.score == null ? '18%' : `${Math.max(18, bin.score)}%` }}
-            title={bin.score == null ? bin.state : `Focus ${bin.score}`}
-          />
-        ))}
+      <div className="attention-plot">
+        <div className="attention-field" role="img" aria-label={`Attention field for ${title}`}>
+          {bins.map(bin => (
+            <i
+              key={bin.index}
+              className={`attention-bin is-${bin.state}`}
+              style={{ '--attention-height': bin.score == null ? '18%' : `${Math.max(18, bin.score)}%` }}
+              title={bin.score == null ? bin.state : `Focus ${bin.score}${bin.activity ? ` · ${bin.activity.label}` : ''}`}
+            />
+          ))}
+        </div>
+        {activityDisplay.segments.length > 0 && (
+          <div className="attention-activity-track" role="list" aria-label="Recorded activities on the timeline">
+            {activityDisplay.segments.map(segment => (
+              <span
+                key={`${segment.start}-${segment.kind}-${segment.label}`}
+                role="listitem"
+                className={`is-${segment.kind}`}
+                style={{
+                  left: `${(segment.start / bins.length) * 100}%`,
+                  width: `${((segment.end - segment.start) / bins.length) * 100}%`,
+                }}
+                title={`${segment.label} · ${ACTIVITY_KIND_LABELS[segment.kind] || 'Activity'}`}
+              >
+                <b>{segment.label}</b>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="attention-axis" aria-hidden="true">
         {ticks.map((tick, index) => (
@@ -79,6 +137,17 @@ function AttentionField({ bins, range, title }) {
           </span>
         ))}
       </div>
+      {activityDisplay.activities.length > 0 && (
+        <div className="attention-activity-list" aria-label="Activities in this period">
+          <small>Activities</small>
+          {activityDisplay.activities.map(activity => (
+            <span key={`${activity.kind}-${activity.label}`} className={`is-${activity.kind}`} title={activity.label}>
+              <i aria-hidden="true" />
+              <b>{activity.label}</b>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -188,7 +257,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
         <AttentionField bins={data.attention} range={periodSelection.range} title={period.title} />
         {!hasAttentionSignal && <p className="attention-empty">Complete a measured session to reveal your attention field.</p>}
         <div className="attention-legend">
-          <span className="is-strong">Strong</span><span className="is-focused">Focused</span><span className="is-drift">Drift</span><span className="is-paused">Break</span><span className="is-no-signal">No signal</span><span className="is-inactive">Inactive</span><span className="is-future">Future</span>
+          <span className="is-strong">Strong</span><span className="is-focused">Focused</span><span className="is-drift">Drift</span><span className="is-paused">Break</span><span className="is-no-signal">No signal</span>
         </div>
       </section>
 
