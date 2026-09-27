@@ -26,9 +26,9 @@ export default function FocusScoreExplanation({ period, time = null }) {
   const scoreMeasuredSeconds = period.score != null && Number.isFinite(period.measuredSeconds)
     ? period.measuredSeconds
     : null
-  const totalMeasuredSeconds = Number.isFinite(time?.measuredSeconds) ? time.measuredSeconds : null
-  const scoreUsesPartialMeasuredTime = scoreMeasuredSeconds != null && totalMeasuredSeconds != null &&
-    totalMeasuredSeconds > scoreMeasuredSeconds + 1
+  const totalFocusSeconds = Number.isFinite(time?.focusSeconds) ? time.focusSeconds : null
+  const scoreUsesPartialFocusTime = scoreMeasuredSeconds != null && totalFocusSeconds != null &&
+    totalFocusSeconds > scoreMeasuredSeconds + 60
 
   return (
     <div className="focus-score-explanation">
@@ -39,11 +39,14 @@ export default function FocusScoreExplanation({ period, time = null }) {
       {period.range !== 'day' && period.score != null && (
         <p>This period is scored against {period.referenceWorkdays === 1 ? 'one weekday' : `${period.referenceWorkdays} weekdays`} so far. Weekend work still counts.</p>
       )}
-      {scoreUsesPartialMeasuredTime && (
-        <p>Focus Score uses {formatMinutes(scoreMeasuredSeconds / 60)} of {formatMinutes(totalMeasuredSeconds / 60)} measured time. Earlier or differently measured sessions remain in Focus Time but are not mixed into this score.</p>
+      {scoreUsesPartialFocusTime && (
+        <p>Focus Score uses {formatMinutes(scoreMeasuredSeconds / 60)} of {formatMinutes(totalFocusSeconds / 60)} Focus Time. Only qualifying measured time enters the score; other active time remains visible and is not guessed.</p>
       )}
       {time?.measurementWarning && (
         <p>Only {Math.round(time.measurementCoverage * 100)}% of Focus Time could be measured. Focus Score uses the measured time only; missing camera data is not guessed.</p>
+      )}
+      {time?.measurementCoverageUnknown && (
+        <p>Camera coverage is unavailable for part of this Focus Time because some earlier sessions did not store it.</p>
       )}
       <details>
         <summary>How this score works</summary>

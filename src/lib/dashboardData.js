@@ -154,6 +154,7 @@ export function buildPeriodTimeSummary(sessions, period, now = Date.now()) {
     measuredSeconds,
     measurementCoverage,
     measurementWarning: measurementCoverage != null && measurementCoverage < 0.9,
+    measurementCoverageUnknown: focusSeconds > 0 && measuredSeconds == null,
   }
 }
 

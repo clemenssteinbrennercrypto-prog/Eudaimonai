@@ -135,6 +135,22 @@ describe('Analytics Details', () => {
     expect(screen.getByText('2 plotted · 1 excluded')).toBeTruthy()
   })
 
+  it('keeps close-in-time sessions separately clickable and lets only plotted sessions set the time axis', () => {
+    const first = new Date(2026, 8, 1, 10).getTime()
+    renderExplorer([
+      session(1, { timestamp: first }),
+      session(2, { timestamp: first + 60_000 }),
+      session(3, { timestamp: first + 10 * 86400000, actualSeconds: 5 * 60, measuredSeconds: 5 * 60 }),
+    ])
+
+    const marks = [...document.querySelectorAll('.analytics-focus-point-mark')]
+    expect(marks).toHaveLength(2)
+    expect(Number(marks[1].getAttribute('cx')) - Number(marks[0].getAttribute('cx'))).toBeGreaterThanOrEqual(32)
+    expect(Number(marks[0].getAttribute('cx'))).toBe(58)
+    expect(Number(marks[1].getAttribute('cx'))).toBe(976)
+    expect(screen.getAllByText(/Sep 1 ·/)).toHaveLength(3)
+  })
+
   it('shows earlier measurement history as a separate series instead of dropping it or joining the rulers', () => {
     renderExplorer([
       session(1, { timestamp: new Date(2026, 6, 20).getTime(), attentionScoringVersion: 1 }),
@@ -193,6 +209,26 @@ describe('Analytics Details', () => {
     expect(within(plot).getByText('180m')).toBeTruthy()
     expect(within(plot).queryByText('195m')).toBeNull()
     expect(within(plot).queryByText('210m')).toBeNull()
+  })
+
+  it('keeps a robust duration trend inside the plotted attention axis', () => {
+    const attention = [96, 91, 89, 85, 82, 77, 74, 70]
+    renderExplorer(attention.map((average, index) => {
+      const actualSeconds = (index + 1) * 15 * 60
+      return session(index, {
+        actualSeconds,
+        measuredSeconds: actualSeconds,
+        focusedSeconds: 0,
+        scoreSum: average * actualSeconds,
+        avgFocusScore: average,
+      })
+    }))
+
+    const trend = document.querySelector('.analytics-duration-trend')
+    expect(Number(trend.getAttribute('y1'))).toBeGreaterThanOrEqual(26)
+    expect(Number(trend.getAttribute('y1'))).toBeLessThanOrEqual(154)
+    expect(Number(trend.getAttribute('y2'))).toBeGreaterThanOrEqual(26)
+    expect(Number(trend.getAttribute('y2'))).toBeLessThanOrEqual(154)
   })
 
   it('uses the newest stored name for a renamed workspace filter', () => {

@@ -30,14 +30,17 @@ function Metric({ label, value, suffix, detail }) {
   )
 }
 
-function formatSessionTime(bin) {
+function formatSessionTime(bin, range) {
   if (!Number.isFinite(bin?.sessionStartedAt) || !Number.isFinite(bin?.sessionEndedAt)) return ''
-  const format = timestamp => new Date(timestamp).toLocaleTimeString([], {
+  const formatTime = timestamp => new Date(timestamp).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   })
-  return `${format(bin.sessionStartedAt)}–${format(bin.sessionEndedAt)}`
+  const time = `${formatTime(bin.sessionStartedAt)}–${formatTime(bin.sessionEndedAt)}`
+  if (range === 'day') return time
+  const date = new Date(bin.sessionStartedAt).toLocaleDateString([], { day: '2-digit', month: 'short' })
+  return `${date} · ${time}`
 }
 
 function AttentionField({ bins, range, title }) {
@@ -74,7 +77,7 @@ function AttentionField({ bins, range, title }) {
   const tooltipPosition = hoveredBin
     ? `${((hoveredBin.index + 0.5) / bins.length) * 100}%`
     : '50%'
-  const sessionTime = formatSessionTime(hoveredBin)
+  const sessionTime = formatSessionTime(hoveredBin, range)
   const followPointer = event => {
     const bounds = event.currentTarget.getBoundingClientRect()
     if (bounds.width <= 0) return
@@ -86,23 +89,26 @@ function AttentionField({ bins, range, title }) {
   return (
     <div className="attention-timeline">
       <div
-        className={`attention-field${hoveredBin?.sessionName ? ' has-hover' : ''}`}
-        role="img"
-        aria-label={`Attention field for ${title}`}
+        className="attention-field-frame"
         onMouseMove={followPointer}
         onMouseLeave={() => setHoveredBinIndex(null)}
       >
-        {bins.map(bin => (
-          <i
-            key={bin.index}
-            className={`attention-bin is-${bin.state}${hoveredBinIndex === bin.index ? ' is-hovered' : ''}`}
-            style={{ '--attention-height': bin.score == null ? '18%' : `${Math.max(18, bin.score)}%` }}
-            aria-label={bin.sessionName
-              ? `${bin.sessionName} · ${bin.score == null ? bin.state : `Focus ${bin.score}`}`
-              : bin.score == null ? bin.state : `Focus ${bin.score}`}
-            onMouseEnter={() => setHoveredBinIndex(bin.sessionName ? bin.index : null)}
-          />
-        ))}
+        <div
+          className={`attention-field${hoveredBin?.sessionName ? ' has-hover' : ''}`}
+          role="img"
+          aria-label={`Attention field for ${title}`}
+        >
+          {bins.map(bin => (
+            <i
+              key={bin.index}
+              className={`attention-bin is-${bin.state}${hoveredBinIndex === bin.index ? ' is-hovered' : ''}`}
+              style={{ '--attention-height': bin.score == null ? '18%' : `${Math.max(18, bin.score)}%` }}
+              aria-label={bin.sessionName
+                ? `${bin.sessionName} · ${bin.score == null ? bin.state : `Focus ${bin.score}`}`
+                : bin.score == null ? bin.state : `Focus ${bin.score}`}
+            />
+          ))}
+        </div>
         <div
           className={`attention-session-tooltip${hoveredBin?.sessionName ? ' is-visible' : ''}`}
           role="tooltip"

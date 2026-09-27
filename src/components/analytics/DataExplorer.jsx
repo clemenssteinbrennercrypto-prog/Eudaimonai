@@ -41,6 +41,45 @@ function fmtDate(timestamp) {
   return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function fmtFocusTick(timestamp, includeTime) {
+  const date = new Date(timestamp)
+  const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  if (!includeTime) return day
+  const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${day} · ${time}`
+}
+
+function spreadFocusPoints(rows, positionFor) {
+  if (rows.length < 2) return rows.map(row => ({ ...row, plotX: positionFor(row.timestamp) }))
+  const left = 58
+  const right = 976
+  const minimumSpacing = Math.min(32, (right - left) / (rows.length - 1))
+  const positions = rows.map(row => positionFor(row.timestamp))
+
+  for (let index = 1; index < positions.length; index += 1) {
+    positions[index] = Math.max(positions[index], positions[index - 1] + minimumSpacing)
+  }
+  if (positions.at(-1) > right) {
+    positions[positions.length - 1] = right
+    for (let index = positions.length - 2; index >= 0; index -= 1) {
+      positions[index] = Math.min(positions[index], positions[index + 1] - minimumSpacing)
+    }
+  }
+  if (positions[0] < left) {
+    positions[0] = left
+    for (let index = 1; index < positions.length; index += 1) {
+      positions[index] = Math.max(positions[index], positions[index - 1] + minimumSpacing)
+    }
+  }
+
+  return rows.map((row, index) => ({ ...row, plotX: positions[index] }))
+}
+
+function durationTickStep(axisMin, axisMax) {
+  const rawStep = (axisMax - axisMin) / 9
+  return [20, 30, 60, 120, 240, 480, 960].find(step => step >= rawStep) || Math.ceil(rawStep / 960) * 960
+}
+
 function sessionLabel(count) {
   return `${count} ${count === 1 ? 'session' : 'sessions'}`
 }
@@ -116,26 +155,28 @@ function FocusTrend({ rows, onSelect }) {
   const scoreableCount = plotted.length
   if (scoreableCount === 0) return <p className="analytics-details-empty">No sessions with at least 10 minutes of reliable measurement match these filters.</p>
 
-  const timestamps = rows.map(row => row.timestamp).filter(Number.isFinite)
+  const timestamps = plotted.map(row => row.timestamp)
   const firstTimestamp = Math.min(...timestamps)
   const lastTimestamp = Math.max(...timestamps)
   const x = timestamp => firstTimestamp === lastTimestamp
     ? 510
     : 58 + ((timestamp - firstTimestamp) / (lastTimestamp - firstTimestamp)) * 918
   const y = value => 200 - value * 1.72
+  const plotPoints = spreadFocusPoints(plotted, x)
   const series = new Map()
-  plotted.forEach(row => {
+  plotPoints.forEach(row => {
     if (!series.has(row.generation)) series.set(row.generation, [])
     series.get(row.generation).push(row)
   })
   const hasEarlierGeneration = plotted.some(row => !row.currentGeneration)
-  const generationBreaks = plotted.flatMap((row, index) => {
-    if (index === 0 || row.generation === plotted[index - 1].generation) return []
-    return [(x(plotted[index - 1].timestamp) + x(row.timestamp)) / 2]
+  const generationBreaks = plotPoints.flatMap((row, index) => {
+    if (index === 0 || row.generation === plotPoints[index - 1].generation) return []
+    return [(plotPoints[index - 1].plotX + row.plotX) / 2]
   })
   const dateTicks = firstTimestamp === lastTimestamp
     ? [firstTimestamp]
     : [firstTimestamp, firstTimestamp + (lastTimestamp - firstTimestamp) / 2, lastTimestamp]
+  const oneCalendarDay = new Date(firstTimestamp).toDateString() === new Date(lastTimestamp).toDateString()
 
   return (
     <>
@@ -155,7 +196,7 @@ function FocusTrend({ rows, onSelect }) {
           <path
             key={generation}
             className={items[0]?.currentGeneration ? 'is-current-generation' : 'is-earlier-generation'}
-            d={items.map((item, pointIndex) => `${pointIndex ? 'L' : 'M'} ${x(item.timestamp)} ${y(item.averageAttention)}`).join(' ')}
+            d={items.map((item, pointIndex) => `${pointIndex ? 'L' : 'M'} ${item.plotX} ${y(item.averageAttention)}`).join(' ')}
           />
         ))}
         {generationBreaks.map(position => (
@@ -164,11 +205,11 @@ function FocusTrend({ rows, onSelect }) {
             <text x={position + 7} y="28">METHOD CHANGE</text>
           </g>
         ))}
-        {plotted.map(point => (
-          <FocusPoint key={point.id} point={point} cx={x(point.timestamp)} cy={y(point.averageAttention)} onSelect={onSelect} />
+        {plotPoints.map(point => (
+          <FocusPoint key={point.id} point={point} cx={point.plotX} cy={y(point.averageAttention)} onSelect={onSelect} />
         ))}
         {dateTicks.map((timestamp, index) => (
-          <text key={timestamp} x={x(timestamp)} y="230" textAnchor={index === 0 ? 'start' : index === dateTicks.length - 1 ? 'end' : 'middle'}>{fmtDate(timestamp)}</text>
+          <text key={`${timestamp}:${index}`} x={x(timestamp)} y="230" textAnchor={index === 0 ? 'start' : index === dateTicks.length - 1 ? 'end' : 'middle'}>{fmtFocusTick(timestamp, oneCalendarDay)}</text>
         ))}
       </svg>
     </>
@@ -270,9 +311,13 @@ function DurationPoint({ sessions, cx, cy, onSelect }) {
 function DurationPlot({ rows, analysis, onSelect }) {
   const axisMin = 10
   const observedMax = Math.max(axisMin, ...rows.map(row => row.durationMinutes))
-  const tickStep = observedMax > 180 ? 60 : observedMax > 90 ? 30 : 20
   const axisMax = Math.max(30, Math.ceil(observedMax / 15) * 15 + (observedMax > 90 ? 15 : 0))
-  const lowestAttention = Math.min(...rows.map(row => row.averageAttention))
+  const trend = analysis.trend
+  const tickStep = durationTickStep(axisMin, axisMax)
+  const lowestAttention = Math.min(
+    ...rows.map(row => row.averageAttention),
+    ...(trend ? [trend.startAttention, trend.endAttention] : []),
+  )
   const attentionMin = Math.max(0, Math.floor((lowestAttention - 10) / 25) * 25)
   const attentionTicks = Array.from({ length: Math.floor((100 - attentionMin) / 25) + 1 }, (_, index) => attentionMin + index * 25)
   const x = value => 58 + ((value - axisMin) / (axisMax - axisMin)) * 918
@@ -289,7 +334,6 @@ function DurationPlot({ rows, analysis, onSelect }) {
   }
   const clusters = [...grouped.values()]
   const medianReady = analysis.count >= 3
-  const trend = analysis.trend
   const signedTrend = trend == null
     ? null
     : `${trend.pointsPer30Minutes > 0 ? '+' : ''}${trend.pointsPer30Minutes}`
