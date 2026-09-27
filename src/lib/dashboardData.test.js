@@ -77,9 +77,10 @@ describe('dashboard data', () => {
     expect(bins[10]).toMatchObject({ state: 'drift', score: 22 })
   })
 
-  it('keeps measured activity names with their attention bins', () => {
+  it('keeps the session name with its bars without exposing exact activities', () => {
     const start = new Date(2026, 7, 25, 8, 0, 0).getTime()
     const bins = buildAttentionField([{
+      task: 'Write the chapter',
       startedAt: start,
       timestamp: start + 10 * 60 * 1000,
       actualSeconds: 10 * 60,
@@ -92,11 +93,9 @@ describe('dashboard data', () => {
       ],
     }], { range: 'day', now: NOW, bins: 24 })
 
-    expect(bins[8].activity).toEqual({ kind: 'aligned', label: 'Thesis intro — Word', samples: 2 })
-    expect(bins[8].activities).toEqual([
-      { kind: 'aligned', label: 'Thesis intro — Word', samples: 2 },
-      { kind: 'supportive', label: 'scholar.google.com', samples: 1 },
-    ])
+    expect(bins[8]).toMatchObject({ sessionName: 'Write the chapter' })
+    expect(bins[8]).not.toHaveProperty('activity')
+    expect(bins[8]).not.toHaveProperty('activities')
   })
 
   it('keeps resumed work at its wall-clock time and marks the pause separately', () => {

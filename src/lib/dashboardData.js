@@ -26,7 +26,7 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
   const safeBins = Math.max(12, Math.min(160, Math.trunc(bins) || 96))
   const buckets = Array.from({ length: safeBins }, () => ({
     scores: [],
-    activities: new Map(),
+    sessionNames: new Map(),
     active: false,
     paused: false,
   }))
@@ -48,7 +48,16 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
 
     const firstBin = Math.max(0, Math.floor(((sessionStartMs - start) / width) * safeBins))
     const lastBin = Math.min(safeBins - 1, Math.floor(((sessionEndMs - start) / width) * safeBins))
-    for (let i = firstBin; i <= lastBin; i++) buckets[i].active = true
+    const sessionName = String(session?.task || '').trim() || 'Untitled session'
+    for (let i = firstBin; i <= lastBin; i++) {
+      buckets[i].active = true
+      const binStart = start + (i / safeBins) * width
+      const binEnd = start + ((i + 1) / safeBins) * width
+      const overlapMs = Math.max(0, Math.min(sessionEndMs, binEnd) - Math.max(sessionStartMs, binStart))
+      if (overlapMs > 0) {
+        buckets[i].sessionNames.set(sessionName, (buckets[i].sessionNames.get(sessionName) || 0) + overlapMs)
+      }
+    }
 
     for (const pause of sessionPauseIntervals(session)) {
       for (let i = firstBin; i <= lastBin; i++) {
@@ -64,34 +73,26 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
       if (pointTime < start || pointTime >= measurementEnd) continue
       const index = Math.min(safeBins - 1, Math.max(0, Math.floor(((pointTime - start) / width) * safeBins)))
       buckets[index].scores.push(point.score)
-      const activityLabel = String(point?.activity?.label || '').trim()
-      if (activityLabel && !['No activity data', 'Unknown'].includes(activityLabel)) {
-        const kind = String(point?.activity?.kind || 'unclear').trim() || 'unclear'
-        const key = `${kind}\u0000${activityLabel}`
-        const current = buckets[index].activities.get(key) || { label: activityLabel, kind, samples: 0 }
-        buckets[index].activities.set(key, { ...current, samples: current.samples + 1 })
-      }
     }
   }
 
   return buckets.map((bucket, index) => {
     const bucketStart = start + (index / safeBins) * width
-    const activities = [...bucket.activities.values()].sort((a, b) => b.samples - a.samples || a.label.localeCompare(b.label))
-    const activity = activities[0] || null
-    if (bucketStart >= nowMs) return { index, timestamp: bucketStart, state: 'future', score: null, activity: null, activities: [] }
+    const sessionName = [...bucket.sessionNames.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null
+    if (bucketStart >= nowMs) return { index, timestamp: bucketStart, state: 'future', score: null, sessionName: null }
     if (bucket.scores.length === 0) {
       return {
         index,
         timestamp: bucketStart,
         state: bucket.paused ? 'paused' : bucket.active ? 'no-signal' : 'inactive',
         score: null,
-        activity,
-        activities,
+        sessionName,
       }
     }
     const score = Math.round(bucket.scores.reduce((sum, value) => sum + value, 0) / bucket.scores.length)
     const state = score >= FLOW_SCORE ? 'strong' : score >= FOCUSED_SCORE ? 'focused' : 'drift'
-    return { index, timestamp: bucketStart, state, score, activity, activities }
+    return { index, timestamp: bucketStart, state, score, sessionName }
   })
 }
 

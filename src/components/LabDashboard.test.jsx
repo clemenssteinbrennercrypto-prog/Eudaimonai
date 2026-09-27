@@ -276,7 +276,7 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByRole('img', { name: 'Attention field for Wednesday, Aug 26, 2026' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Show next day' })).toHaveAttribute('aria-disabled', 'false')
     expect(view.container.querySelectorAll('.attention-field .is-future')).toHaveLength(0)
-    expect(view.container.querySelector('.attention-field .is-strong')).toHaveAttribute('title', 'Focus 82')
+    expect(view.container.querySelector('.attention-field .is-strong')).toHaveAttribute('aria-label', 'Later that day · Focus 82')
     expect(view.container.querySelector('.lab-score > strong')).not.toHaveTextContent('—')
 
     fireEvent.click(screen.getByRole('button', { name: 'Show next day' }))
@@ -317,7 +317,7 @@ describe('LabDashboard metric labels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show previous month' }))
     expect(screen.getByRole('img', { name: 'Attention field for July 2026' })).toBeInTheDocument()
     expect(view.container.querySelector('.lab-score > strong')).not.toHaveTextContent('—')
-    expect(view.container.querySelector('.attention-field .is-strong')).toHaveAttribute('title', 'Focus 82')
+    expect(view.container.querySelector('.attention-field .is-strong')).toHaveAttribute('aria-label', 'Historical measured work · Focus 82')
     expect(screen.getByText('Focus time').parentElement).toHaveTextContent('10m 20s')
   })
 
@@ -389,13 +389,13 @@ describe('LabDashboard metric labels', () => {
     expect(html).toContain('Active session time · breaks excluded')
     expect(html).not.toContain('Time credit')
     expect(html).not.toContain('78% efficiency')
-    expect(html).toContain('title="Focus 53"')
+    expect(html).toContain('aria-label="Measured work · Focus 53"')
     expect(html).not.toContain('Complete a measured session to reveal your attention field.')
     expect(html).not.toContain('Measured focus')
     expect(html).not.toContain('78 focus')
   })
 
-  it('shows locally recorded activity names in the attention timeline', () => {
+  it('reveals the session name on hover without showing exact activity names', () => {
     const startedAt = Date.now() - 620_000
     const saved = saveSession({
       task: 'Write the chapter',
@@ -416,7 +416,7 @@ describe('LabDashboard metric labels', () => {
       ],
     })
 
-    render(React.createElement(LabDashboard, {
+    const view = render(React.createElement(LabDashboard, {
       focusModeEnabled: false,
       sessions: [saved],
       ledger: loadFocusLedger(),
@@ -425,8 +425,15 @@ describe('LabDashboard metric labels', () => {
       onAnalytics() {},
     }))
 
-    expect(screen.getByLabelText('Recorded activities on the timeline')).toHaveTextContent('scholar.google.com')
-    expect(screen.getByLabelText('Activities in this period')).toHaveTextContent('Thesis intro — Word')
-    expect(screen.getByLabelText('Activities in this period')).toHaveTextContent('scholar.google.com')
+    expect(view.container).not.toHaveTextContent('Thesis intro — Word')
+    expect(view.container).not.toHaveTextContent('scholar.google.com')
+
+    const measuredBar = view.container.querySelector('.attention-bin[aria-label^="Write the chapter"]')
+    fireEvent.mouseEnter(measuredBar)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('SessionWrite the chapter')
+    expect(screen.getByRole('tooltip')).toHaveClass('is-visible')
+
+    fireEvent.mouseLeave(view.container.querySelector('.attention-field'))
+    expect(screen.getByRole('tooltip')).not.toHaveClass('is-visible')
   })
 })
