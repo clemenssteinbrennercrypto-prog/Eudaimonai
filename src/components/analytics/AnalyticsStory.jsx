@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { buildAnalyticsStory } from '../../lib/analyticsModel'
+import { useMemo, useState } from 'react'
+import { buildAnalyticsStory, buildOverviewSnapshot } from '../../lib/analyticsModel'
 import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
 import Sessions from './Sessions'
 
@@ -11,11 +11,6 @@ const OUTCOMES = [
 
 function fmtDate(timestamp) {
   return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function signed(value, suffix = '') {
-  if (value == null) return '—'
-  return `${value > 0 ? '+' : ''}${value}${suffix}`
 }
 
 function OutcomeInbox({ sessions, onRate }) {
@@ -63,68 +58,52 @@ function OutcomeInbox({ sessions, onRate }) {
   )
 }
 
-function RecentOverview({ progress, learning }) {
-  const current = progress.current
-  const remaining = Math.max(0, learning.requiredForComparison - learning.qualified)
+const OVERVIEW_RANGE_OPTIONS = [
+  { value: 'all', label: 'All time' },
+  { value: 'month', label: '30 days' },
+  { value: 'week', label: '7 days' },
+]
 
-  if (current.sessionCount === 0) {
-    return (
-      <section className="analytics-panel analytics-overview" aria-labelledby="recent-overview-heading">
-        <div className="analytics-section-heading">
-          <div>
-            <span className="analytics-kicker">Overview</span>
-            <h2 id="recent-overview-heading">No measured sessions yet</h2>
-          </div>
-          <b>Nothing inferred</b>
-        </div>
-        <p className="analytics-copy">Complete a measured session to see recent attention, measured work time, and goal results here.</p>
-      </section>
-    )
-  }
+function RecentOverview({ sessions }) {
+  const [range, setRange] = useState('month')
+  const snapshot = useMemo(() => buildOverviewSnapshot(sessions, range), [sessions, range])
+  const focusTime = snapshot.focusSeconds > 0 ? fmtDuration(snapshot.focusSeconds) : '0m'
 
   return (
     <section className="analytics-panel analytics-overview" aria-labelledby="recent-overview-heading">
       <div className="analytics-section-heading">
         <div>
           <span className="analytics-kicker">Overview</span>
-          <h2 id="recent-overview-heading">Your latest {current.sessionCount} {current.sessionCount === 1 ? 'session' : 'sessions'}</h2>
+          <h2 id="recent-overview-heading">Focus at a glance</h2>
         </div>
-        <b>Up to 8 recent sessions</b>
+        <div className="analytics-overview-range" aria-label="Overview range">
+          {OVERVIEW_RANGE_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              type="button"
+              className={range === option.value ? 'is-active' : ''}
+              aria-pressed={range === option.value}
+              onClick={() => setRange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="analytics-comparison-grid">
-        <div className="analytics-comparison-metric">
+      <div className="analytics-overview-grid">
+        <div className="analytics-overview-metric">
+          <strong>{focusTime}</strong>
+          <span>Focus time</span>
+        </div>
+        <div className="analytics-overview-metric">
+          <strong>{snapshot.averageAttention == null ? '—' : `${snapshot.averageAttention}/100`}</strong>
           <span>Average attention</span>
-          <strong>{current.averageFocus == null ? '—' : `${current.averageFocus}/100`}</strong>
-          <small>{progress.comparisonReady ? `${signed(progress.focusDelta, ' pts')} vs previous 8` : 'Measured session average'}</small>
         </div>
-        <div className="analytics-comparison-metric">
-          <span>Measured time</span>
-          <strong>{fmtDuration(current.measuredSeconds)}</strong>
-          <small>{progress.comparisonReady ? `Previous 8: ${fmtDuration(progress.previous.measuredSeconds)}` : 'Only time with valid measurements'}</small>
-        </div>
-        <div className="analytics-comparison-metric">
-          <span>Goals reached</span>
-          <strong>{current.ratedCount ? `${current.outcomes.yes}/${current.ratedCount}` : '—'}</strong>
-          <small>{progress.comparisonReady && progress.outcomeDelta != null ? `${signed(progress.outcomeDelta, ' pts')} vs previous 8` : 'From sessions you rated'}</small>
-        </div>
-        <div className="analytics-comparison-metric">
-          <span>Rated</span>
-          <strong>{current.ratedCount}/{current.sessionCount}</strong>
-          <small>{current.sessionCount - current.ratedCount === 0 ? 'All results added' : `${current.sessionCount - current.ratedCount} still open`}</small>
+        <div className="analytics-overview-metric">
+          <strong>{snapshot.sessionCount}</strong>
+          <span>{snapshot.sessionCount === 1 ? 'Session' : 'Sessions'}</span>
         </div>
       </div>
-      {progress.comparisonReady ? (
-        <p className="analytics-overview-note">Compared with the previous 8 sessions measured the same way. Open Details to inspect the underlying groups.</p>
-      ) : (
-        <>
-          <div className="analytics-progress-track" aria-label={`${learning.qualified} of ${learning.requiredForComparison} sessions needed for a trend comparison`}>
-            <span style={{ width: `${Math.min(100, (learning.qualified / learning.requiredForComparison) * 100)}%` }} />
-          </div>
-          <p className="analytics-overview-note">
-            These values are useful now. After {remaining} more {remaining === 1 ? 'session' : 'sessions'} measured the same way, Analytics can compare this block with the previous one.
-          </p>
-        </>
-      )}
     </section>
   )
 }
@@ -142,7 +121,7 @@ export default function AnalyticsStory({
 
   return (
     <div className="analytics-story">
-      <RecentOverview progress={story.progress} learning={story.learning} />
+      <RecentOverview sessions={sessions} />
       <OutcomeInbox sessions={story.unratedSessions} onRate={onUpdateSession} />
       <section className="analytics-history" aria-labelledby="session-history-heading">
         <div className="analytics-section-heading">

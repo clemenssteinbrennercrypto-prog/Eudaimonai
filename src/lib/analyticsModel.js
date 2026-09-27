@@ -1,5 +1,4 @@
 import {
-  isUsable,
   MIN_MEANINGFUL_GAP_PCT,
   MIN_PER_BUCKET,
   MIN_SESSIONS,
@@ -7,13 +6,18 @@ import {
 import {
   aggregateAverageFocus,
   aggregateDeepFocusTime,
-  aggregateFocusMeasurements,
   sessionAverageFocus,
+  sessionFocusMeasurement,
 } from './historyTrend'
 import { SCOREABLE_SCORING_VERSIONS } from './focusMetric'
 import { sessionStartedAt } from './sessionTiming'
 
-export const COHORT_SIZE = 8
+export const DETAILS_MIN_SESSION_SECONDS = 10 * 60
+export const OVERVIEW_RANGES = Object.freeze({
+  week: 7,
+  month: 30,
+  all: null,
+})
 
 export function normalizedOutcome(session) {
   if (session?.goalOutcome === 'yes' || session?.goalOutcome === 'partly' || session?.goalOutcome === 'no') {
@@ -31,62 +35,45 @@ function timestampOf(session) {
 /**
  * Analytics comparisons refuse records without an explicit, supported ruler.
  * historyTrend intentionally interprets some pre-version history as V1 for
- * display/migration; cohort claims are stricter because they compare days.
+ * display/migration; cross-session claims are stricter because they compare days.
  */
-export function knownComparableSessions(sessions = []) {
-  const known = (Array.isArray(sessions) ? sessions : [])
+export function knownMeasurementSessions(sessions = []) {
+  return (Array.isArray(sessions) ? sessions : [])
     .filter(session => SCOREABLE_SCORING_VERSIONS.includes(session?.attentionScoringVersion))
-  if (known.length === 0) return []
-
-  const newest = [...known].sort((a, b) => timestampOf(b) - timestampOf(a))[0]
-  return known
-    .filter(session => session.attentionScoringVersion === newest.attentionScoringVersion)
     .sort((a, b) => timestampOf(b) - timestampOf(a))
 }
 
-function cohortStats(sessions) {
-  const outcomes = { yes: 0, partly: 0, no: 0, unrated: 0 }
-  for (const session of sessions) outcomes[normalizedOutcome(session) || 'unrated'] += 1
-  const ratedCount = outcomes.yes + outcomes.partly + outcomes.no
-  const measurement = aggregateFocusMeasurements(sessions)
-  const deepFocus = aggregateDeepFocusTime(sessions)
-  return {
-    sessionCount: sessions.length,
-    measuredCount: measurement.sessionCount,
-    ratedCount,
-    outcomes,
-    hitRate: ratedCount >= 3 ? Math.round((outcomes.yes / ratedCount) * 100) : null,
-    averageFocus: aggregateAverageFocus(sessions),
-    deepFocusSeconds: deepFocus.seconds,
-    deepFocusTrackedSessions: deepFocus.trackedSessions,
-    measuredSeconds: measurement.measuredSeconds,
-    focusedSeconds: measurement.focusedSeconds,
-  }
+export function knownComparableSessions(sessions = []) {
+  const known = knownMeasurementSessions(sessions)
+  if (known.length === 0) return []
+
+  const newest = known[0]
+  return known
+    .filter(session => session.attentionScoringVersion === newest.attentionScoringVersion)
 }
 
-export function buildCohortProgress(sessions = []) {
-  const comparable = knownComparableSessions(sessions).filter(isUsable)
-  const currentSessions = comparable.slice(0, COHORT_SIZE)
-  const previousSessions = comparable.slice(COHORT_SIZE, COHORT_SIZE * 2)
-  const current = cohortStats(currentSessions)
-  const previous = cohortStats(previousSessions)
-  const comparisonReady = currentSessions.length === COHORT_SIZE && previousSessions.length === COHORT_SIZE
+/**
+ * The Overview is intentionally a factual snapshot rather than an inference.
+ * Focus time and session count include every stored session in the selected
+ * window. Average attention still delegates to the version-aware aggregator,
+ * so changing the range can never blend camera generations into one number.
+ */
+export function buildOverviewSnapshot(sessions = [], range = 'month', now = Date.now()) {
+  const days = Object.prototype.hasOwnProperty.call(OVERVIEW_RANGES, range)
+    ? OVERVIEW_RANGES[range]
+    : OVERVIEW_RANGES.month
+  const cutoff = days == null ? null : now - days * 86400000
+  const selected = (Array.isArray(sessions) ? sessions : [])
+    .filter(Boolean)
+    .filter(session => cutoff == null || (Number.isFinite(session.timestamp) && session.timestamp >= cutoff))
 
   return {
-    generation: comparable[0]?.attentionScoringVersion ?? null,
-    qualifiedCount: comparable.length,
-    current,
-    previous,
-    comparisonReady,
-    focusDelta: comparisonReady && current.averageFocus != null && previous.averageFocus != null
-      ? current.averageFocus - previous.averageFocus
-      : null,
-    deepFocusDeltaSeconds: comparisonReady && current.deepFocusSeconds != null && previous.deepFocusSeconds != null
-      ? current.deepFocusSeconds - previous.deepFocusSeconds
-      : null,
-    outcomeDelta: comparisonReady && current.hitRate != null && previous.hitRate != null
-      ? current.hitRate - previous.hitRate
-      : null,
+    range: Object.prototype.hasOwnProperty.call(OVERVIEW_RANGES, range) ? range : 'month',
+    focusSeconds: selected.reduce((sum, session) => (
+      sum + (Number.isFinite(session.actualSeconds) && session.actualSeconds > 0 ? session.actualSeconds : 0)
+    ), 0),
+    averageAttention: aggregateAverageFocus(selected),
+    sessionCount: selected.length,
   }
 }
 
@@ -145,20 +132,11 @@ export function buildFocusDistribution(sessions = []) {
 
 export function buildAnalyticsStory(sessions = []) {
   const safe = Array.isArray(sessions) ? sessions : []
-  const comparable = knownComparableSessions(safe)
-  const usable = comparable.filter(isUsable)
   return {
     unratedSessions: [...safe]
       .filter(session => !normalizedOutcome(session))
       .sort((a, b) => timestampOf(b) - timestampOf(a)),
-    progress: buildCohortProgress(safe),
     interventions: buildInterventionSummary(safe),
-    learning: {
-      qualified: usable.length,
-      requiredForPatterns: 8,
-      requiredForComparison: COHORT_SIZE * 2,
-      generation: comparable[0]?.attentionScoringVersion ?? null,
-    },
   }
 }
 
@@ -193,7 +171,9 @@ export const DETAILS_TIME_BUCKETS = [
  * One filter contract for every Details chart. Keeping this pure prevents a
  * chart from quietly answering on a different range than the controls above
  * it. The newest explicit measurement generation is selected before any
- * averages are produced; missing versions remain refused.
+ * averages are produced; missing versions remain refused. Details keeps older
+ * explicit generations visible so history does not disappear, while its
+ * summary model still isolates every comparison to one generation.
  */
 export function filterDetailsSessions(sessions = [], filters = {}) {
   const {
@@ -206,7 +186,7 @@ export function filterDetailsSessions(sessions = [], filters = {}) {
     ? now - 30 * 86400000
     : range === '90' ? now - 90 * 86400000 : null
 
-  return knownComparableSessions(sessions).filter(session => {
+  return knownMeasurementSessions(sessions).filter(session => {
     if (cutoff && (!Number.isFinite(session.timestamp) || session.timestamp < cutoff)) return false
     if (outcome !== 'all' && (normalizedOutcome(session) || 'unrated') !== outcome) return false
     if (workspace !== 'all' && session.workspace?.id !== workspace) return false
@@ -214,10 +194,24 @@ export function filterDetailsSessions(sessions = [], filters = {}) {
   })
 }
 
+function detailsExclusion(session) {
+  if (session?.trackingFaulted === true) return 'tracking_fault'
+  if (!(session?.actualSeconds >= DETAILS_MIN_SESSION_SECONDS)) return 'short_session'
+  const measurement = sessionFocusMeasurement(session)
+  if (!measurement || sessionAverageFocus(session) == null) return 'unmeasured'
+  if (!(measurement?.measuredSeconds >= DETAILS_MIN_SESSION_SECONDS)) return 'short_measurement'
+  if (!Number.isFinite(session?.timestamp)) return 'invalid_time'
+  return null
+}
+
+export function isDetailsUsable(session) {
+  return detailsExclusion(session) == null
+}
+
 function conditionRows(sessions, keyFor, order = null) {
   const buckets = new Map()
   for (const session of sessions) {
-    if (!isUsable(session)) continue
+    if (!isDetailsUsable(session)) continue
     const key = keyFor(session)
     const attention = sessionAverageFocus(session)
     if (!key?.id || attention == null) continue
@@ -289,6 +283,7 @@ function phaseSummary(sessions) {
   return {
     tracedSessions,
     totalSeconds,
+    deepFocus: aggregateDeepFocusTime(sessions),
     rows: PHASE_ORDER
       .filter(phase => seconds[phase] > 0)
       .map(phase => ({
@@ -299,6 +294,55 @@ function phaseSummary(sessions) {
   }
 }
 
+function durationAttentionSummary(rows) {
+  if (!rows.length) {
+    return { count: 0, medianDurationMinutes: null, medianAttention: null, trend: null }
+  }
+  const durations = rows.map(row => row.durationMinutes).sort((a, b) => a - b)
+  const attentions = rows.map(row => row.averageAttention).sort((a, b) => a - b)
+  let trend = null
+
+  // A Theil-Sen line is deliberately used instead of ordinary least squares:
+  // one unusually long or unusually weak session should not rotate the whole
+  // relationship. Eight sessions is the existing minimum evidence floor; the
+  // numeric slope stays descriptive and is never presented as causation.
+  if (rows.length >= MIN_SESSIONS) {
+    const slopes = []
+    for (let left = 0; left < rows.length; left += 1) {
+      for (let right = left + 1; right < rows.length; right += 1) {
+        const durationGap = rows[right].durationMinutes - rows[left].durationMinutes
+        if (durationGap === 0) continue
+        slopes.push((rows[right].averageAttention - rows[left].averageAttention) / durationGap)
+      }
+    }
+    if (slopes.length > 0) {
+      slopes.sort((a, b) => a - b)
+      const slope = quantile(slopes, 0.5)
+      const intercepts = rows
+        .map(row => row.averageAttention - slope * row.durationMinutes)
+        .sort((a, b) => a - b)
+      const intercept = quantile(intercepts, 0.5)
+      const minDuration = durations[0]
+      const maxDuration = durations.at(-1)
+      const attentionAt = duration => Math.max(0, Math.min(100, intercept + slope * duration))
+      trend = {
+        minDuration,
+        maxDuration,
+        startAttention: attentionAt(minDuration),
+        endAttention: attentionAt(maxDuration),
+        pointsPer30Minutes: Math.round(slope * 30 * 10) / 10,
+      }
+    }
+  }
+
+  return {
+    count: rows.length,
+    medianDurationMinutes: quantile(durations, 0.5),
+    medianAttention: Math.round(quantile(attentions, 0.5)),
+    trend,
+  }
+}
+
 /**
  * The single view-model for Analytics → Details. It contains facts that can be
  * shown immediately and explicit qualification states for cross-session
@@ -306,26 +350,33 @@ function phaseSummary(sessions) {
  * output, or score-component inference.
  */
 export function buildDetailsSummary(sessions = []) {
-  const comparable = knownComparableSessions(sessions)
-  const qualified = comparable.filter(isUsable)
+  const visible = knownMeasurementSessions(sessions)
+  const comparable = knownComparableSessions(visible)
+  const currentGeneration = comparable[0]?.attentionScoringVersion ?? null
+  const qualified = comparable.filter(isDetailsUsable)
   const distribution = buildFocusDistribution(qualified)
   const outcomes = { yes: 0, partly: 0, no: 0, unrated: 0 }
-  for (const session of comparable) outcomes[normalizedOutcome(session) || 'unrated'] += 1
+  for (const session of visible) outcomes[normalizedOutcome(session) || 'unrated'] += 1
 
-  const timeline = [...comparable].reverse().map(session => ({
+  const timeline = [...visible].reverse().map(session => ({
     id: session.id,
     timestamp: sessionStartedAt(session) ?? session.timestamp,
     averageAttention: sessionAverageFocus(session),
     outcome: normalizedOutcome(session),
     durationMinutes: Number.isFinite(session.actualSeconds) && session.actualSeconds > 0
-      ? Math.round(session.actualSeconds / 60)
+      ? session.actualSeconds / 60
       : null,
     workspace: session.workspace?.name || null,
-    qualified: isUsable(session),
+    generation: session.attentionScoringVersion,
+    currentGeneration: session.attentionScoringVersion === currentGeneration,
+    qualified: session.attentionScoringVersion === currentGeneration && isDetailsUsable(session),
+    scoreEligible: isDetailsUsable(session),
+    exclusion: detailsExclusion(session),
     trackingFaulted: session.trackingFaulted === true,
   }))
   const measured = timeline.filter(row => row.averageAttention != null)
   const qualifiedMeasured = measured.filter(row => row.qualified)
+  const duration = qualifiedMeasured.filter(row => row.durationMinutes != null)
   const usableCount = qualified.length
 
   const timeRows = conditionRows(
@@ -346,9 +397,10 @@ export function buildDetailsSummary(sessions = []) {
     : null)
 
   return {
-    generation: comparable[0]?.attentionScoringVersion ?? null,
-    sessionCount: comparable.length,
+    generation: currentGeneration,
+    sessionCount: visible.length,
     measuredCount: measured.length,
+    scoreableCount: qualifiedMeasured.length,
     timeline,
     distribution: {
       ...distribution,
@@ -368,7 +420,8 @@ export function buildDetailsSummary(sessions = []) {
         comparison: conditionComparison(workspaceRows, usableCount),
       },
     },
-    duration: qualifiedMeasured.filter(row => row.durationMinutes != null),
-    phases: phaseSummary(comparable),
+    duration,
+    durationAnalysis: durationAttentionSummary(duration),
+    phases: phaseSummary(qualified),
   }
 }

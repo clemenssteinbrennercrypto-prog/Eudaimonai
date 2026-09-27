@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildAnalyticsStory,
-  buildCohortProgress,
   buildDetailsSummary,
   buildFocusDistribution,
   buildInterventionSummary,
+  buildOverviewSnapshot,
   filterDetailsSessions,
   knownComparableSessions,
+  knownMeasurementSessions,
 } from './analyticsModel'
 
 function session(index, extra = {}) {
@@ -39,32 +40,55 @@ describe('Analytics model — version boundaries', () => {
     ]
     expect(knownComparableSessions(rows).map(item => item.id)).toEqual(['s-3'])
   })
+
+  it('keeps every explicit supported ruler available for a separated Details timeline', () => {
+    const rows = [
+      session(1, { attentionScoringVersion: 1 }),
+      session(2, { attentionScoringVersion: undefined }),
+      session(3, { attentionScoringVersion: 2 }),
+    ]
+    expect(knownMeasurementSessions(rows).map(item => item.id)).toEqual(['s-3', 's-1'])
+  })
 })
 
-describe('Analytics model — rolling cohort progress', () => {
-  it('compares exactly the latest eight compatible sessions with the previous eight', () => {
-    const rows = Array.from({ length: 16 }, (_, index) => session(index, {
-      avgFocusScore: index >= 8 ? 80 : 60,
-      flowSeconds: index >= 8 ? 600 : 300,
-      goalOutcome: index >= 8 ? 'yes' : 'no',
-    }))
-    const result = buildCohortProgress(rows)
-    expect(result.comparisonReady).toBe(true)
-    expect(result.current.averageFocus).toBe(80)
-    expect(result.previous.averageFocus).toBe(60)
-    expect(result.focusDelta).toBe(20)
-    expect(result.current.deepFocusSeconds).toBe(4800)
-    expect(result.previous.deepFocusSeconds).toBe(2400)
-    expect(result.deepFocusDeltaSeconds).toBe(2400)
-    expect(result.outcomeDelta).toBe(100)
+describe('Analytics model — overview snapshot', () => {
+  const now = new Date(2026, 8, 27, 12).getTime()
+  const rows = [
+    session(1, { timestamp: now - 2 * 86400000, actualSeconds: 1800, measuredSeconds: 1800, scoreSum: 80 * 1800, avgFocusScore: 80 }),
+    session(2, { timestamp: now - 15 * 86400000, actualSeconds: 3600, measuredSeconds: 3600, scoreSum: 60 * 3600, avgFocusScore: 60 }),
+    session(3, { timestamp: now - 45 * 86400000, actualSeconds: 7200, measuredSeconds: 7200, scoreSum: 40 * 7200, avgFocusScore: 40 }),
+  ]
+
+  it('summarizes rolling weekly and 30-day windows', () => {
+    expect(buildOverviewSnapshot(rows, 'week', now)).toMatchObject({
+      range: 'week',
+      focusSeconds: 1800,
+      averageAttention: 80,
+      sessionCount: 1,
+    })
+    expect(buildOverviewSnapshot(rows, 'month', now)).toMatchObject({
+      range: 'month',
+      focusSeconds: 5400,
+      averageAttention: 67,
+      sessionCount: 2,
+    })
   })
 
-  it('stays silent instead of comparing a partial previous cohort', () => {
-    const result = buildCohortProgress(Array.from({ length: 12 }, (_, index) => session(index)))
-    expect(result.comparisonReady).toBe(false)
-    expect(result.focusDelta).toBeNull()
-    expect(result.deepFocusDeltaSeconds).toBeNull()
-    expect(result.outcomeDelta).toBeNull()
+  it('uses every session for all-time focus time and count', () => {
+    expect(buildOverviewSnapshot(rows, 'all', now)).toMatchObject({
+      range: 'all',
+      focusSeconds: 12600,
+      averageAttention: 51,
+      sessionCount: 3,
+    })
+  })
+
+  it('does not mix attention generations inside a range', () => {
+    const result = buildOverviewSnapshot([
+      session(1, { timestamp: now - 3 * 86400000, attentionScoringVersion: 1, avgFocusScore: 95, scoreSum: 95 * 1800 }),
+      session(2, { timestamp: now - 2 * 86400000, attentionScoringVersion: 2, avgFocusScore: 55, scoreSum: 55 * 1800 }),
+    ], 'month', now)
+    expect(result).toMatchObject({ focusSeconds: 3600, averageAttention: 55, sessionCount: 2 })
   })
 })
 
@@ -118,6 +142,8 @@ describe('Analytics model — redesigned Details', () => {
 
     expect(filterDetailsSessions(rows, { range: '30', outcome: 'yes', workspace: 'desk', now }).map(row => row.id))
       .toEqual(['s-1'])
+    expect(filterDetailsSessions(rows, { range: 'all', outcome: 'yes', workspace: 'desk', now }).map(row => row.id))
+      .toEqual(['s-1', 's-3', 's-5'])
   })
 
   it('keeps missing measurements as gaps and out of the distribution', () => {
@@ -148,6 +174,57 @@ describe('Analytics model — redesigned Details', () => {
     expect(result.distribution.sessions.map(row => row.id)).toEqual(['s-1'])
     expect(result.distribution.values).toEqual([82])
     expect(result.duration.map(row => row.id)).toEqual(['s-1'])
+  })
+
+  it('keeps earlier generations visible without admitting them into the current ruler statistics', () => {
+    const result = buildDetailsSummary([
+      session(1, { timestamp: new Date(2026, 6, 20).getTime(), attentionScoringVersion: 1, avgFocusScore: 95 }),
+      session(2, { timestamp: new Date(2026, 7, 20).getTime(), attentionScoringVersion: 2, avgFocusScore: 55 }),
+    ])
+
+    expect(result.timeline.map(row => row.id)).toEqual(['s-1', 's-2'])
+    expect(result.timeline.find(row => row.id === 's-1')).toMatchObject({ currentGeneration: false, scoreEligible: true })
+    expect(result.distribution.values).toEqual([55])
+    expect(result.sessionCount).toBe(2)
+    expect(result.scoreableCount).toBe(1)
+  })
+
+  it('requires ten measured minutes before a session can influence Details statistics', () => {
+    const shortSeconds = 10 * 60 - 1
+    const result = buildDetailsSummary([
+      session(1, { actualSeconds: shortSeconds, measuredSeconds: shortSeconds, scoreSum: 95 * shortSeconds, avgFocusScore: 95 }),
+      session(2, { actualSeconds: 10 * 60, measuredSeconds: 10 * 60, focusedSeconds: 7 * 60, scoreSum: 55 * 10 * 60, avgFocusScore: 55 }),
+    ])
+
+    expect(result.timeline.find(row => row.id === 's-1')).toMatchObject({ scoreEligible: false, exclusion: 'short_session' })
+    expect(result.timeline.find(row => row.id === 's-2')).toMatchObject({ scoreEligible: true, exclusion: null })
+    expect(result.distribution.values).toEqual([55])
+    expect(result.duration.map(row => row.id)).toEqual(['s-2'])
+    expect(result.conditions.usableCount).toBe(1)
+  })
+
+  it('adds a robust duration trend only after eight qualified sessions', () => {
+    const rows = Array.from({ length: 8 }, (_, index) => {
+      const actualSeconds = (index + 1) * 10 * 60
+      const average = 40 + index * 5
+      return session(index, {
+        actualSeconds,
+        measuredSeconds: actualSeconds,
+        focusedSeconds: Math.round(actualSeconds * 0.7),
+        scoreSum: average * actualSeconds,
+        avgFocusScore: average,
+      })
+    })
+
+    const thin = buildDetailsSummary(rows.slice(0, 7))
+    const ready = buildDetailsSummary(rows)
+    expect(thin.durationAnalysis.trend).toBeNull()
+    expect(ready.durationAnalysis).toMatchObject({
+      count: 8,
+      medianDurationMinutes: 45,
+      medianAttention: 58,
+      trend: { minDuration: 10, maxDuration: 80, pointsPer30Minutes: 15 },
+    })
   })
 
   it('names strong conditions only after the refusal thresholds are met', () => {
@@ -225,6 +302,13 @@ describe('Analytics model — redesigned Details', () => {
     ])
 
     expect(result.phases).toMatchObject({ tracedSessions: 1, totalSeconds: 720 })
+    expect(result.phases.deepFocus).toEqual({
+      seconds: 600,
+      knownSeconds: 600,
+      trackedSessions: 2,
+      measuredSessions: 2,
+      complete: true,
+    })
     expect(result.phases.rows).toEqual([
       { id: 'lock_in', seconds: 600, sharePct: 83 },
       { id: 'drift', seconds: 120, sharePct: 17 },
@@ -232,5 +316,20 @@ describe('Analytics model — redesigned Details', () => {
     expect(result).not.toHaveProperty('activity')
     expect(result).not.toHaveProperty('interventions')
     expect(result).not.toHaveProperty('scoreComponents')
+  })
+
+  it('refuses a partial Deep Focus total when one qualified session predates exact Flow time', () => {
+    const result = buildDetailsSummary([
+      session(1, { flowSeconds: 420 }),
+      session(2, { deepFocusTimeVersion: undefined, flowSeconds: undefined, deepFocusSeconds: 1200 }),
+    ])
+
+    expect(result.phases.deepFocus).toEqual({
+      seconds: null,
+      knownSeconds: 420,
+      trackedSessions: 1,
+      measuredSessions: 2,
+      complete: false,
+    })
   })
 })

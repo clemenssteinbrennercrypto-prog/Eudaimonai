@@ -20,6 +20,8 @@ function session(index, extra = {}) {
     avgFocusScore: average,
     scoreMeasured: true,
     attentionScoringVersion: 2,
+    deepFocusTimeVersion: 2,
+    flowSeconds: 300,
     goalOutcome: index % 3 === 0 ? 'no' : 'yes',
     workspace: index < 4
       ? { id: 'office', name: 'Office', revision: 1 }
@@ -48,9 +50,11 @@ describe('Analytics Details', () => {
     renderExplorer(Array.from({ length: 8 }, (_, index) => session(index)))
 
     expect(screen.getByRole('heading', { name: 'Focus by session' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: 'Session average attention' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Session average attention' })).toBeNull()
     expect(screen.getByRole('heading', { name: 'Where and when focus is strongest' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'How your sessions behave' })).toBeTruthy()
+    expect(screen.getByText('Deep Focus')).toBeTruthy()
+    expect(screen.getByText('40m')).toBeTruthy()
     const signals = [...document.querySelectorAll('.analytics-condition-signal')].map(node => node.textContent)
     expect(signals).toContain('Late morning records 32 points higher average attention than Afternoon.')
     expect(signals).toContain('Office records 32 points higher average attention than Home.')
@@ -59,6 +63,17 @@ describe('Analytics Details', () => {
     expect(screen.queryByText('Energy context')).toBeNull()
     expect(screen.queryByText('Data quality')).toBeNull()
     expect(screen.queryByText('Activity alignment')).toBeNull()
+  })
+
+  it('explains chart encodings and provides navigation through the available evidence', () => {
+    renderExplorer(Array.from({ length: 8 }, (_, index) => session(index)))
+
+    const index = screen.getByRole('navigation', { name: 'Details sections' })
+    expect(within(index).getByRole('button', { name: 'Sessions' })).toBeTruthy()
+    expect(within(index).getByRole('button', { name: 'Conditions' })).toBeTruthy()
+    expect(within(index).getByRole('button', { name: 'Rhythm' })).toBeTruthy()
+    expect(screen.getByText('The line uses only sessions with at least 10 minutes of reliable measurement. Earlier measurement methods stay visible as a separate series.')).toBeTruthy()
+    expect(screen.getByText('Current measurement')).toBeTruthy()
   })
 
   it('keeps one dataset behind the outcome filter and offers a reset', () => {
@@ -102,55 +117,69 @@ describe('Analytics Details', () => {
 
     const missing = screen.getByRole('button', { name: /not measured.*Open session details/ })
     expect(missing.querySelector('circle')?.getAttribute('cy')).toBe('258')
-    expect(document.querySelector('.analytics-unmeasured-axis')).toBeTruthy()
+    expect(document.querySelector('.analytics-excluded-axis')).toBeTruthy()
   })
 
-  it('keeps the distribution viewBox stable when close values need more lanes', () => {
-    renderExplorer(Array.from({ length: 12 }, (_, index) => session(index, { avgFocusScore: 70 })))
-    const plot = screen.getByLabelText('Distribution of 12 sessions with measured averages')
-    expect(plot.getAttribute('viewBox')).toBe('0 0 1000 128')
-    expect(plot.querySelectorAll('.analytics-point-hit')).toHaveLength(5)
-    expect(within(plot).getByLabelText('7 more sessions at 70 average attention; each remains available in Focus by session')).toBeTruthy()
-  })
-
-  it('keeps neighbouring distribution scores visually separable in each lane', () => {
+  it('connects every eligible point in one measurement series without letting short sessions shape the line', () => {
     renderExplorer([
-      ...Array.from({ length: 7 }, (_, index) => session(index, { avgFocusScore: 60 })),
-      session(7, { avgFocusScore: 61 }),
+      session(1, { avgFocusScore: 80 }),
+      session(2, { avgFocusScore: 20, actualSeconds: 9 * 60, measuredSeconds: 9 * 60, scoreSum: 20 * 9 * 60 }),
+      session(3, { avgFocusScore: 70 }),
     ])
-    const plot = screen.getByLabelText('Distribution of 8 sessions with measured averages')
-    const lanes = new Map()
-    for (const mark of plot.querySelectorAll('.analytics-point-hit')) {
-      const cy = mark.getAttribute('cy')
-      if (!lanes.has(cy)) lanes.set(cy, [])
-      lanes.get(cy).push(Number(mark.getAttribute('cx')))
-    }
-    for (const values of lanes.values()) {
-      values.sort((a, b) => a - b)
-      for (let index = 1; index < values.length; index += 1) {
-        expect(values[index] - values[index - 1]).toBeGreaterThanOrEqual(9)
-      }
-    }
+
+    const line = document.querySelector('.analytics-main-plot path.is-current-generation')
+    expect(line?.getAttribute('d')).toMatch(/^M .* L /)
+    expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(2)
+    expect(document.querySelector('.analytics-excluded-point.is-short')).toBeTruthy()
+    expect(document.querySelector('.analytics-focus-point.is-reached')).toBeNull()
+    expect(screen.getByText('Under 10 min')).toBeTruthy()
   })
 
-  it('never moves a dense score cluster away from its measured value', () => {
-    renderExplorer(Array.from({ length: 50 }, (_, index) => session(index, { avgFocusScore: 70 })))
-    const plot = screen.getByLabelText('Distribution of 50 sessions with measured averages')
-    const expectedX = 48 + 70 * 9.18
-    for (const mark of plot.querySelectorAll('.analytics-point-hit')) {
-      expect(Number(mark.getAttribute('cx'))).toBeCloseTo(expectedX)
-    }
-    expect(within(plot).getByLabelText('45 more sessions at 70 average attention; each remains available in Focus by session')).toBeTruthy()
-  })
-
-  it('merges nearby density labels instead of drawing them on top of each other', () => {
+  it('shows earlier measurement history as a separate series instead of dropping it or joining the rulers', () => {
     renderExplorer([
-      ...Array.from({ length: 50 }, (_, index) => session(index, { avgFocusScore: 70 })),
-      ...Array.from({ length: 7 }, (_, index) => session(index + 50, { avgFocusScore: 71 })),
+      session(1, { timestamp: new Date(2026, 6, 20).getTime(), attentionScoringVersion: 1 }),
+      session(2, { timestamp: new Date(2026, 7, 20).getTime(), attentionScoringVersion: 2 }),
     ])
-    const plot = screen.getByLabelText('Distribution of 57 sessions with measured averages')
-    expect(plot.querySelectorAll('.analytics-distribution-overflow')).toHaveLength(1)
-    expect(within(plot).getByLabelText('47 more sessions at 70–71 average attention; each remains available in Focus by session')).toBeTruthy()
+
+    expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(2)
+    expect(document.querySelector('.analytics-focus-point.is-earlier-generation')).toBeTruthy()
+    expect(document.querySelectorAll('.analytics-main-plot path')).toHaveLength(2)
+    expect(document.querySelector('.analytics-generation-break')).toBeTruthy()
+    expect(screen.getByText('Earlier measurement')).toBeTruthy()
+  })
+
+  it('renders exact focus-time evidence with neutral points, median references, and a qualified robust trend', () => {
+    const rows = Array.from({ length: 8 }, (_, index) => {
+      const actualSeconds = (index + 1) * 10 * 60
+      const average = 40 + index * 5
+      return session(index, {
+        actualSeconds,
+        measuredSeconds: actualSeconds,
+        focusedSeconds: Math.round(actualSeconds * 0.7),
+        scoreSum: average * actualSeconds,
+        avgFocusScore: average,
+      })
+    })
+    renderExplorer(rows)
+
+    expect(screen.getByRole('heading', { name: 'Focus time vs attention' })).toBeTruthy()
+    expect(screen.getByText('+15 points / 30 min')).toBeTruthy()
+    expect(document.querySelector('.analytics-duration-reference')).toBeTruthy()
+    expect(document.querySelector('.analytics-duration-trend')).toBeTruthy()
+    expect(document.querySelectorAll('.analytics-duration-point')).toHaveLength(8)
+    expect(document.querySelector('.analytics-duration-point.is-reached')).toBeNull()
+  })
+
+  it('keeps identical duration and attention values at their exact coordinate and shows their count', () => {
+    renderExplorer([
+      session(1, { avgFocusScore: 70 }),
+      session(2, { avgFocusScore: 70 }),
+      session(3, { avgFocusScore: 60, actualSeconds: 45 * 60, measuredSeconds: 45 * 60, focusedSeconds: 30 * 60, scoreSum: 60 * 45 * 60 }),
+    ])
+
+    const plot = screen.getByLabelText('Focus time and average attention across 3 sessions')
+    expect(plot.querySelectorAll('.analytics-duration-point')).toHaveLength(2)
+    expect(within(plot).getByText('×2')).toBeTruthy()
   })
 
   it('uses the newest stored name for a renamed workspace filter', () => {
@@ -164,10 +193,14 @@ describe('Analytics Details', () => {
     expect(within(workspace).queryByRole('option', { name: 'Old desk' })).toBeNull()
   })
 
-  it('hides immature comparisons instead of rendering empty cards', () => {
+  it('keeps time of day visible while immature comparisons are still collecting', () => {
     renderExplorer([session(1), session(2)])
-    expect(screen.queryByRole('heading', { name: 'Where and when focus is strongest' })).toBeNull()
-    expect(screen.getByText(/Stronger time and workspace comparisons appear after 6 more qualified sessions/)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Where and when focus is strongest' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Time of day' })).toBeTruthy()
+    expect(screen.getByText('Collecting qualified sessions: 2/8. A time period shows attention after 3 sessions.')).toBeTruthy()
+    expect(screen.getByText('06–09')).toBeTruthy()
+    expect(screen.getByText('22–06')).toBeTruthy()
+    expect(document.querySelectorAll('.analytics-condition-signal')).toHaveLength(0)
   })
 
   it('explains why mature history still lacks a second comparison bucket', () => {
@@ -176,7 +209,18 @@ describe('Analytics Details', () => {
       workspace: { id: 'office', name: 'Office', revision: 1 },
     })))
 
-    expect(screen.queryByRole('heading', { name: 'Where and when focus is strongest' })).toBeNull()
-    expect(screen.getByText('Time-of-day and workspace comparisons each need at least two groups with 3 qualified sessions.')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Where and when focus is strongest' })).toBeTruthy()
+    expect(screen.getByText('A comparison needs two time periods with at least 3 qualified sessions each.')).toBeTruthy()
+  })
+
+  it('shows no partial Deep Focus total when exact Flow tracking is missing from the selection', () => {
+    renderExplorer([
+      session(1, { flowSeconds: 420 }),
+      session(2, { deepFocusTimeVersion: undefined, flowSeconds: undefined, deepFocusSeconds: 1200 }),
+    ])
+
+    expect(screen.getByLabelText('Exact Deep Focus time').textContent).toContain('Unavailable')
+    expect(screen.getByText('Exact Flow time is missing from 1 session in this selection, so no partial total is shown.')).toBeTruthy()
+    expect(screen.queryByText('7m')).toBeNull()
   })
 })
