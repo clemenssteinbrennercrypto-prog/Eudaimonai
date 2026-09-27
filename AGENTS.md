@@ -47,7 +47,7 @@ app but could never run the native measurement engine.
 ```bash
 npm install
 npm run dev        # isolated UI development only; native features unavailable
-npm test           # vitest, currently 530 tests — must stay green
+npm test           # vitest, currently 786 tests — must stay green
 npm run build      # production bundle
 ```
 
@@ -199,17 +199,41 @@ scoring or detection.**
    `focusMetricV2.js`: continuous measured-time credit × mean attention, plus
    a period consistency factor from dated workday plans. It reads the exact
    qualified ledger accumulators without changing saved V1 session/ledger
-   fields. Focus Metric V3, introduced 26 Sep 2026 in `focusMetricV3.js`, is the
-   active Lab and Analytics score: `scoreSum / measuredSeconds`, on the existing
-   0–100 attention scale. Duration, phases, Deep Focus and workday plans do not
-   enter V3. A period weights every qualifying measured second equally. The
-   existing five-minute session eligibility and camera-generation isolation
-   still apply; camera gaps are absent rather than zero. V1 and V2 remain
-   versioned and unchanged, and no V1/V2 baseline is presented as a V3
-   comparison. This derived metric version is independent of the native V2
-   camera generation. Do not mix a baseline across metric versions, or apply
-   new workday plans to past dates. See
-   `docs/focus-score-audit-2026-09-15.md` for the formula, estimates and limits.
+   fields. Focus Metric V3 (`focusMetricV3.js`, 26 Sep 2026) was the
+   attention-average score and remains readable but inactive.
+
+   The active Lab and Analytics score since 27 Sep 2026 is the current Focus
+   Score in `focusScore.js` (stable name; internal `metricVersion: 4`, never a
+   user-facing label — do not create `focusMetricV4.js`). For a period:
+   `A = scoreSum / measuredSeconds`,
+   `Q = clamp((A − ALERT_SCORE) / (FLOW_SCORE − ALERT_SCORE), 0, 1)`,
+   `effective = (measuredSeconds + 0.25 × flowSeconds) × Q`,
+   `reference = 80 × max(1, elapsed Monday–Friday weekdays)`,
+   `x = effectiveMinutes / reference`, and
+   `score = 100 × x^1.3 / (1 + x^1.3)`. Time is the base, mean attention is the quality gate and
+   exact Deep Focus V2 is a modest continuity bonus. Raw period inputs are
+   summed before one quality factor is calculated; daily scores are never
+   averaged.
+
+   This ruler deliberately starts at the first qualifying session carrying
+   `deepFocusTimeVersion: 2`. Older sessions remain readable under V1–V3 but
+   never enter V4, and missing exact Deep Focus after the start makes the whole
+   selected period refuse rather than show a partial subtotal. Ledger
+   contributions copy genuine `flowSeconds`, its version and the session start;
+   they never infer Flow from `deepFocusSeconds`, phase totals or a timeline.
+   On the cutover day, genuine start timestamps exclude provably earlier
+   contributions; a missing timestamp or a missing exact value at/after the
+   boundary refuses rather than guessing. A wholly pre-V4 historical period
+   still shows ruler-independent Focus Time without reconstructing a score.
+   The 80-minute reference, 1.3 curve exponent and 25% bonus are versioned
+   product estimates to review after 30 valid V4 days. V4 uses fixed
+   Monday–Friday weekdays; it does
+   not read the older editable workday plan. A self-selected duration target or
+   schedule must never change the score: it is gameable and would give
+   identical work a different ruler.
+   Do not mix baselines or camera generations. See
+   `docs/focus-score-audit-2026-09-15.md` for the formula, rejected
+   alternatives, estimates and limits.
 10. **Exact Flow and historical focus time are two different rulers.** The
     per-session exact metric records `flowSeconds` only while the live Flow state is active, the
     current span remains Flow-qualified and the score is still at least
@@ -223,7 +247,9 @@ scoring or detection.**
     starts at 40 and the old
     `deepFocusSeconds` field is a weighted V1 estimate, so neither may be shown
     as literal Flow time. Sessions without `deepFocusTimeVersion: 2` remain
-    unknown instead of being backfilled from those looser fields. The Lab does
+    unknown instead of being backfilled from those looser fields. The current
+    Focus Score uses this exact V2 value only after its explicit start boundary;
+    it does not substitute Lock-in or weighted phase time. The Lab does
     not show a partial Deep Focus subtotal: every session in the selected period
     must carry valid V2 exact time, otherwise the period value is unavailable.
     `Focus time` is instead the sum of active session `actualSeconds`, excluding
@@ -324,7 +350,7 @@ degrades the result; it never breaks a session.
 
 ## 7. Testing and verification
 
-There are currently 530 JS tests and 75 Rust tests (13 native-camera library
+There are currently 786 JS tests and 75 Rust tests (13 native-camera library
 tests plus 62 app tests). Both suites must stay green. Treat these counts as a
 checkpoint, not a substitute for reading the runner output when tests are added.
 

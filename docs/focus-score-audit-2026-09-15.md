@@ -303,3 +303,102 @@ abandoned warm-up earns zero, and interruption seconds never count. Historical
 version-1 exact values are retained but not relabelled. Period Deep Focus is
 shown only when every included session has a valid version-2 value, preventing
 a known subset from masquerading as the whole period.
+
+## Quality-gated work Focus Score — 27 September 2026
+
+Product decision (Clemens): a good ten-minute session must not score like two
+good hours. Focus Time, Average Attention and exact Deep Focus all enter one
+headline, with work volume dominant as long as quality holds. A score remains
+an accumulated-work index, not an attention percentage or a claim about output
+quality.
+
+### Formula
+
+For all qualifying contributions in the selected period, after the existing
+five-minute eligibility and camera-generation isolation:
+
+```text
+M = sum(measuredSeconds) / 60
+A = sum(scoreSum) / sum(measuredSeconds)
+D = sum(flowSeconds) / 60
+
+Q = clamp((A - ALERT_SCORE) / (FLOW_SCORE - ALERT_SCORE), 0, 1)
+  = clamp((A - 38) / 34, 0, 1)
+
+effectiveMinutes = (M + 0.25 × D) × Q
+referenceMinutes = 80 × max(1, elapsed Monday–Friday weekdays)
+x = effectiveMinutes / referenceMinutes
+Focus Score = 100 × x^1.3 / (1 + x^1.3)
+```
+
+`src/lib/focusScore.js` holds this stable current product (`FOCUS_SCORE`,
+`buildFocusScorePeriod`) with internal `metricVersion: 4`. V1–V3 remain
+readable and unchanged; the version number is not user-facing.
+
+- Measured time is the volume. Pauses and camera gaps earn nothing because
+  their attention quality is unknown.
+- Mean attention is a quality gate. At or below the alert band time earns no
+  credit; at Flow-quality mean attention it earns full credit. Additional poor
+  time may lower the result by lowering the period mean. At unchanged quality,
+  more time always raises the unrounded score.
+- Exact Deep Focus (`deepFocusTimeVersion: 2`, `flowSeconds`) receives a 25%
+  continuity bonus. It is already derived from attention, so it is deliberately
+  a modest bonus rather than an independently weighted third score.
+- Raw time, score sum and exact Flow seconds are summed before one period
+  quality factor is calculated. Weeks and months never average daily scores.
+- The bounded Hill curve uses exponent 1.3 to soften the first minutes before
+  diminishing returns take over. At full quality and without a Deep Focus
+  bonus, one hour scores about 41, two hours 63, four hours 81 and eight hours
+  91. More work always helps at fixed quality while micro-sessions receive
+  little credit.
+- The period reference uses fixed Monday–Friday weekdays. Weekend work adds
+  credit without adding a reference day. V4 deliberately ignores the older
+  editable workday plan so a user cannot raise the score by selecting fewer
+  days.
+
+### Honest start boundary
+
+Exact Deep Focus V2 is forward-recorded and cannot be reconstructed from the
+older `deepFocusSeconds`, Lock-in phases, a headline percentage or five-second
+timeline samples. V4 therefore starts on the first qualifying day carrying a
+genuine V2 exact value for the active camera generation.
+
+- Days before that boundary remain readable under V1–V3 but are marked outside
+  the current score.
+- Weekly/monthly Focus Time, Deep Focus and Average Attention alongside V4 use
+  the same post-boundary sessions and the same camera generation.
+- If any qualifying contribution after the boundary lacks exact Deep Focus,
+  the entire selected period refuses with `missing_exact_deep_focus`; it never
+  presents the known subset as the whole.
+- On the cutover day, genuine session start timestamps exclude contributions
+  proven to predate the first exact value. A missing-exact contribution at or
+  after that timestamp refuses. If an old entry has no genuine start timestamp,
+  its ordering is unknowable and the day refuses rather than guessing.
+- A historical period ending before the boundary still shows Focus Time, which
+  is ruler-independent, but does not reconstruct Focus Score, Deep Focus or
+  Average Attention under V4.
+
+Ledger contributions copy only genuine `deepFocusTimeVersion`, `flowSeconds`
+and the session start timestamp. Backfill adds missing exact fields from the
+original session record without changing stored V1 values. `flowSeconds` must
+not exceed measured time, even fractionally. Nothing derives or estimates Flow
+for historical sessions.
+
+### Calibration questions
+
+- **80 minutes, exponent 1.3, 25%, and the linear 38→72 quality ramp are
+  versioned product estimates, not research constants.** Review them after 30
+  valid V4 measured days; a changed parameter requires a new metric version.
+- A week rewards total qualified volume, not its distribution: one long day can
+  equal several shorter days, while elapsed fixed weekdays still set the
+  reference.
+- Today counts as a planned day from midnight, so a weekly score can step down
+  at the start of a new planned day before work is recorded. A reference based
+  only on measured days would instead reward skipping days and was rejected.
+- A personal duration target is deliberately not a score input. It is easy to
+  manipulate by choosing a lower target and would give identical work a
+  different score. A future goal feature may show progress separately, but it
+  must never change this measurement ruler.
+- The camera signal is an attention proxy. It cannot establish whether the
+  produced work was correct or valuable; output evidence remains a separate
+  product fact.

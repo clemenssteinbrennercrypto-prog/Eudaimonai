@@ -9,6 +9,7 @@ import { FOCUS_METRIC_V1 } from '../lib/focusMetric'
 import { NATIVE_CAMERA_MEASUREMENT_V2 } from '../lib/cameraMeasurement'
 import { loadFocusLedger, saveSession } from '../lib/storage'
 import FocusScorePanel from './analytics/FocusScorePanel'
+import FocusScoreExplanation from './FocusScoreExplanation'
 
 class MemoryStorage {
   constructor() { this.values = new Map() }
@@ -30,6 +31,48 @@ afterEach(() => {
 })
 
 describe('LabDashboard metric labels', () => {
+  it('explains a refused multi-day score even when today itself is measurable', () => {
+    render(React.createElement(FocusScoreExplanation, {
+      period: {
+        range: 'week', score: null, refusal: 'missing_exact_deep_focus',
+        today: { status: 'measured', score: 60 }, days: [], partialMetricPeriod: false,
+      },
+    }))
+    expect(screen.getByText(/Some sessions after this score began are missing exact Deep Focus time/)).toBeInTheDocument()
+    expect(screen.queryByText('Today’s score: 60.')).not.toBeInTheDocument()
+  })
+
+  it('explains the forward-only boundary without hiding historical Focus Time', () => {
+    render(React.createElement(FocusScoreExplanation, {
+      period: {
+        range: 'week', score: null, refusal: null, beforeMetricPeriod: true,
+        today: null, days: [], partialMetricPeriod: false, referenceWorkdays: 1,
+      },
+    }))
+    expect(screen.getByText(/Historical Focus Time remains visible/)).toBeInTheDocument()
+  })
+
+  it('describes a weekend-only score against one fixed reference weekday', () => {
+    render(React.createElement(FocusScoreExplanation, {
+      period: {
+        range: 'week', score: 63, refusal: null, beforeMetricPeriod: false,
+        today: null, days: [], partialMetricPeriod: false, referenceWorkdays: 1,
+      },
+    }))
+    expect(screen.getByText('This period is scored against one weekday so far. Weekend work still counts.')).toBeInTheDocument()
+  })
+
+  it('says that V4 is waiting when no exact Deep Focus session exists yet', () => {
+    render(React.createElement(FocusScoreExplanation, {
+      period: {
+        range: 'day', score: null, refusal: null, beforeMetricPeriod: false,
+        today: { status: 'awaiting_metric' }, days: [], partialMetricPeriod: false,
+        referenceWorkdays: 1,
+      },
+    }))
+    expect(screen.getByText(/exact Deep Focus time required to start the current Focus Score/)).toBeInTheDocument()
+  })
+
   it('separates active Focus Time from forward-only exact Deep Focus', () => {
     vi.setSystemTime(new Date(2026, 8, 16, 10))
     const historicalStart = new Date(2026, 8, 14, 9).getTime()
@@ -52,15 +95,16 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByRole('heading', { name: 'Focus Score' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Time + attention + consistency' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^(Weekly|week)$/ }))
-    expect(screen.getByText('80')).toBeInTheDocument()
+    // The older session predates exact Deep Focus v2 and is outside this ruler.
+    expect(screen.getByText('41')).toBeInTheDocument()
     expect(screen.getAllByText('Focus Score').length).toBeGreaterThan(1)
     const focusTime = screen.getByText('Focus time').parentElement
-    expect(focusTime).toHaveTextContent('2h')
+    expect(focusTime).toHaveTextContent('1h')
     expect(focusTime).toHaveTextContent('Active session time · breaks excluded')
     expect(focusTime).not.toHaveTextContent('2m')
-    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Not recorded for every session')
+    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('2m')
     expect(screen.queryByText('Measured days')).not.toBeInTheDocument()
-    expect(screen.queryByText('Average attention')).not.toBeInTheDocument()
+    expect(screen.getByText('Average attention').parentElement).toHaveTextContent('80/100')
     expect(screen.queryByText('Time credit')).not.toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/\b(?:V1|V2|ruler|phase-weighted)\b|time \+ attention/i)
     expect(loadFocusLedger()).toEqual(originalLedger)
@@ -93,11 +137,13 @@ describe('LabDashboard metric labels', () => {
       actualSeconds: 7220, measuredSeconds: 7200, scoreSum: 540000,
       attentionScoringVersion: 2, focusMetricVersion: 1, focusMetricRejection: null,
       sessionEfficiency: 75, deepFocusSeconds: 7200,
+      deepFocusTimeVersion: 2, flowSeconds: 3600,
     })
     render(React.createElement(FocusScorePanel, { sessions: [saved], ledger: loadFocusLedger() }))
     expect(screen.getAllByText('Focus Score').length).toBeGreaterThan(1)
     fireEvent.click(screen.getByRole('button', { name: 'week' }))
-    expect(screen.getByText('75')).toBeInTheDocument()
+    // 135 effective minutes; tracking starts Tuesday, so one elapsed weekday.
+    expect(screen.getByText('66')).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Focus Score formula' })).not.toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/\b(?:V1|V2|ruler|phase-weighted)\b|time \+ attention/i)
   })
@@ -109,14 +155,16 @@ describe('LabDashboard metric labels', () => {
       actualSeconds: 7220, measuredSeconds: 7200, scoreSum: 540000,
       attentionScoringVersion: 2, focusMetricVersion: 1, focusMetricRejection: null,
       sessionEfficiency: 75, deepFocusSeconds: 7200,
+      deepFocusTimeVersion: 2, flowSeconds: 3600,
     })
     render(React.createElement(FocusScorePanel, { sessions: [saved], ledger: loadFocusLedger() }))
     expect(screen.getByText('No session today.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^(Weekly|week)$/ }))
-    expect(screen.getByText('75')).toBeInTheDocument()
+    // 120 measured + 25% of 60 Deep Focus minutes against two weekdays.
+    expect(screen.getByText('45')).toBeInTheDocument()
     expect(screen.getAllByText('Focus Score').length).toBeGreaterThan(1)
     expect(screen.getByText('No session today.')).toBeInTheDocument()
-    expect(screen.getByText('Every measured second in this period has equal weight. Days without sessions do not lower the score.')).toBeInTheDocument()
+    expect(screen.getByText('This period is scored against 2 weekdays so far. Weekend work still counts.')).toBeInTheDocument()
   })
 
   it('refreshes the historical Focus Score day after midnight without changed props', () => {
@@ -127,11 +175,12 @@ describe('LabDashboard metric labels', () => {
       actualSeconds: 7220, measuredSeconds: 7200, scoreSum: 540000,
       attentionScoringVersion: 2, focusMetricVersion: 1, focusMetricRejection: null,
       sessionEfficiency: 75, deepFocusSeconds: 7200,
+      deepFocusTimeVersion: 2, flowSeconds: 3600,
     })
     render(React.createElement(FocusScorePanel, { sessions: [saved], ledger: loadFocusLedger() }))
-    expect(screen.getByText('75')).toBeInTheDocument()
+    expect(screen.getByText('66')).toBeInTheDocument()
     act(() => vi.advanceTimersByTime(30_000))
-    expect(screen.queryByText('75')).not.toBeInTheDocument()
+    expect(screen.queryByText('66')).not.toBeInTheDocument()
     expect(screen.getByText('No session today.')).toBeInTheDocument()
   })
 
@@ -202,7 +251,7 @@ describe('LabDashboard metric labels', () => {
       focusMetricRejection: null,
       sessionEfficiency: 78,
       deepFocusSeconds: 600,
-      deepFocusTimeVersion: 1,
+      deepFocusTimeVersion: 2,
       flowSeconds: 240,
       timeline: [{ second: 60, score: 82 }],
     })
@@ -251,7 +300,7 @@ describe('LabDashboard metric labels', () => {
       focusMetricRejection: null,
       sessionEfficiency: 78,
       deepFocusSeconds: 600,
-      deepFocusTimeVersion: 1,
+      deepFocusTimeVersion: 2,
       flowSeconds: 240,
       timeline: [{ second: 60, score: 82 }],
     })
@@ -332,7 +381,7 @@ describe('LabDashboard metric labels', () => {
 
     expect(html).toContain('Measured work')
     expect(html).toContain('78/100 attention')
-    expect(html).not.toContain('Average attention')
+    expect(html).toContain('Average attention')
     expect(html).toContain('Focus time')
     expect(html).toContain('10m')
     expect(html).toContain('Deep Focus')

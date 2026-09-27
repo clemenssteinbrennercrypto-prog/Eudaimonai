@@ -1,7 +1,7 @@
 import { FOCUSED_SCORE, FLOW_SCORE } from './attention'
 import { FOCUS_METRIC_V1, SCOREABLE_SCORING_VERSIONS, getFocusPeriodWindow } from './focusMetric'
 import { buildVersionedFocusPeriod } from './focusMetricV2'
-import { FOCUS_METRIC_V3 } from './focusMetricV3'
+import { FOCUS_SCORE } from './focusScore'
 import { activeFocusGeneration, focusGenerationOf } from './historyTrend'
 import { DEEP_FOCUS_TIME_VERSION } from './attentionSampling'
 import { sessionEndedAt, sessionPauseIntervals, sessionStartedAt, timelineWallSecond } from './sessionTiming'
@@ -106,9 +106,15 @@ export function buildPeriodTimeSummary(sessions, period, now = Date.now()) {
   const start = period?.start instanceof Date ? period.start.getTime() : Number.NaN
   const end = period?.endExclusive instanceof Date ? period.endExclusive.getTime() : Number.NaN
   const nowMs = new Date(now).getTime()
+  const overlapsCurrentMetric = period?.metricVersion === FOCUS_SCORE.metricVersion &&
+    Number.isFinite(period?.metricStartAt) && end > period.metricStartAt
+  const metricStartMs = overlapsCurrentMetric ? period.metricStartAt : Number.NEGATIVE_INFINITY
   const selected = (Array.isArray(sessions) ? sessions : []).filter(session => {
     const startedAt = sessionStartedAt(session)
-    return Number.isFinite(startedAt) && startedAt >= start && startedAt < end && startedAt <= nowMs
+    const sameRuler = !overlapsCurrentMetric ||
+      focusGenerationOf(session) === period.generation
+    return Number.isFinite(startedAt) && startedAt >= start && startedAt >= metricStartMs &&
+      startedAt < end && startedAt <= nowMs && sameRuler
   })
   const validDuration = selected.filter(session => Number.isFinite(session?.actualSeconds) && session.actualSeconds >= 0)
   const focusSeconds = validDuration.length > 0
@@ -125,7 +131,7 @@ export function buildPeriodTimeSummary(sessions, period, now = Date.now()) {
   const deepFocusComplete = validDuration.length > 0 && validDuration.length === selected.length && validDuration.every(session =>
     session?.deepFocusTimeVersion === DEEP_FOCUS_TIME_VERSION &&
     Number.isFinite(session?.flowSeconds) && session.flowSeconds >= 0 &&
-    Number.isFinite(session?.measuredSeconds) && session.flowSeconds <= session.measuredSeconds + 1)
+    Number.isFinite(session?.measuredSeconds) && session.flowSeconds <= session.measuredSeconds)
 
   return {
     sessionCount: selected.length,
@@ -140,7 +146,7 @@ export function buildPeriodTimeSummary(sessions, period, now = Date.now()) {
   }
 }
 
-export function buildDashboardData({ ledger, sessions, focusConfig, focusModeEnabled, nativeStatus, range = 'day', offset = 0, periodStart = null, now = Date.now(), metricVersion = FOCUS_METRIC_V3.version, schedule }) {
+export function buildDashboardData({ ledger, sessions, focusConfig, focusModeEnabled, nativeStatus, range = 'day', offset = 0, periodStart = null, now = Date.now(), metricVersion = FOCUS_SCORE.metricVersion, schedule }) {
   const period = buildVersionedFocusPeriod(ledger, {
     range: ['day', 'week', 'month'].includes(range) ? range : 'day',
     offset,

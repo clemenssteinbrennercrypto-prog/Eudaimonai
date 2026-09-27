@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { FOCUS_METRIC_V1, getFocusPeriodWindow } from '../../lib/focusMetric'
 import { buildVersionedFocusPeriod } from '../../lib/focusMetricV2'
-import { FOCUS_METRIC_V3 } from '../../lib/focusMetricV3'
+import { FOCUS_SCORE } from '../../lib/focusScore'
 import { buildPeriodTimeSummary } from '../../lib/dashboardData'
 import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
 import { useCurrentTime } from '../../lib/useCurrentTime'
@@ -17,7 +17,7 @@ export default function FocusScorePanel({ ledger, sessions }) {
   const [periodStart, setPeriodStart] = useState(null)
   const now = useCurrentTime()
   const period = useMemo(
-    () => buildVersionedFocusPeriod(ledger, { range, periodStart, sessions, now, metricVersion: FOCUS_METRIC_V3.version }),
+    () => buildVersionedFocusPeriod(ledger, { range, periodStart, sessions, now, metricVersion: FOCUS_SCORE.metricVersion }),
     [ledger, sessions, range, periodStart, now]
   )
   const time = useMemo(() => buildPeriodTimeSummary(sessions, period, now), [sessions, period, now])
@@ -95,6 +95,11 @@ export default function FocusScorePanel({ ledger, sessions }) {
               value: time.deepFocusSeconds == null ? '--' : fmtDuration(time.deepFocusSeconds),
               detail: time.deepFocusSeconds == null ? 'Not recorded for every session' : 'Sustained high attention',
             },
+            {
+              label: 'Average attention',
+              value: period.averageAttention == null ? '--' : `${Math.round(period.averageAttention)}/100`,
+              detail: 'Quality multiplier for measured time',
+            },
           ].map(item => (
             <div key={item.label} style={{ background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 12, padding: '13px 8px', textAlign: 'center' }}>
               <p style={{ fontSize: 21, fontWeight: 300, color: 'var(--text)', margin: 0 }}>{item.value}</p>
@@ -113,7 +118,7 @@ export default function FocusScorePanel({ ledger, sessions }) {
                 {period.days.map(day => (
                   <div
                     key={day.key}
-                    title={`${day.key}: ${day.status === 'inactive' ? 'no session' : day.status === 'future' ? 'future' : day.status === 'different_generation' ? 'different measurement method' : day.score == null ? 'not measured' : `${day.score} focus score`}`}
+                    title={`${day.key}: ${day.status === 'inactive' ? 'no session' : day.status === 'future' ? 'future' : day.status === 'different_generation' ? 'different measurement method' : day.status === 'before_metric' ? 'before current Focus Score' : day.status === 'unscorable' ? 'not scorable' : day.score == null ? 'not measured' : `${day.score} focus score`}`}
                     style={{
                       width: barWidth, minWidth: barWidth,
                       height: day.score == null ? 3 : Math.max(4, Math.round(day.score * 0.58)),

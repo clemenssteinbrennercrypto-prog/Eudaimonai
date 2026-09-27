@@ -252,3 +252,29 @@ included session lacks the new exact version.
   MediaPipe/non-module and chunk-size warnings.
 - No Rust source changed. Native camera behaviour and the new five-second
   interruption boundary still require real-use confirmation on the target Mac.
+
+## Quality-gated work Focus Score — 27 September 2026
+
+The active score now combines the three facts Clemens selected: measured Focus
+Time is volume, Average Attention scales that volume between the existing alert
+and Flow bands, and exact Deep Focus V2 earns a 25% bonus. The period then uses
+a bounded Hill curve with an 80-effective-minute midpoint per fixed weekday and
+exponent 1.3, which softens micro-sessions before diminishing returns. Raw period
+inputs are summed before scoring; daily scores are not averaged.
+
+The ruler starts at the first genuine `deepFocusTimeVersion: 2` contribution.
+Older sessions remain outside it, and any missing exact value after the start
+refuses the whole selected period. Ledger enrichment copies only exact values
+from the source session. Genuine start timestamps separate provably older work
+on the cutover day; unknown ordering still refuses. Historical periods wholly
+before V4 retain Focus Time without reconstructing a score. V4 uses fixed Monday–Friday weekdays and ignores the
+older editable workday plan, preventing users from raising the score by
+lowering their own target. Formula, boundaries and remaining calibration estimates are documented in
+`docs/focus-score-audit-2026-09-15.md`.
+
+- `npm test`: 71 files, 786 tests passed.
+- `npm run build`: passed with the existing non-module MediaPipe and chunk-size
+  warnings.
+- Rust verification was not runnable in this workspace because `cargo` is not
+  installed or available on `PATH`. No Rust source changed.
+- No installed app, updater channel or live native camera was changed.

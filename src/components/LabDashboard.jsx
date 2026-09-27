@@ -6,7 +6,7 @@ import { useCompanionStatus } from '../lib/useCompanionStatus'
 import { useCurrentTime } from '../lib/useCurrentTime'
 import FocusScoreExplanation, { focusScoreLabel } from './FocusScoreExplanation'
 import { fmtDuration } from '../lib/sessionAnalysisPresentation'
-import { FOCUS_METRIC_V3 } from '../lib/focusMetricV3'
+import { FOCUS_SCORE } from '../lib/focusScore'
 
 const PERIOD_RANGES = [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']]
 
@@ -172,7 +172,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
     periodStart: periodSelection.periodStart,
     now: dashboardNow,
     nativeStatus,
-    metricVersion: FOCUS_METRIC_V3.version,
+    metricVersion: FOCUS_SCORE.metricVersion,
   }), [source, focusModeEnabled, periodSelection, dashboardNow, nativeStatus])
   const { period, time } = data
   const deepFocusDetail = time.deepFocusSeconds == null
@@ -235,6 +235,12 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
             label="Deep Focus"
             value={time.deepFocusSeconds == null ? null : fmtDuration(time.deepFocusSeconds)}
             detail={deepFocusDetail}
+          />
+          <Metric
+            label="Average attention"
+            value={period.averageAttention == null ? null : Math.round(period.averageAttention)}
+            suffix="/100"
+            detail="Quality multiplier for measured time"
           />
         </div>
 

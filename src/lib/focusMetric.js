@@ -3,7 +3,7 @@
 // produced. Keep every estimated product constant together so a later review
 // can create V2 without silently rewriting V1 history.
 
-import { ATTENTION_ACCUMULATION_VERSION } from './attentionSampling'
+import { ATTENTION_ACCUMULATION_VERSION, DEEP_FOCUS_TIME_VERSION } from './attentionSampling'
 import { NATIVE_CAMERA_MEASUREMENT_V2, WEBVIEW_CAMERA_MEASUREMENT } from './cameraMeasurement'
 import { activeFocusGeneration } from './historyTrend'
 import { formatDuration } from './durationFormat'
@@ -482,6 +482,22 @@ export function emptyFocusLedger() {
   return { schemaVersion: 1, days: {} }
 }
 
+// Exact Flow time is forward-recorded and never inferred from the older,
+// phase-weighted `deepFocusSeconds` estimate. Keeping it on the contribution
+// lets the current Focus Score use the same validated ledger boundary as V1–V3
+// without relabelling historical data.
+function contributionExactDeepFocus(session, measuredSeconds) {
+  if (
+    session?.deepFocusTimeVersion !== DEEP_FOCUS_TIME_VERSION ||
+    !finiteNonNegative(session?.flowSeconds) ||
+    session.flowSeconds > measuredSeconds
+  ) return null
+  return {
+    deepFocusTimeVersion: DEEP_FOCUS_TIME_VERSION,
+    flowSeconds: Math.min(measuredSeconds, session.flowSeconds),
+  }
+}
+
 function validContribution(session) {
   const deepFocusSeconds = Number.isFinite(session?.deepFocusSeconds)
     ? session.deepFocusSeconds
@@ -505,6 +521,11 @@ function validContribution(session) {
 
   const day = localDayKey(session.startedAt ?? session.timestamp)
   if (!day || !session.id) return null
+  const exactDeepFocus = contributionExactDeepFocus(session, session.measuredSeconds)
+  // Only a genuine start timestamp can order sessions across a same-day metric
+  // cutover. `timestamp` is the end time on older records and must not be
+  // relabelled as a start.
+  const startedAt = Number(session.startedAt)
   return {
     day,
     value: {
@@ -514,6 +535,8 @@ function validContribution(session) {
       measuredSeconds: session.measuredSeconds,
       scoreSum: session.scoreSum,
       deepFocusSeconds,
+      ...(Number.isFinite(startedAt) ? { startedAt } : {}),
+      ...(exactDeepFocus || {}),
       source: session.focusMeasurementSource || 'live_v1',
     },
   }
@@ -573,7 +596,31 @@ export function backfillFocusLedger(ledger, sessions) {
       recorded.status !== 'unmeasured' &&
       !(upgraded.focusMeasurementSource === TIMER_TIMELINE_RECOVERY_SOURCE &&
         recorded.source !== TIMER_TIMELINE_RECOVERY_SOURCE)
-    ) continue
+    ) {
+      // Contributions written before exact Flow time and start timestamps were
+      // copied into the ledger gain only those missing fields from the source
+      // session. Existing values are never rewritten.
+      const exactDeepFocus = recorded.deepFocusTimeVersion === DEEP_FOCUS_TIME_VERSION
+        ? null
+        : contributionExactDeepFocus(upgraded, recorded.measuredSeconds)
+      const startedAt = Number(upgraded.startedAt)
+      const enrichment = {
+        ...(Number.isFinite(startedAt) && !Number.isFinite(recorded.startedAt) ? { startedAt } : {}),
+        ...(exactDeepFocus || {}),
+      }
+      if (Object.keys(enrichment).length > 0) {
+        next = {
+          ...next,
+          days: {
+            ...next.days,
+            [day]: {
+              sessions: { ...next.days[day].sessions, [session.id]: { ...recorded, ...enrichment } },
+            },
+          },
+        }
+      }
+      continue
+    }
     next = addSessionToFocusLedger(next, upgraded)
   }
   return next
@@ -594,7 +641,12 @@ export function removeSessionFromFocusLedger(ledger, sessionId) {
   return changed ? { ...safe, days } : safe
 }
 
-export function calculateDailyFocus(dayEntry) {
+// The validated contributions a day is scored from, on exactly one ruler. On a
+// switchover day both generations are present, and averaging them yields a
+// number that is neither — so the newest generation present wins and the older
+// measurements sit that day out. Entries written before generations were
+// tagged are V1. Shared by every derived Focus Score version.
+export function usableDayContributions(dayEntry) {
   const usable = Object.values(dayEntry?.sessions || {})
     .filter(item =>
       item?.version === FOCUS_METRIC_V1.version &&
@@ -608,14 +660,15 @@ export function calculateDailyFocus(dayEntry) {
       item.deepFocusSeconds <= item.measuredSeconds
     )
   if (usable.length === 0) return null
-
-  // A day is scored by one ruler. On a switchover day both generations are
-  // present, and averaging them yields a number that is neither — so the
-  // newest generation present wins and the older measurements sit that day
-  // out. Entries written before generations were tagged are V1.
   const generationOf = (item) => item.generation ?? ATTENTION_SCORING_VERSION
   const generation = Math.max(...usable.map(generationOf))
-  const contributions = usable.filter(item => generationOf(item) === generation)
+  return { generation, contributions: usable.filter(item => generationOf(item) === generation) }
+}
+
+export function calculateDailyFocus(dayEntry) {
+  const usable = usableDayContributions(dayEntry)
+  if (!usable) return null
+  const { generation, contributions } = usable
 
   const totals = contributions.reduce((sum, item) => ({
     measuredSeconds: sum.measuredSeconds + item.measuredSeconds,

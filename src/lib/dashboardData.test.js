@@ -1,11 +1,28 @@
 import { describe, expect, it } from 'vitest'
 import { ATTENTION_SCORING_VERSION, emptyFocusLedger } from './focusMetric'
 import { NATIVE_CAMERA_MEASUREMENT_V2 } from './cameraMeasurement'
-import { buildAttentionField, buildDashboardData } from './dashboardData'
+import { buildAttentionField, buildDashboardData, buildPeriodTimeSummary } from './dashboardData'
 
 const NOW = new Date(2026, 7, 25, 12, 0, 0).getTime()
 
 describe('dashboard data', () => {
+  it('keeps ruler-independent Focus Time visible for a period wholly before V4', () => {
+    const startedAt = new Date(2026, 7, 18, 9).getTime()
+    const summary = buildPeriodTimeSummary([{
+      id: 'historical', startedAt, timestamp: startedAt + 3_600_000,
+      actualSeconds: 3600, measuredSeconds: 3500,
+      attentionScoringVersion: ATTENTION_SCORING_VERSION,
+    }], {
+      metricVersion: 4,
+      metricStartAt: new Date(2026, 8, 22, 10).getTime(),
+      generation: NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
+      start: new Date(2026, 7, 17),
+      endExclusive: new Date(2026, 7, 24),
+    }, NOW)
+
+    expect(summary).toMatchObject({ sessionCount: 1, focusSeconds: 3600, measuredSeconds: 3500 })
+  })
+
   it('builds the attention field from the ruler in current use without mixing generations', () => {
     const start = new Date(2026, 7, 25, 8, 0, 0).getTime()
     const bins = buildAttentionField([
@@ -436,6 +453,8 @@ describe('dashboard data', () => {
       focusMetricRejection: null,
       sessionEfficiency: 60,
       deepFocusSeconds: 3580,
+      deepFocusTimeVersion: 2,
+      flowSeconds: 1200,
       goalOutcome: null,
     }
     const ledger = {
@@ -443,7 +462,10 @@ describe('dashboard data', () => {
       days: {
         '2026-08-25': {
           sessions: {
-            [session.id]: { version: 1, measuredSeconds: 3580, scoreSum: 214800, deepFocusSeconds: 3580 },
+            [session.id]: {
+              version: 1, measuredSeconds: 3580, scoreSum: 214800, deepFocusSeconds: 3580,
+              deepFocusTimeVersion: 2, flowSeconds: 1200,
+            },
           },
         },
       },

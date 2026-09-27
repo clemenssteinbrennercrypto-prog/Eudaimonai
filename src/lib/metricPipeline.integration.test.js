@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { NATIVE_CAMERA_MEASUREMENT_V2 } from './cameraMeasurement'
-import { ATTENTION_ACCUMULATION_VERSION } from './attentionSampling'
+import { ATTENTION_ACCUMULATION_VERSION, DEEP_FOCUS_TIME_VERSION } from './attentionSampling'
 import { withSessionFocusMetric } from './focusMetric'
 import {
   aggregateAverageFocus,
@@ -54,6 +54,8 @@ function nativeV2Session(index) {
     trackingFaulted: false,
     distractionEvents: 1,
     longestFocusedStreak: 240,
+    deepFocusTimeVersion: DEEP_FOCUS_TIME_VERSION,
+    flowSeconds: 240,
     timeline: [
       { second: 20, score: 82, focused: true, phase: 'lock_in' },
       { second: 300, score: 55, focused: true, phase: 'lock_in' },
