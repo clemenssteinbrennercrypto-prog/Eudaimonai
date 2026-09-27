@@ -54,7 +54,7 @@ describe('Analytics Details', () => {
     expect(screen.getByRole('heading', { name: 'Where and when focus is strongest' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'How your sessions behave' })).toBeTruthy()
     expect(screen.getByText('Deep Focus')).toBeTruthy()
-    expect(screen.getByText('40m')).toBeTruthy()
+    expect(within(screen.getByLabelText('Exact Deep Focus time')).getByText('40m')).toBeTruthy()
     const signals = [...document.querySelectorAll('.analytics-condition-signal')].map(node => node.textContent)
     expect(signals).toContain('Late morning records 32 points higher average attention than Afternoon.')
     expect(signals).toContain('Office records 32 points higher average attention than Home.')
@@ -72,7 +72,7 @@ describe('Analytics Details', () => {
     expect(within(index).getByRole('button', { name: 'Sessions' })).toBeTruthy()
     expect(within(index).getByRole('button', { name: 'Conditions' })).toBeTruthy()
     expect(within(index).getByRole('button', { name: 'Rhythm' })).toBeTruthy()
-    expect(screen.getByText('The line uses only sessions with at least 10 minutes of reliable measurement. Earlier measurement methods stay visible as a separate series.')).toBeTruthy()
+    expect(screen.getByText('Only sessions with at least 10 minutes of reliable measurement are plotted. Earlier measurement methods remain a separate series; excluded sessions stay in history without crowding the chart.')).toBeTruthy()
     expect(screen.getByText('Current measurement')).toBeTruthy()
   })
 
@@ -86,9 +86,8 @@ describe('Analytics Details', () => {
     fireEvent.change(screen.getByLabelText('Outcome'), { target: { value: 'no' } })
     expect(screen.getByText('session · 1 measured')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reset' })).toBeTruthy()
-    const outcomes = within(screen.getByLabelText('Outcomes across 1 session'))
-    expect(outcomes.getByText('Missed').parentElement?.textContent).toContain('1')
-    expect(outcomes.getByText('Reached').parentElement?.textContent).toContain('0')
+    expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(1)
+    expect(screen.queryByLabelText('Outcomes across 1 session')).toBeNull()
   })
 
   it('opens the existing session detail from a plotted point', () => {
@@ -109,15 +108,16 @@ describe('Analytics Details', () => {
     })
   })
 
-  it('keeps missing measurement in a separate lane below the score scale', () => {
+  it('keeps missing measurement out of the plot instead of creating a cluttered exclusion lane', () => {
     renderExplorer([
       session(1),
       session(2, { scoreMeasured: false }),
     ])
 
-    const missing = screen.getByRole('button', { name: /not measured.*Open session details/ })
-    expect(missing.querySelector('circle')?.getAttribute('cy')).toBe('258')
-    expect(document.querySelector('.analytics-excluded-axis')).toBeTruthy()
+    expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: /not measured.*Open session details/ })).toBeNull()
+    expect(document.querySelector('.analytics-excluded-axis')).toBeNull()
+    expect(screen.getByText('1 plotted · 1 excluded')).toBeTruthy()
   })
 
   it('connects every eligible point in one measurement series without letting short sessions shape the line', () => {
@@ -130,9 +130,9 @@ describe('Analytics Details', () => {
     const line = document.querySelector('.analytics-main-plot path.is-current-generation')
     expect(line?.getAttribute('d')).toMatch(/^M .* L /)
     expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(2)
-    expect(document.querySelector('.analytics-excluded-point.is-short')).toBeTruthy()
+    expect(document.querySelector('.analytics-excluded-point')).toBeNull()
     expect(document.querySelector('.analytics-focus-point.is-reached')).toBeNull()
-    expect(screen.getByText('Under 10 min')).toBeTruthy()
+    expect(screen.getByText('2 plotted · 1 excluded')).toBeTruthy()
   })
 
   it('shows earlier measurement history as a separate series instead of dropping it or joining the rulers', () => {
@@ -180,6 +180,19 @@ describe('Analytics Details', () => {
     const plot = screen.getByLabelText('Focus time and average attention across 3 sessions')
     expect(plot.querySelectorAll('.analytics-duration-point')).toHaveLength(2)
     expect(within(plot).getByText('×2')).toBeTruthy()
+  })
+
+  it('uses clean duration ticks when one long session expands the axis', () => {
+    renderExplorer([
+      session(1, { actualSeconds: 30 * 60, measuredSeconds: 30 * 60 }),
+      session(2, { actualSeconds: 60 * 60, measuredSeconds: 60 * 60 }),
+      session(3, { actualSeconds: 195 * 60, measuredSeconds: 195 * 60 }),
+    ])
+
+    const plot = screen.getByLabelText('Focus time and average attention across 3 sessions')
+    expect(within(plot).getByText('180m')).toBeTruthy()
+    expect(within(plot).queryByText('195m')).toBeNull()
+    expect(within(plot).queryByText('210m')).toBeNull()
   })
 
   it('uses the newest stored name for a renamed workspace filter', () => {

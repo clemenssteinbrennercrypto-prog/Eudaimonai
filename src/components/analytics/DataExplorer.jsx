@@ -73,38 +73,8 @@ function FocusPoint({ point, cx, cy, onSelect }) {
       onClick={activate}
       onKeyDown={activate}
     >
-      <circle className="analytics-point-hit" cx={cx} cy={cy} r="18" />
-      <circle className="analytics-focus-point-mark" cx={cx} cy={cy} r="7" />
-      <title>{pointDescription(point)}</title>
-    </g>
-  )
-}
-
-function ExcludedPoint({ point, cx, cy, onSelect }) {
-  const activate = event => {
-    if (event?.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return
-    event?.preventDefault()
-    onSelect(point.id)
-  }
-  const short = point.exclusion === 'short_session' || point.exclusion === 'short_measurement'
-  return (
-    <g
-      className={`analytics-excluded-point ${short ? 'is-short' : 'is-unreliable'}`}
-      role="button"
-      tabIndex={0}
-      aria-label={`${pointDescription(point)}. Open session details.`}
-      onClick={activate}
-      onKeyDown={activate}
-    >
-      <circle className="analytics-point-hit" cx={cx} cy={cy} r="18" />
-      {short ? (
-        <circle className="analytics-excluded-point-mark" cx={cx} cy={cy} r="5" />
-      ) : (
-        <>
-          <line x1={cx - 4} x2={cx + 4} y1={cy + 4} y2={cy - 4} />
-          <line x1={cx - 4} x2={cx + 4} y1={cy - 4} y2={cy + 4} />
-        </>
-      )}
+      <circle className="analytics-point-hit" cx={cx} cy={cy} r="16" />
+      <circle className="analytics-focus-point-mark" cx={cx} cy={cy} r="5" />
       <title>{pointDescription(point)}</title>
     </g>
   )
@@ -142,37 +112,39 @@ function DetailsIndex({ sections }) {
 }
 
 function FocusTrend({ rows, onSelect }) {
-  const scoreableCount = rows.filter(row => row.scoreEligible).length
+  const plotted = rows.filter(row => row.scoreEligible)
+  const scoreableCount = plotted.length
   if (scoreableCount === 0) return <p className="analytics-details-empty">No sessions with at least 10 minutes of reliable measurement match these filters.</p>
 
-  const x = index => rows.length === 1 ? 510 : 56 + (index / (rows.length - 1)) * 920
-  const y = value => 232 - value * 2.05
+  const timestamps = rows.map(row => row.timestamp).filter(Number.isFinite)
+  const firstTimestamp = Math.min(...timestamps)
+  const lastTimestamp = Math.max(...timestamps)
+  const x = timestamp => firstTimestamp === lastTimestamp
+    ? 510
+    : 58 + ((timestamp - firstTimestamp) / (lastTimestamp - firstTimestamp)) * 918
+  const y = value => 200 - value * 1.72
   const series = new Map()
-  rows.forEach((row, index) => {
-    if (!row.scoreEligible) return
+  plotted.forEach(row => {
     if (!series.has(row.generation)) series.set(row.generation, [])
-    series.get(row.generation).push({ row, index })
+    series.get(row.generation).push(row)
   })
-  const hasShort = rows.some(row => row.exclusion === 'short_session' || row.exclusion === 'short_measurement')
-  const hasUnreliable = rows.some(row => !row.scoreEligible && row.exclusion !== 'short_session' && row.exclusion !== 'short_measurement')
-  const hasExcluded = hasShort || hasUnreliable
-  const hasEarlierGeneration = rows.some(row => !row.currentGeneration)
-  const generationBreaks = rows.flatMap((row, index) => {
-    if (index === 0 || row.generation === rows[index - 1].generation) return []
-    return [(x(index - 1) + x(index)) / 2]
+  const hasEarlierGeneration = plotted.some(row => !row.currentGeneration)
+  const generationBreaks = plotted.flatMap((row, index) => {
+    if (index === 0 || row.generation === plotted[index - 1].generation) return []
+    return [(x(plotted[index - 1].timestamp) + x(row.timestamp)) / 2]
   })
-  const labelIndexes = new Set([0, Math.floor((rows.length - 1) / 2), rows.length - 1])
+  const dateTicks = firstTimestamp === lastTimestamp
+    ? [firstTimestamp]
+    : [firstTimestamp, firstTimestamp + (lastTimestamp - firstTimestamp) / 2, lastTimestamp]
 
   return (
     <>
       <div className="analytics-focus-legend">
         <span><i className="is-current" />Current measurement</span>
         {hasEarlierGeneration && <span><i className="is-earlier" />Earlier measurement</span>}
-        {hasShort && <span><i className="is-short" />Under 10 min</span>}
-        {hasUnreliable && <span><i className="is-unreliable">×</i>No reliable score</span>}
         <span className="analytics-focus-legend-axis">Average attention / 100 · chronological</span>
       </div>
-      <svg className="analytics-main-plot" viewBox="0 0 1000 310" role="group" aria-label={`Average attention across ${sessionLabel(scoreableCount)} with at least 10 minutes of reliable measurement`}>
+      <svg className="analytics-main-plot" viewBox="0 0 1000 238" role="group" aria-label={`Average attention across ${sessionLabel(scoreableCount)} with at least 10 minutes of reliable measurement`}>
         {[25, 50, 75, 100].map(value => (
           <g key={value}>
             <line x1="56" x2="976" y1={y(value)} y2={y(value)} />
@@ -182,51 +154,24 @@ function FocusTrend({ rows, onSelect }) {
         {[...series.entries()].map(([generation, items]) => (
           <path
             key={generation}
-            className={items[0]?.row.currentGeneration ? 'is-current-generation' : 'is-earlier-generation'}
-            d={items.map((item, pointIndex) => `${pointIndex ? 'L' : 'M'} ${x(item.index)} ${y(item.row.averageAttention)}`).join(' ')}
+            className={items[0]?.currentGeneration ? 'is-current-generation' : 'is-earlier-generation'}
+            d={items.map((item, pointIndex) => `${pointIndex ? 'L' : 'M'} ${x(item.timestamp)} ${y(item.averageAttention)}`).join(' ')}
           />
         ))}
         {generationBreaks.map(position => (
           <g key={position} className="analytics-generation-break" role="img" aria-label="Measurement method changed; the two score series are not connected">
-            <line x1={position} x2={position} y1="22" y2="258" />
-            <text x={position + 8} y="32">METHOD CHANGE</text>
+            <line x1={position} x2={position} y1="20" y2="202" />
+            <text x={position + 7} y="28">METHOD CHANGE</text>
           </g>
         ))}
-        {hasExcluded && (
-          <g className="analytics-excluded-axis">
-            <line x1="56" x2="976" y1="258" y2="258" />
-            <text x="42" y="262" textAnchor="end">Excluded</text>
-          </g>
-        )}
-        {rows.map((point, index) => !point.scoreEligible ? (
-          <ExcludedPoint key={point.id} point={point} cx={x(index)} cy={258} onSelect={onSelect} />
-        ) : (
-          <FocusPoint key={point.id} point={point} cx={x(index)} cy={y(point.averageAttention)} onSelect={onSelect} />
+        {plotted.map(point => (
+          <FocusPoint key={point.id} point={point} cx={x(point.timestamp)} cy={y(point.averageAttention)} onSelect={onSelect} />
         ))}
-        {rows.map((point, index) => labelIndexes.has(index) && (
-          <text key={`label-${point.id}`} x={x(index)} y="302" textAnchor={index === 0 ? 'start' : index === rows.length - 1 ? 'end' : 'middle'}>{fmtDate(point.timestamp)}</text>
+        {dateTicks.map((timestamp, index) => (
+          <text key={timestamp} x={x(timestamp)} y="230" textAnchor={index === 0 ? 'start' : index === dateTicks.length - 1 ? 'end' : 'middle'}>{fmtDate(timestamp)}</text>
         ))}
       </svg>
     </>
-  )
-}
-
-function OutcomeStrip({ outcomes }) {
-  const total = Object.values(outcomes).reduce((sum, value) => sum + value, 0)
-  if (!total) return null
-  return (
-    <div className="analytics-outcome-summary" aria-label={`Outcomes across ${sessionLabel(total)}`}>
-      <div className="analytics-outcome-track">
-        {Object.entries(OUTCOME_META).map(([key, meta]) => outcomes[key] > 0 && (
-          <i key={key} className={meta.className} style={{ width: `${(outcomes[key] / total) * 100}%` }} />
-        ))}
-      </div>
-      <div className="analytics-outcome-key">
-        {Object.entries(OUTCOME_META).map(([key, meta]) => (
-          <span key={key}><i className={meta.className} />{meta.label} <b>{outcomes[key]}</b></span>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -314,8 +259,8 @@ function DurationPoint({ sessions, cx, cy, onSelect }) {
       onClick={activate}
       onKeyDown={activate}
     >
-      <circle className="analytics-point-hit" cx={cx} cy={cy} r="18" />
-      <circle className="analytics-duration-point-mark" cx={cx} cy={cy} r="7" />
+      <circle className="analytics-point-hit" cx={cx} cy={cy} r="16" />
+      <circle className="analytics-duration-point-mark" cx={cx} cy={cy} r="5" />
       {count > 1 && <text x={cx + 10} y={cy - 9}>×{count}</text>}
       <title>{description}</title>
     </g>
@@ -325,14 +270,17 @@ function DurationPoint({ sessions, cx, cy, onSelect }) {
 function DurationPlot({ rows, analysis, onSelect }) {
   const axisMin = 10
   const observedMax = Math.max(axisMin, ...rows.map(row => row.durationMinutes))
-  const axisMax = Math.max(30, Math.ceil(observedMax / 15) * 15)
-  const x = value => 56 + ((value - axisMin) / (axisMax - axisMin)) * 900
-  const y = value => 222 - value * 1.9
+  const tickStep = observedMax > 180 ? 60 : observedMax > 90 ? 30 : 20
+  const axisMax = Math.max(30, Math.ceil(observedMax / 15) * 15 + (observedMax > 90 ? 15 : 0))
+  const lowestAttention = Math.min(...rows.map(row => row.averageAttention))
+  const attentionMin = Math.max(0, Math.floor((lowestAttention - 10) / 25) * 25)
+  const attentionTicks = Array.from({ length: Math.floor((100 - attentionMin) / 25) + 1 }, (_, index) => attentionMin + index * 25)
+  const x = value => 58 + ((value - axisMin) / (axisMax - axisMin)) * 918
+  const y = value => 154 - ((value - attentionMin) / (100 - attentionMin)) * 128
   const durationTicks = [...new Set([
     axisMin,
-    ...Array.from({ length: Math.floor(axisMax / 30) }, (_, index) => (index + 1) * 30),
-    axisMax,
-  ])].filter(value => value >= axisMin && value <= axisMax).sort((a, b) => a - b)
+    ...Array.from({ length: Math.floor(axisMax / tickStep) }, (_, index) => (index + 1) * tickStep),
+  ])].filter(value => value >= axisMin && value < axisMax).sort((a, b) => a - b)
   const grouped = new Map()
   for (const row of rows) {
     const key = `${row.durationMinutes}:${row.averageAttention}`
@@ -348,21 +296,20 @@ function DurationPlot({ rows, analysis, onSelect }) {
   return (
     <>
       <div className="analytics-duration-readout">
-        <span>Medians <strong>{formatMinutes(analysis.medianDurationMinutes)} focus time · {analysis.medianAttention}/100 attention</strong></span>
-        {trend ? <span>Observed slope <strong>{signedTrend} points / 30 min</strong> · association only</span> : <span>Trend needs 8 sessions across different durations</span>}
+        <span>{sessionLabel(rows.length)}</span>
+        <span>Median <strong>{formatMinutes(analysis.medianDurationMinutes)} · {analysis.medianAttention}/100</strong></span>
+        {trend ? <span>Trend <strong>{signedTrend} points / 30 min</strong> <em>association only</em></span> : <span>Trend needs 8 varied sessions</span>}
       </div>
-      <div className="analytics-plot-labels" aria-hidden="true"><span>Average attention / 100</span><span>Focus time · pauses excluded</span></div>
-      <svg className="analytics-secondary-plot analytics-duration-plot" viewBox="0 0 1000 270" role="group" aria-label={`Focus time and average attention across ${sessionLabel(rows.length)}`}>
-        {[0, 25, 50, 75, 100].map(value => (
+      <svg className="analytics-secondary-plot analytics-duration-plot" viewBox="0 0 1000 202" role="group" aria-label={`Focus time and average attention across ${sessionLabel(rows.length)}`}>
+        {attentionTicks.map(value => (
           <g key={value}>
-            <line x1="56" x2="956" y1={y(value)} y2={y(value)} />
+            <line x1="58" x2="976" y1={y(value)} y2={y(value)} />
             <text x="42" y={y(value) + 4} textAnchor="end">{value}</text>
           </g>
         ))}
         {medianReady && (
-          <g className="analytics-duration-reference" aria-label={`Median references: ${formatMinutes(analysis.medianDurationMinutes)} active time and ${analysis.medianAttention} average attention`}>
-            <line x1={x(analysis.medianDurationMinutes)} x2={x(analysis.medianDurationMinutes)} y1="24" y2="222" />
-            <line x1="56" x2="956" y1={y(analysis.medianAttention)} y2={y(analysis.medianAttention)} />
+          <g className="analytics-duration-reference" aria-label={`Median focus time: ${formatMinutes(analysis.medianDurationMinutes)}`}>
+            <line x1={x(analysis.medianDurationMinutes)} x2={x(analysis.medianDurationMinutes)} y1="26" y2="154" />
           </g>
         )}
         {trend && (
@@ -383,7 +330,7 @@ function DurationPlot({ rows, analysis, onSelect }) {
             onSelect={onSelect}
           />
         ))}
-        {durationTicks.map(value => <text key={value} x={x(value)} y="254" textAnchor={value === axisMin ? 'start' : value === axisMax ? 'end' : 'middle'}>{value}m</text>)}
+        {durationTicks.map(value => <text key={value} x={x(value)} y="188" textAnchor={value === axisMin ? 'start' : 'middle'}>{value}m</text>)}
       </svg>
     </>
   )
@@ -464,6 +411,8 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
     details.conditions.workspace.rows.filter(row => row.averageAttention != null).length >= 2
   const durationReady = details.duration.length >= 3
   const phasesReady = details.phases.totalSeconds > 0 || details.phases.deepFocus.measuredSessions > 0
+  const plottedSessionCount = details.timeline.filter(row => row.scoreEligible).length
+  const excludedSessionCount = details.sessionCount - plottedSessionCount
   const indexSections = [
     { id: 'focus-trend-heading', label: 'Sessions' },
     { id: 'conditions-heading', label: 'Conditions' },
@@ -515,12 +464,11 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
             <SectionHeading
               kicker="Development"
               title="Focus by session"
-              description="The line uses only sessions with at least 10 minutes of reliable measurement. Earlier measurement methods stay visible as a separate series."
+              description="Only sessions with at least 10 minutes of reliable measurement are plotted. Earlier measurement methods remain a separate series; excluded sessions stay in history without crowding the chart."
               id="focus-trend-heading"
-              meta={`${details.scoreableCount} scoreable · ${details.sessionCount} visible`}
+              meta={`${plottedSessionCount} plotted · ${excludedSessionCount} excluded`}
             />
             <FocusTrend rows={details.timeline} onSelect={onSelectSession} />
-            <OutcomeStrip outcomes={details.outcomes} />
           </section>
 
           <section className="analytics-details-section" aria-labelledby="conditions-heading">
