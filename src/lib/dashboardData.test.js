@@ -23,6 +23,38 @@ describe('dashboard data', () => {
     expect(summary).toMatchObject({ sessionCount: 1, focusSeconds: 3600, measuredSeconds: 3500 })
   })
 
+  it('does not truncate Focus Time at the V4 boundary inside the selected day', () => {
+    const start = new Date(2026, 8, 26, 8).getTime()
+    const boundary = new Date(2026, 8, 26, 11).getTime()
+    const summary = buildPeriodTimeSummary([
+      {
+        id: 'before-v4', startedAt: start, timestamp: boundary,
+        actualSeconds: 10_800, measuredSeconds: 10_700,
+        attentionScoringVersion: ATTENTION_SCORING_VERSION,
+      },
+      {
+        id: 'v4', startedAt: boundary, timestamp: boundary + 3_600_000,
+        actualSeconds: 3600, measuredSeconds: 3500,
+        attentionScoringVersion: NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
+        deepFocusTimeVersion: 2, flowSeconds: 1200,
+      },
+    ], {
+      metricVersion: 4,
+      metricStartAt: boundary,
+      generation: NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
+      start: new Date(2026, 8, 26),
+      endExclusive: new Date(2026, 8, 27),
+    }, new Date(2026, 8, 27).getTime())
+
+    expect(summary).toMatchObject({
+      sessionCount: 2,
+      focusSeconds: 14_400,
+      measuredSeconds: 14_200,
+      deepFocusSeconds: null,
+      deepFocusComplete: false,
+    })
+  })
+
   it('builds the attention field from the ruler in current use without mixing generations', () => {
     const start = new Date(2026, 7, 25, 8, 0, 0).getTime()
     const bins = buildAttentionField([

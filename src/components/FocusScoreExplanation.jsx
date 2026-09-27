@@ -23,6 +23,12 @@ export default function FocusScoreExplanation({ period, time = null }) {
   else if (!selectedDay && period.beforeMetricPeriod) status = 'The current Focus Score did not exist for this period. Historical Focus Time remains visible; no score is reconstructed.'
   else if (!selectedDay && today?.status === 'measured') status = `Today’s score: ${today.score}.`
   if (!status && period.score == null) status = 'No qualifying measurements in this period.'
+  const scoreMeasuredSeconds = period.score != null && Number.isFinite(period.measuredSeconds)
+    ? period.measuredSeconds
+    : null
+  const totalMeasuredSeconds = Number.isFinite(time?.measuredSeconds) ? time.measuredSeconds : null
+  const scoreUsesPartialMeasuredTime = scoreMeasuredSeconds != null && totalMeasuredSeconds != null &&
+    totalMeasuredSeconds > scoreMeasuredSeconds + 1
 
   return (
     <div className="focus-score-explanation">
@@ -32,6 +38,9 @@ export default function FocusScoreExplanation({ period, time = null }) {
       )}
       {period.range !== 'day' && period.score != null && (
         <p>This period is scored against {period.referenceWorkdays === 1 ? 'one weekday' : `${period.referenceWorkdays} weekdays`} so far. Weekend work still counts.</p>
+      )}
+      {scoreUsesPartialMeasuredTime && (
+        <p>Focus Score uses {formatMinutes(scoreMeasuredSeconds / 60)} of {formatMinutes(totalMeasuredSeconds / 60)} measured time. Earlier or differently measured sessions remain in Focus Time but are not mixed into this score.</p>
       )}
       {time?.measurementWarning && (
         <p>Only {Math.round(time.measurementCoverage * 100)}% of Focus Time could be measured. Focus Score uses the measured time only; missing camera data is not guessed.</p>

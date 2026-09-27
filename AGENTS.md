@@ -47,7 +47,7 @@ app but could never run the native measurement engine.
 ```bash
 npm install
 npm run dev        # isolated UI development only; native features unavailable
-npm test           # vitest, currently 786 tests — must stay green
+npm test           # vitest, currently 796 tests — must stay green
 npm run build      # production bundle
 ```
 
@@ -350,7 +350,7 @@ degrades the result; it never breaks a session.
 
 ## 7. Testing and verification
 
-There are currently 786 JS tests and 75 Rust tests (13 native-camera library
+There are currently 796 JS tests and 75 Rust tests (13 native-camera library
 tests plus 62 app tests). Both suites must stay green. Treat these counts as a
 checkpoint, not a substitute for reading the runner output when tests are added.
 

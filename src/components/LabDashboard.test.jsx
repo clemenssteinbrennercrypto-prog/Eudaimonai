@@ -95,14 +95,16 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByRole('heading', { name: 'Focus Score' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Time + attention + consistency' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^(Weekly|week)$/ }))
-    // The older session predates exact Deep Focus v2 and is outside this ruler.
+    // The score starts with exact Deep Focus, while the independent clock keeps
+    // both sessions instead of making earlier work disappear.
     expect(screen.getByText('41')).toBeInTheDocument()
     expect(screen.getAllByText('Focus Score').length).toBeGreaterThan(1)
     const focusTime = screen.getByText('Focus time').parentElement
-    expect(focusTime).toHaveTextContent('1h')
+    expect(focusTime).toHaveTextContent('2h')
     expect(focusTime).toHaveTextContent('Active session time · breaks excluded')
     expect(focusTime).not.toHaveTextContent('2m')
-    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('2m')
+    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Not recorded for every session')
+    expect(screen.getByText(/Focus Score uses 1h of 2h measured time/)).toBeInTheDocument()
     expect(screen.queryByText('Measured days')).not.toBeInTheDocument()
     expect(screen.getByText('Average attention').parentElement).toHaveTextContent('80/100')
     expect(screen.queryByText('Time credit')).not.toBeInTheDocument()

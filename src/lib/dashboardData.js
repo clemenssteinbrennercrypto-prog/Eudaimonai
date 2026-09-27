@@ -107,15 +107,13 @@ export function buildPeriodTimeSummary(sessions, period, now = Date.now()) {
   const start = period?.start instanceof Date ? period.start.getTime() : Number.NaN
   const end = period?.endExclusive instanceof Date ? period.endExclusive.getTime() : Number.NaN
   const nowMs = new Date(now).getTime()
-  const overlapsCurrentMetric = period?.metricVersion === FOCUS_SCORE.metricVersion &&
-    Number.isFinite(period?.metricStartAt) && end > period.metricStartAt
-  const metricStartMs = overlapsCurrentMetric ? period.metricStartAt : Number.NEGATIVE_INFINITY
   const selected = (Array.isArray(sessions) ? sessions : []).filter(session => {
     const startedAt = sessionStartedAt(session)
-    const sameRuler = !overlapsCurrentMetric ||
-      focusGenerationOf(session) === period.generation
-    return Number.isFinite(startedAt) && startedAt >= start && startedAt >= metricStartMs &&
-      startedAt < end && startedAt <= nowMs && sameRuler
+    // Focus Time is a clock, not a derived camera ruler. Keep every session in
+    // the selected calendar period even when the current Focus Score starts
+    // later or excludes a different measurement generation.
+    return Number.isFinite(startedAt) && startedAt >= start &&
+      startedAt < end && startedAt <= nowMs
   })
   const validDuration = selected.filter(session => Number.isFinite(session?.actualSeconds) && session.actualSeconds >= 0)
   const focusSeconds = validDuration.length > 0

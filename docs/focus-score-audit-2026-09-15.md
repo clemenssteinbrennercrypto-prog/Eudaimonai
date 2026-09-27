@@ -365,8 +365,12 @@ genuine V2 exact value for the active camera generation.
 
 - Days before that boundary remain readable under V1–V3 but are marked outside
   the current score.
-- Weekly/monthly Focus Time, Deep Focus and Average Attention alongside V4 use
-  the same post-boundary sessions and the same camera generation.
+- Focus Time remains the complete active clock for every session in the
+  selected calendar period; the V4 boundary and camera generation never
+  truncate it. Deep Focus remains unavailable unless every displayed session
+  carries an exact value. Average Attention and Focus Score use only their
+  qualified post-boundary camera generation, and the UI states when that is a
+  smaller measured interval than Focus Time.
 - If any qualifying contribution after the boundary lacks exact Deep Focus,
   the entire selected period refuses with `missing_exact_deep_focus`; it never
   presents the known subset as the whole.
