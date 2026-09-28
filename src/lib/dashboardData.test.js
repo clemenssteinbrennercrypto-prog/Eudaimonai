@@ -55,6 +55,26 @@ describe('dashboard data', () => {
     })
   })
 
+  it('keeps Focus Time while marking camera coverage unknown for older records', () => {
+    const startedAt = new Date(2026, 7, 18, 9).getTime()
+    const summary = buildPeriodTimeSummary([{
+      id: 'pre-coverage', startedAt, timestamp: startedAt + 3_600_000,
+      actualSeconds: 3600,
+      attentionScoringVersion: ATTENTION_SCORING_VERSION,
+    }], {
+      start: new Date(2026, 7, 17),
+      endExclusive: new Date(2026, 7, 24),
+    }, NOW)
+
+    expect(summary).toMatchObject({
+      focusSeconds: 3600,
+      measuredSeconds: null,
+      measurementCoverage: null,
+      measurementWarning: false,
+      measurementCoverageUnknown: true,
+    })
+  })
+
   it('builds the attention field from the ruler in current use without mixing generations', () => {
     const start = new Date(2026, 7, 25, 8, 0, 0).getTime()
     const bins = buildAttentionField([

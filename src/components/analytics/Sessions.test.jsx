@@ -120,16 +120,22 @@ describe('Sessions — wall-clock timing', () => {
 })
 
 describe('Sessions — detail view', () => {
-  it('opens a compact duration overview instead of the old chronology and audit trail', () => {
+  it('opens a compact chronological attention overview without the old audit trail', () => {
     const s = session({ id: 'a', extra: {
       task: 'Write docs',
       goalOutcome: 'yes',
       deepFocusTimeVersion: 2,
       flowSeconds: 300,
+      timeline: [
+        { second: 5, score: 78, deepFocused: false },
+        { second: 10, score: 82, deepFocused: true },
+        { second: 15, score: 52, deepFocused: false },
+      ],
     } })
     const html = render([s], { selectedSessionId: 'a' })
     expect(html).toContain('Session overview')
-    expect(html).toContain('Where the session time went')
+    expect(html).toContain('How attention changed through the session')
+    expect(html).toContain('Deep Focus')
     expect(html).toContain('High attention')
     expect(html).toContain('Quick check-in')
     expect(html).not.toContain('What happened, in order')

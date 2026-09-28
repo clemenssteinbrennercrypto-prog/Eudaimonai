@@ -1,10 +1,13 @@
 import CheckIn from '../../sessionReport/CheckIn'
+import TimelineBar from '../../sessionReport/TimelineBar'
+import { attentionTimelineBand, sampledAttentionBandSeconds } from '../../../lib/attentionTimeline'
 import { fmtDuration } from '../../../lib/sessionAnalysisPresentation'
 import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt } from '../../../lib/sessionTiming'
 
 const TIME_COLORS = {
-  high: '#B79CFF',
-  focused: 'var(--good)',
+  deep: 'var(--good)',
+  high: 'rgba(47, 227, 168, 0.66)',
+  focused: 'var(--warn)',
   low: 'var(--bad)',
   unmeasured: 'var(--text-muted)',
   break: 'var(--line-strong)',
@@ -19,17 +22,21 @@ export function buildAttentionTimes(session, measurement) {
   const activeSeconds = Math.max(0, measurement.actualSeconds || 0)
   const measuredSeconds = clamp(measurement.measuredSeconds, 0, activeSeconds)
   const focusedTotal = clamp(measurement.focusedSeconds, 0, measuredSeconds)
-  const highKnown = measurement.deepFocusSeconds != null
-  const highSeconds = highKnown ? clamp(measurement.deepFocusSeconds, 0, focusedTotal) : 0
+  const deepKnown = measurement.deepFocusSeconds != null
+  const deepSeconds = deepKnown ? clamp(measurement.deepFocusSeconds, 0, focusedTotal) : 0
+  const sampled = sampledAttentionBandSeconds(session?.timeline)
+  const sampledHighSeconds = sampled.high + (deepKnown ? 0 : sampled.deep)
+  const highSeconds = clamp(sampledHighSeconds, 0, focusedTotal - deepSeconds)
   const breakSeconds = Math.max(0, sessionPausedSeconds(session) || 0)
 
   return [
-    ...(highKnown ? [{ id: 'high', label: 'High attention', seconds: highSeconds }] : []),
-    { id: 'focused', label: highKnown ? 'Focused' : 'Focused attention', seconds: focusedTotal - highSeconds },
+    ...(deepKnown ? [{ id: 'deep', label: 'Deep Focus', seconds: deepSeconds }] : []),
+    { id: 'high', label: 'High attention', seconds: highSeconds },
+    { id: 'focused', label: 'Focused', seconds: focusedTotal - deepSeconds - highSeconds },
     { id: 'low', label: 'Low attention', seconds: measuredSeconds - focusedTotal },
     { id: 'unmeasured', label: 'Not measured', seconds: activeSeconds - measuredSeconds },
     { id: 'break', label: 'Break', seconds: breakSeconds },
-  ].filter(item => item.seconds > 0)
+  ].filter(item => item.seconds > 0 || (item.id === 'deep' && deepKnown))
 }
 
 function fmtDate(timestamp) {
@@ -49,29 +56,51 @@ function resultLabel(outcome) {
   return 'Not rated'
 }
 
-function AttentionTime({ entries }) {
+function attentionTone(score) {
+  const band = attentionTimelineBand({ score }).id
+  if (band === 'high' || band === 'deep') return 'is-good'
+  if (band === 'focused') return 'is-warn'
+  if (band === 'low') return 'is-bad'
+  return 'is-muted'
+}
+
+function outcomeTone(outcome) {
+  if (outcome === 'yes') return 'is-good'
+  if (outcome === 'partly') return 'is-warn'
+  if (outcome === 'no') return 'is-bad'
+  return 'is-muted'
+}
+
+function AttentionTime({ session, entries }) {
   const total = entries.reduce((sum, entry) => sum + entry.seconds, 0)
+  const hasTimeline = Array.isArray(session?.timeline) && session.timeline.length > 0
 
   return (
     <section className="session-overview-time" aria-labelledby="session-attention-time-heading">
       <div className="session-overview-section-heading">
         <div>
-          <span className="analytics-kicker">Attention time</span>
-          <h3 id="session-attention-time-heading">Where the session time went</h3>
+          <span className="analytics-kicker">Attention timeline</span>
+          <h3 id="session-attention-time-heading">How attention changed through the session</h3>
         </div>
-        <b>Duration only</b>
+        <b>{hasTimeline ? 'In session order' : 'Duration summary'}</b>
       </div>
       {total > 0 ? (
         <>
-          <div className="session-overview-timebar" aria-label="Session time by measured attention state">
-            {entries.map(entry => (
-              <span
-                key={entry.id}
-                style={{ flex: entry.seconds, background: TIME_COLORS[entry.id] }}
-                title={`${entry.label}: ${fmtDuration(entry.seconds)}`}
-              />
-            ))}
-          </div>
+          {hasTimeline ? (
+            <div className="session-overview-timeline" aria-label="Attention states in session order">
+              <TimelineBar timeline={session.timeline} session={session} height={18} showPhases={false} />
+            </div>
+          ) : (
+            <div className="session-overview-timebar" aria-label="Session time by measured attention state">
+              {entries.filter(entry => entry.seconds > 0).map(entry => (
+                <span
+                  key={entry.id}
+                  style={{ flex: entry.seconds, background: TIME_COLORS[entry.id] }}
+                  title={`${entry.label}: ${fmtDuration(entry.seconds)}`}
+                />
+              ))}
+            </div>
+          )}
           <div className="session-overview-legend">
             {entries.map(entry => (
               <div key={entry.id}>
@@ -115,7 +144,7 @@ export default function SessionOverview({ session, analysis, onUpdateSession }) 
           <strong>{fmtDuration(measurement.actualSeconds)}</strong>
           {pausedSeconds > 0 && <small>{fmtDuration(pausedSeconds)} break</small>}
         </div>
-        <div>
+        <div className={attentionTone(measurement.averageFocus)}>
           <span>Average attention</span>
           <strong>{measurement.averageFocus == null ? '—' : `${measurement.averageFocus}/100`}</strong>
           <small>{measurement.measuredSeconds == null ? 'Not measured' : `${fmtDuration(measurement.measuredSeconds)} measured`}</small>
@@ -125,14 +154,14 @@ export default function SessionOverview({ session, analysis, onUpdateSession }) 
           <strong>{measurement.focusedSeconds == null ? '—' : fmtDuration(measurement.focusedSeconds)}</strong>
           <small>At or above the focus threshold</small>
         </div>
-        <div>
+        <div className={outcomeTone(analysis.goalOutcome)}>
           <span>Goal</span>
           <strong>{resultLabel(analysis.goalOutcome)}</strong>
           <small>{facts.drift.alertCount} {facts.drift.alertCount === 1 ? 'alert' : 'alerts'}</small>
         </div>
       </section>
 
-      <AttentionTime entries={entries} />
+      <AttentionTime session={session} entries={entries} />
 
       <CheckIn
         session={session}

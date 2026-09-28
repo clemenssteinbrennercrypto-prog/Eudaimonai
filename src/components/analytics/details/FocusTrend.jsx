@@ -8,6 +8,38 @@ import { OUTCOME_META, fmtDate, fmtWeekdayDate, pointDescription, sessionLabel, 
 const HEIGHT = 280
 const MARGIN = { top: 22, right: 22, bottom: 36 }
 
+/**
+ * Sessions minutes apart would otherwise stack into one unclickable dot, so
+ * neighbours are pushed at least 32px apart while staying inside the plot.
+ */
+function spreadPositions(positions, leftBound, rightBound) {
+  if (positions.length < 2) return positions
+  const spread = [...positions]
+  const spacing = Math.min(32, (rightBound - leftBound) / (spread.length - 1))
+  for (let index = 1; index < spread.length; index += 1) {
+    spread[index] = Math.max(spread[index], spread[index - 1] + spacing)
+  }
+  if (spread.at(-1) > rightBound) {
+    spread[spread.length - 1] = rightBound
+    for (let index = spread.length - 2; index >= 0; index -= 1) {
+      spread[index] = Math.min(spread[index], spread[index + 1] - spacing)
+    }
+  }
+  if (spread[0] < leftBound) {
+    spread[0] = leftBound
+    for (let index = 1; index < spread.length; index += 1) {
+      spread[index] = Math.max(spread[index], spread[index - 1] + spacing)
+    }
+  }
+  return spread
+}
+
+function fmtTick(timestamp, includeTime) {
+  if (!includeTime) return fmtDate(timestamp)
+  const time = new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${fmtDate(timestamp)} · ${time}`
+}
+
 function activateOnKey(event, action) {
   if (event?.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return
   event?.preventDefault()
@@ -49,15 +81,20 @@ export default function FocusTrend({ rows, onSelect }) {
   const left = width < 520 ? 30 : 40
   const plotRight = width - MARGIN.right
   const plotBottom = HEIGHT - MARGIN.bottom
-  const timestamps = rows.map(row => row.timestamp).filter(Number.isFinite)
+  // Only plotted sessions set the time axis; an excluded session must not stretch it.
+  const timestamps = plotted.map(row => row.timestamp)
   const firstTimestamp = Math.min(...timestamps)
   const lastTimestamp = Math.max(...timestamps)
+  const leftBound = left + 8
+  const rightBound = plotRight - 8
   const x = timestamp => firstTimestamp === lastTimestamp
     ? (left + plotRight) / 2
-    : left + 8 + ((timestamp - firstTimestamp) / (lastTimestamp - firstTimestamp)) * (plotRight - left - 16)
+    : leftBound + ((timestamp - firstTimestamp) / (lastTimestamp - firstTimestamp)) * (rightBound - leftBound)
   const y = value => plotBottom - (value / 100) * (plotBottom - MARGIN.top)
 
-  const positioned = plotted.map(row => ({ row, cx: x(row.timestamp), cy: y(row.averageAttention) }))
+  const spreadX = spreadPositions(plotted.map(row => x(row.timestamp)), leftBound, rightBound)
+  const positioned = plotted.map((row, index) => ({ row, cx: spreadX[index], cy: y(row.averageAttention) }))
+  const oneCalendarDay = new Date(firstTimestamp).toDateString() === new Date(lastTimestamp).toDateString()
   const series = new Map()
   positioned.forEach(point => {
     if (!series.has(point.row.generation)) series.set(point.row.generation, [])
@@ -66,7 +103,7 @@ export default function FocusTrend({ rows, onSelect }) {
   const tickCount = firstTimestamp === lastTimestamp ? 1 : width >= 720 ? 5 : 3
   const dateTicks = [...new Map(Array.from({ length: tickCount }, (_, index) => {
     const timestamp = tickCount === 1 ? firstTimestamp : firstTimestamp + ((lastTimestamp - firstTimestamp) * index) / (tickCount - 1)
-    return [fmtDate(timestamp), timestamp]
+    return [fmtTick(timestamp, oneCalendarDay), timestamp]
   })).values()]
 
   const active = positioned.find(point => point.row.id === activeId) || null
@@ -173,7 +210,7 @@ export default function FocusTrend({ rows, onSelect }) {
               y={HEIGHT - 10}
               textAnchor={tickCount === 1 ? 'middle' : index === 0 ? 'start' : index === dateTicks.length - 1 ? 'end' : 'middle'}
             >
-              {fmtDate(timestamp)}
+              {fmtTick(timestamp, oneCalendarDay)}
             </text>
           ))}
         </svg>

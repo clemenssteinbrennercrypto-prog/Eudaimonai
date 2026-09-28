@@ -62,6 +62,23 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByText('This period is scored against one weekday so far. Weekend work still counts.')).toBeInTheDocument()
   })
 
+  it('keeps score scope visible when older Focus Time has no stored camera coverage', () => {
+    render(React.createElement(FocusScoreExplanation, {
+      period: {
+        range: 'week', score: 63, measuredSeconds: 3600,
+        today: null, days: [], partialMetricPeriod: false, referenceWorkdays: 1,
+      },
+      time: {
+        focusSeconds: 7200,
+        measuredSeconds: null,
+        measurementCoverageUnknown: true,
+      },
+    }))
+
+    expect(screen.getByText(/Focus Score uses 1h of 2h Focus Time/)).toBeInTheDocument()
+    expect(screen.getByText(/Camera coverage is unavailable for part of this Focus Time/)).toBeInTheDocument()
+  })
+
   it('says that V4 is waiting when no exact Deep Focus session exists yet', () => {
     render(React.createElement(FocusScoreExplanation, {
       period: {
@@ -104,7 +121,7 @@ describe('LabDashboard metric labels', () => {
     expect(focusTime).toHaveTextContent('Active session time · breaks excluded')
     expect(focusTime).not.toHaveTextContent('2m')
     expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Not recorded for every session')
-    expect(screen.getByText(/Focus Score uses 1h of 2h measured time/)).toBeInTheDocument()
+    expect(screen.getByText(/Focus Score uses 1h of 2h 40s Focus Time/)).toBeInTheDocument()
     expect(screen.queryByText('Measured days')).not.toBeInTheDocument()
     expect(screen.getByText('Average attention').parentElement).toHaveTextContent('80/100')
     expect(screen.queryByText('Time credit')).not.toBeInTheDocument()
@@ -431,14 +448,68 @@ describe('LabDashboard metric labels', () => {
     expect(view.container).not.toHaveTextContent('scholar.google.com')
 
     const field = view.container.querySelector('.attention-field')
+    const frame = view.container.querySelector('.attention-field-frame')
     const measuredBar = view.container.querySelector('.attention-bin[aria-label^="Write the chapter"]')
     const measuredIndex = [...field.querySelectorAll('.attention-bin')].indexOf(measuredBar)
-    vi.spyOn(field, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 960 })
-    fireEvent.mouseMove(field, { clientX: measuredIndex * 10 + 5 })
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 960 })
+    fireEvent.mouseMove(frame, { clientX: measuredIndex * 10 + 5 })
     expect(screen.getByRole('tooltip')).toHaveTextContent('SessionWrite the chapter13:49–14:00')
     expect(screen.getByRole('tooltip')).toHaveClass('is-visible')
 
-    fireEvent.mouseLeave(field)
+    const emptyIndex = [...field.querySelectorAll('.attention-bin')].findIndex(bin => !bin.getAttribute('aria-label').startsWith('Write the chapter'))
+    fireEvent.mouseMove(frame, { clientX: emptyIndex * 10 + 5 })
     expect(screen.getByRole('tooltip')).not.toHaveClass('is-visible')
+
+    fireEvent.mouseMove(frame, { clientX: measuredIndex * 10 + 5 })
+    fireEvent.mouseLeave(frame)
+    expect(screen.getByRole('tooltip')).not.toHaveClass('is-visible')
+  })
+
+  it('distinguishes same-name sessions by dated time ranges in multi-day views', () => {
+    const firstStart = new Date(2026, 7, 25, 9).getTime()
+    const secondStart = new Date(2026, 7, 26, 11).getTime()
+    const makeSaved = startedAt => saveSession({
+      task: 'Repeated task',
+      startedAt,
+      timestamp: startedAt + 600_000,
+      actualSeconds: 600,
+      measuredSeconds: 600,
+      scoreSum: 48_000,
+      focusedSeconds: 500,
+      attentionScoringVersion: NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
+      attentionMeasurementSource: NATIVE_CAMERA_MEASUREMENT_V2.id,
+      focusMetricVersion: FOCUS_METRIC_V1.version,
+      focusMetricRejection: null,
+      sessionEfficiency: 80,
+      timeline: [{ second: 30, score: 80 }],
+    })
+    const sessions = [makeSaved(firstStart), makeSaved(secondStart)]
+    const view = render(React.createElement(LabDashboard, {
+      focusModeEnabled: false,
+      sessions,
+      ledger: loadFocusLedger(),
+      onSession() {},
+      onProtection() {},
+      onAnalytics() {},
+    }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Weekly' }))
+    const field = view.container.querySelector('.attention-field')
+    const frame = view.container.querySelector('.attention-field-frame')
+    const allBars = [...field.querySelectorAll('.attention-bin')]
+    const namedBars = allBars.filter(bin => bin.getAttribute('aria-label').startsWith('Repeated task'))
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({ left: 0, width: allBars.length * 10 })
+
+    const firstIndex = allBars.indexOf(namedBars[0])
+    fireEvent.mouseMove(frame, { clientX: firstIndex * 10 + 5 })
+    const firstTooltip = screen.getByRole('tooltip').textContent
+    expect(firstTooltip).toMatch(/Aug 25|25 Aug/)
+    expect(firstTooltip).toContain('09:00–09:10')
+
+    const secondIndex = allBars.indexOf(namedBars.at(-1))
+    fireEvent.mouseMove(frame, { clientX: secondIndex * 10 + 5 })
+    const secondTooltip = screen.getByRole('tooltip').textContent
+    expect(secondTooltip).toMatch(/Aug 26|26 Aug/)
+    expect(secondTooltip).toContain('11:00–11:10')
   })
 })

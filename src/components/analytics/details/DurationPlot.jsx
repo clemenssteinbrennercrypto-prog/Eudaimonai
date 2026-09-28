@@ -41,6 +41,11 @@ function DurationPoint({ sessions, cx, cy, index, active, onActivate, onDeactiva
   )
 }
 
+function durationTickStep(axisMin, axisMax) {
+  const rawStep = (axisMax - axisMin) / 9
+  return [20, 30, 60, 120, 240, 480, 960].find(step => step >= rawStep) || Math.ceil(rawStep / 960) * 960
+}
+
 export default function DurationPlot({ rows, analysis, onSelect }) {
   const [wrapRef, width] = useChartWidth()
   const [activeKey, setActiveKey] = useState(null)
@@ -49,9 +54,14 @@ export default function DurationPlot({ rows, analysis, onSelect }) {
 
   const axisMin = 10
   const observedMax = Math.max(axisMin, ...rows.map(row => row.durationMinutes))
-  const tickStep = observedMax > 180 ? 60 : observedMax > 90 ? 30 : 20
   const axisMax = Math.max(30, Math.ceil(observedMax / 15) * 15 + (observedMax > 90 ? 15 : 0))
-  const lowestAttention = Math.min(...rows.map(row => row.averageAttention))
+  const trend = analysis.trend
+  const tickStep = durationTickStep(axisMin, axisMax)
+  // The robust trend can end below every point; keep its ends inside the axis.
+  const lowestAttention = Math.min(
+    ...rows.map(row => row.averageAttention),
+    ...(trend ? [trend.startAttention, trend.endAttention] : []),
+  )
   const attentionMin = Math.max(0, Math.floor((lowestAttention - 10) / 25) * 25)
   const attentionTicks = Array.from({ length: Math.floor((100 - attentionMin) / 25) + 1 }, (_, index) => attentionMin + index * 25)
   const left = width < 520 ? 30 : 40
@@ -71,7 +81,6 @@ export default function DurationPlot({ rows, analysis, onSelect }) {
   }
   const clusters = [...grouped.entries()]
   const medianReady = analysis.count >= 3
-  const trend = analysis.trend
   const signedTrend = trend == null
     ? null
     : `${trend.pointsPer30Minutes > 0 ? '+' : ''}${trend.pointsPer30Minutes}`

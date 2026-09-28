@@ -134,6 +134,24 @@ describe('Analytics Details', () => {
     expect(screen.getByText('2 plotted · 1 excluded')).toBeTruthy()
   })
 
+  it('keeps close-in-time sessions separately clickable and lets only plotted sessions set the time axis', () => {
+    const first = new Date(2026, 8, 1, 10).getTime()
+    renderExplorer([
+      session(1, { timestamp: first }),
+      session(2, { timestamp: first + 60_000 }),
+      session(3, { timestamp: first + 10 * 86400000, actualSeconds: 5 * 60, measuredSeconds: 5 * 60 }),
+    ])
+
+    // jsdom has no layout, so the chart uses its 960px fallback width: the
+    // plot runs from x=48 to x=930 and the excluded session must not stretch it.
+    const marks = [...document.querySelectorAll('.analytics-focus-point-mark')]
+    expect(marks).toHaveLength(2)
+    expect(Number(marks[1].getAttribute('cx')) - Number(marks[0].getAttribute('cx'))).toBeGreaterThanOrEqual(32)
+    expect(Number(marks[0].getAttribute('cx'))).toBe(48)
+    expect(Number(marks[1].getAttribute('cx'))).toBe(930)
+    expect(screen.getAllByText(/^Sep 1 · \d\d:\d\d$/).length).toBeGreaterThanOrEqual(2)
+  })
+
   it('shows earlier measurement history as a separate series in the same style without joining the rulers', () => {
     renderExplorer([
       session(1, { timestamp: new Date(2026, 6, 20).getTime(), attentionScoringVersion: 1 }),
@@ -195,6 +213,27 @@ describe('Analytics Details', () => {
     expect(within(plot).getByText('180m')).toBeTruthy()
     expect(within(plot).queryByText('195m')).toBeNull()
     expect(within(plot).queryByText('210m')).toBeNull()
+  })
+
+  it('keeps a robust duration trend inside the plotted attention axis', () => {
+    const attention = [96, 91, 89, 85, 82, 77, 74, 70]
+    renderExplorer(attention.map((average, index) => {
+      const actualSeconds = (index + 1) * 15 * 60
+      return session(index, {
+        actualSeconds,
+        measuredSeconds: actualSeconds,
+        focusedSeconds: 0,
+        scoreSum: average * actualSeconds,
+        avgFocusScore: average,
+      })
+    }))
+
+    const trend = document.querySelector('.analytics-duration-trend')
+    // The plot area spans y=30 (100) to y=214 (axis minimum) in pixels.
+    expect(Number(trend.getAttribute('y1'))).toBeGreaterThanOrEqual(30)
+    expect(Number(trend.getAttribute('y1'))).toBeLessThanOrEqual(214)
+    expect(Number(trend.getAttribute('y2'))).toBeGreaterThanOrEqual(30)
+    expect(Number(trend.getAttribute('y2'))).toBeLessThanOrEqual(214)
   })
 
   it('uses the newest stored name for a renamed workspace filter', () => {
