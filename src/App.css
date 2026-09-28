@@ -3484,3 +3484,202 @@ html {
   .analytics-workspace-list > div > i b { transform: none; }
   .analytics-phase-arcs { transform: rotate(-90deg); }
 }
+
+/* ── Screen polish: Workspace, Lab, Session setup ─────────────────────────
+   A light pass that carries the Analytics language (glass surfaces, pill
+   controls, readable type, bright accent for text) into the other screens
+   without restructuring them. Later rules here intentionally override the
+   older per-screen styles above.                                          */
+
+/* Workspace: buttons read as one family — pills, gradient primary. */
+.workspace-library button,
+.workspace-templates button,
+.workspace-editor button,
+.workspace-calibration button {
+  border-radius: 999px;
+  padding: 10px 18px;
+  font: 600 13px var(--font);
+  background: linear-gradient(180deg, #4d66ff, var(--ultra));
+  box-shadow: 0 1px 0 rgba(231, 236, 255, 0.18) inset, 0 8px 22px -10px var(--ultra-glow);
+  transition: filter var(--t-fast) var(--ease-soft), box-shadow var(--t-fast) var(--ease-soft);
+}
+.workspace-library button:hover:not(:disabled),
+.workspace-templates button:hover:not(:disabled),
+.workspace-editor button:hover:not(:disabled),
+.workspace-calibration button:hover:not(:disabled) { filter: brightness(1.12); }
+.workspace-actions .secondary,
+.workspace-card-actions button,
+.workspace-view-tabs button {
+  background: rgba(4, 6, 15, 0.45);
+  box-shadow: 0 0 0 1px var(--line) inset;
+  color: var(--text-secondary);
+}
+.workspace-card-actions button:first-child,
+.workspace-view-tabs button.is-active { background: linear-gradient(180deg, #4d66ff, var(--ultra)); color: #fff; box-shadow: 0 0 16px -4px var(--ultra-glow); }
+.workspace-card-actions button { padding: 7px 14px; font-size: 12px; border: 0; }
+.workspace-view-tabs button { padding: 7px 14px; font-size: 12px; }
+.workspace-properties .danger { background: rgba(255, 77, 106, 0.1); box-shadow: 0 0 0 1px rgba(255, 77, 106, 0.35) inset; color: #ff8a9c; font-size: 12px; }
+.workspace-quick-link { box-shadow: none !important; font-size: 13px !important; }
+.workspace-quick-link:hover { color: var(--text) !important; }
+
+/* The object palette is a list, not a row of actions: keep it quiet. */
+.workspace-palette > button {
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+  font: 500 12px var(--font);
+}
+.workspace-palette > button:hover:not(:disabled) { background: rgba(122, 152, 255, 0.08); color: var(--text); filter: none; }
+.workspace-palette > button.is-camera {
+  border: 1px solid rgba(107, 140, 255, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(44, 70, 255, 0.28), rgba(13, 19, 48, 0.6));
+  box-shadow: 0 0 22px -6px var(--ultra-glow);
+  color: var(--text);
+}
+
+/* Workspace: glass cards like Analytics. */
+.workspace-card-grid article,
+.workspace-template-grid > button {
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(44, 70, 255, 0.10), transparent 55%),
+    rgba(13, 19, 48, 0.55);
+  box-shadow: 0 24px 60px -32px rgba(0, 0, 0, 0.6);
+}
+.workspace-template-grid > button { border-radius: 18px; padding: 0; transition: transform var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-soft); }
+.workspace-template-grid > button:hover { transform: translateY(-2px); border-color: var(--line-strong); filter: none; }
+.workspace-card-grid article.is-active { border-color: rgba(107, 140, 255, 0.6); box-shadow: 0 0 0 1px rgba(107, 140, 255, 0.25), 0 24px 60px -30px rgba(44, 70, 255, 0.45); }
+
+/* Workspace templates: every device glyph gets an explicit spot. Unplaced
+   glyphs used to fall back to left: 0 and hung off the desk's edge. */
+.workspace-template-scene i { left: 50%; transform: translateX(-50%); }
+.workspace-template-scene.laptop i:nth-child(1) { left: 46%; width: 50px; height: 32px; }
+.workspace-template-scene.laptop i:nth-child(2) { left: 44%; bottom: 30%; width: 62px; height: 9px; border-width: 2px; }
+.workspace-template-scene.laptop i:nth-child(3) { left: 70%; bottom: 30%; width: 12px; height: 20px; border-width: 2px; }
+.workspace-template-scene.desktop i:nth-child(1) { left: 50%; }
+.workspace-template-scene.desktop i:nth-child(2) { left: 46%; bottom: 23%; width: 64px; height: 12px; border-width: 2px; }
+.workspace-template-scene.desktop i:nth-child(3) { left: 64%; bottom: 24%; width: 10px; height: 14px; border-width: 2px; border-radius: 6px; }
+.workspace-template-scene.dual i:nth-child(1) { left: 38%; }
+.workspace-template-scene.dual i:nth-child(2) { left: 62%; }
+.workspace-template-scene.dual i:nth-child(3) { left: 46%; bottom: 23%; width: 64px; height: 12px; border-width: 2px; }
+.workspace-template-scene i { border-radius: 4px; box-shadow: 0 0 14px rgba(122, 152, 255, 0.35); }
+
+/* Workspace editor: themed sliders and the calibration bar right under the scene. */
+.workspace-quality { margin: 14px 20px 18px; border-color: var(--line); border-radius: 14px; background: rgba(13, 19, 48, 0.6); }
+.workspace-properties label { font-size: 10px; }
+.workspace-properties > small { font-size: 11px; }
+.workspace-editor input[type='range'] {
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  accent-color: var(--ultra-bright);
+  cursor: pointer;
+}
+.workspace-editor input[type='range']::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: rgba(122, 152, 255, 0.16); }
+.workspace-editor input[type='range']::-moz-range-track { height: 4px; border-radius: 999px; background: rgba(122, 152, 255, 0.16); }
+.workspace-editor input[type='range']::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--ultra-bright); }
+.workspace-editor input[type='range']::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 2px solid #0D1330;
+  border-radius: 50%;
+  -webkit-appearance: none;
+  background: var(--ultra-bright);
+  box-shadow: 0 0 0 1px var(--ultra-bright), 0 0 12px var(--ultra-glow);
+}
+.workspace-editor input[type='range']::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid #0D1330; border-radius: 50%; background: var(--ultra-bright); box-shadow: 0 0 12px var(--ultra-glow); }
+.workspace-editor input[type='range']:focus-visible { outline: 2px solid var(--ultra-bright); outline-offset: 3px; }
+
+/* Lab: glass cards around the four blocks, readable labels, sans numbers. */
+.lab-hero,
+.lab-attention-section,
+.lab-lock,
+.lab-recent {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(44, 70, 255, 0.10), transparent 55%),
+    rgba(13, 19, 48, 0.55);
+  box-shadow: 0 1px 0 rgba(231, 236, 255, 0.04) inset, 0 24px 60px -32px rgba(0, 0, 0, 0.6);
+}
+.lab-hero { overflow: hidden; padding: 0 26px 0 0; }
+.lab-score-block { padding: 26px 28px 28px; }
+.lab-attention-section,
+.lab-recent { padding: 24px 26px 26px; }
+.lab-lock { padding: 24px 26px; }
+.lab-period-toolbar { border-bottom: 0; padding-bottom: 0; }
+.lab-dashboard { gap: 18px; }
+.lab-lower-grid { gap: 18px; }
+
+.lab-segments { background: rgba(10, 15, 38, 0.72); box-shadow: 0 0 0 1px var(--line) inset; border: 0; }
+.lab-segments button { min-height: 30px; padding: 0 14px; font-size: 12px; font-weight: 600; letter-spacing: 0; }
+.lab-segments button.is-active { background: linear-gradient(180deg, rgba(107, 140, 255, 0.55), rgba(44, 70, 255, 0.55)); box-shadow: 0 0 16px -4px var(--ultra-glow); }
+.lab-period-navigation strong { font-size: 11px; }
+
+.lab-metric-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.lab-metric { border-bottom: 0; padding: 26px 24px; }
+.lab-metric:last-child { border-right: 0; }
+.lab-metric > span { font-size: 10px; }
+.lab-metric strong { font-family: var(--font); font-weight: 650; letter-spacing: -0.035em; }
+.lab-metric .lab-metric-detail { font-size: 11px; }
+.lab-score strong { text-shadow: 0 0 40px rgba(72, 108, 255, 0.35); }
+.lab-score.is-empty strong { font-size: 64px; letter-spacing: 0; line-height: 1; text-shadow: none; }
+.lab-score > span { font-size: 10px; }
+
+.attention-legend { gap: 8px 18px; }
+.attention-legend span { font-size: 10px; letter-spacing: 0.04em; }
+.attention-axis { font-size: 10px; }
+.attention-empty { font-size: 12px; }
+.attention-session-tooltip { border-radius: 10px; padding: 8px 11px; background: rgba(13, 19, 48, 0.9); backdrop-filter: blur(12px); }
+.attention-session-tooltip small { font-size: 9px; }
+.attention-session-tooltip strong { font-size: 12px; }
+.attention-session-tooltip time { font-size: 10px; }
+
+.lab-lock small,
+.lab-lock > b { font-size: 10px; }
+.lab-lock em { font-size: 12px; }
+.lab-text-action { font-size: 12px; font-weight: 600; }
+.lab-session-list { border-top: 0; display: grid; gap: 6px; }
+.lab-session-row { padding: 0 16px; border: 0; border-radius: 12px; background: rgba(4, 6, 15, 0.35); box-shadow: 0 0 0 1px var(--line) inset; font-size: 11px; }
+.lab-session-row strong { font-size: 13px; font-weight: 600; }
+
+/* Session setup: ultramarine #2C46FF is a fill, not a text colour — as text
+   on the dark ground it made selected options quieter than unselected ones. */
+.session-intent-step,
+.session-plan-preview strong,
+.session-protection-actions button,
+.session-start-icon,
+.protection-start-kicker,
+.session-plan-dialog header span,
+.session-recent-setups > button:hover strong,
+.session-workspace-selector button { color: var(--ultra-bright); }
+.session-workspace-selector button { border-radius: 999px; padding: 8px 16px; font: 600 12px var(--font); }
+.session-intent-tags button,
+.session-intent-options button { border-radius: 999px; }
+.session-intent-tags button.is-selected,
+.session-intent-options button.is-selected {
+  border-color: transparent;
+  background: linear-gradient(180deg, rgba(107, 140, 255, 0.55), rgba(44, 70, 255, 0.55));
+  box-shadow: 0 0 16px -4px var(--ultra-glow), 0 1px 0 rgba(231, 236, 255, 0.16) inset;
+  color: var(--text);
+}
+.session-intent-field > input::placeholder { color: var(--text-muted); font-weight: 500; }
+.protection-start-actions button.is-primary { color: #fff; }
+
+@media (max-width: 900px) {
+  .lab-hero { padding: 0 14px 20px 0; }
+  .lab-metric-rail { grid-template-columns: 1fr; }
+  .lab-metric { border-right: 0; border-top: 1px solid var(--line); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-template-grid > button { transition: none; }
+  .workspace-template-grid > button:hover { transform: none; }
+}
