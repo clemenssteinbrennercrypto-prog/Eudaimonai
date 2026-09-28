@@ -425,3 +425,29 @@ export function buildDetailsSummary(sessions = []) {
     phases: phaseSummary(qualified),
   }
 }
+
+export const DETAILS_HEADLINE_WINDOW_DAYS = 30
+
+/**
+ * The hero line above "Focus by session". The average is measurement-time
+ * weighted over the plotted current-generation sessions, the same rule the
+ * Overview uses, so the two views never show competing numbers. The delta is
+ * a claim about change, so it is held back until both 30-day windows carry the
+ * full MIN_SESSIONS evidence floor on one measurement generation.
+ */
+export function buildDetailsHeadline(sessions = [], now = Date.now()) {
+  const qualified = knownComparableSessions(sessions).filter(isDetailsUsable)
+  const windowMs = DETAILS_HEADLINE_WINDOW_DAYS * 86400000
+  const recent = qualified.filter(session => session.timestamp > now - windowMs && session.timestamp <= now)
+  const previous = qualified.filter(session => session.timestamp > now - 2 * windowMs && session.timestamp <= now - windowMs)
+  const recentAverage = recent.length >= MIN_SESSIONS ? aggregateAverageFocus(recent) : null
+  const previousAverage = previous.length >= MIN_SESSIONS ? aggregateAverageFocus(previous) : null
+  return {
+    averageAttention: qualified.length ? aggregateAverageFocus(qualified) : null,
+    sessionCount: qualified.length,
+    delta: recentAverage != null && previousAverage != null ? recentAverage - previousAverage : null,
+    windowDays: DETAILS_HEADLINE_WINDOW_DAYS,
+    recentCount: recent.length,
+    previousCount: previous.length,
+  }
+}

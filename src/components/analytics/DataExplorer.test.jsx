@@ -73,7 +73,6 @@ describe('Analytics Details', () => {
     expect(within(index).getByRole('button', { name: 'Conditions' })).toBeTruthy()
     expect(within(index).getByRole('button', { name: 'Rhythm' })).toBeTruthy()
     expect(screen.getByText('Only sessions with at least 10 minutes of reliable measurement are plotted. Earlier measurement methods remain a separate series; excluded sessions stay in history without crowding the chart.')).toBeTruthy()
-    expect(screen.getByText('Current measurement')).toBeTruthy()
   })
 
   it('keeps one dataset behind the outcome filter and offers a reset', () => {
@@ -127,15 +126,15 @@ describe('Analytics Details', () => {
       session(3, { avgFocusScore: 70 }),
     ])
 
-    const line = document.querySelector('.analytics-main-plot path.is-current-generation')
-    expect(line?.getAttribute('d')).toMatch(/^M .* L /)
+    const line = document.querySelector('.analytics-main-plot .analytics-series-line.is-current-generation')
+    expect(line?.getAttribute('d')).toMatch(/^M [\d.]+ [\d.]+ C [^M]+$/)
     expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(2)
     expect(document.querySelector('.analytics-excluded-point')).toBeNull()
     expect(document.querySelector('.analytics-focus-point.is-reached')).toBeNull()
     expect(screen.getByText('2 plotted · 1 excluded')).toBeTruthy()
   })
 
-  it('shows earlier measurement history as a separate series instead of dropping it or joining the rulers', () => {
+  it('shows earlier measurement history as a separate series in the same style without joining the rulers', () => {
     renderExplorer([
       session(1, { timestamp: new Date(2026, 6, 20).getTime(), attentionScoringVersion: 1 }),
       session(2, { timestamp: new Date(2026, 7, 20).getTime(), attentionScoringVersion: 2 }),
@@ -143,9 +142,12 @@ describe('Analytics Details', () => {
 
     expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(2)
     expect(document.querySelector('.analytics-focus-point.is-earlier-generation')).toBeTruthy()
-    expect(document.querySelectorAll('.analytics-main-plot path')).toHaveLength(2)
-    expect(document.querySelector('.analytics-generation-break')).toBeTruthy()
-    expect(screen.getByText('Earlier measurement')).toBeTruthy()
+    expect(document.querySelectorAll('.analytics-main-plot .analytics-series-line')).toHaveLength(2)
+    // Both rulers share one visual style but are never joined into one line.
+    expect(document.querySelector('.analytics-generation-break')).toBeNull()
+    const [earlier, current] = document.querySelectorAll('.analytics-main-plot .analytics-series-line')
+    expect(earlier.classList.contains('is-earlier-generation')).toBe(true)
+    expect(current.classList.contains('is-current-generation')).toBe(true)
   })
 
   it('renders exact focus-time evidence with neutral points, median references, and a qualified robust trend', () => {
@@ -235,5 +237,18 @@ describe('Analytics Details', () => {
     expect(screen.getByLabelText('Exact Deep Focus time').textContent).toContain('Unavailable')
     expect(screen.getByText('Exact Flow time is missing from 1 session in this selection, so no partial total is shown.')).toBeTruthy()
     expect(screen.queryByText('7m')).toBeNull()
+  })
+
+  it('reveals a glass tooltip for the focused session point without changing its action', () => {
+    const { onSelectSession } = renderExplorer([session(1, { avgFocusScore: 77 }), session(2)])
+    const point = screen.getAllByRole('button', { name: /Open session details/ })[0]
+    fireEvent.focus(point)
+    const tooltips = screen.getAllByRole('tooltip')
+    expect(tooltips[0].classList.contains('is-visible')).toBe(true)
+    expect(tooltips[0].textContent).toContain('77/100')
+    fireEvent.keyDown(point, { key: 'Enter' })
+    expect(onSelectSession).toHaveBeenCalledWith('s-1')
+    fireEvent.blur(point)
+    expect(screen.getAllByRole('tooltip')[0].classList.contains('is-visible')).toBe(false)
   })
 })

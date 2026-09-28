@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildAnalyticsStory,
+  buildDetailsHeadline,
   buildDetailsSummary,
   buildFocusDistribution,
   buildInterventionSummary,
@@ -331,5 +332,37 @@ describe('Analytics model — redesigned Details', () => {
       measuredSessions: 2,
       complete: false,
     })
+  })
+})
+
+describe('Analytics model — Details headline', () => {
+  const now = new Date(2026, 8, 26, 12).getTime()
+  const day = 86400000
+  const windowed = (offsetDays, count, score, extra = {}) => Array.from({ length: count }, (_, index) =>
+    session(`${offsetDays}-${index}`, { timestamp: now - (offsetDays + index * 0.5) * day, avgFocusScore: score, scoreSum: score * 1800, ...extra }))
+
+  it('averages plotted current-generation sessions and ignores short or older-ruler ones', () => {
+    const headline = buildDetailsHeadline([
+      ...windowed(1, 2, 80),
+      session('short', { timestamp: now - day, actualSeconds: 5 * 60, measuredSeconds: 5 * 60, avgFocusScore: 10, scoreSum: 10 * 300 }),
+      session('old', { timestamp: now - 3 * day, attentionScoringVersion: 1, avgFocusScore: 10, scoreSum: 10 * 1800 }),
+    ], now)
+    expect(headline.averageAttention).toBe(80)
+    expect(headline.sessionCount).toBe(2)
+    expect(headline.delta).toBeNull()
+  })
+
+  it('reports a delta only when both 30-day windows reach the evidence floor', () => {
+    expect(buildDetailsHeadline([...windowed(1, 8, 80), ...windowed(31, 8, 70)], now).delta).toBe(10)
+    expect(buildDetailsHeadline([...windowed(1, 8, 80), ...windowed(31, 7, 70)], now).delta).toBeNull()
+  })
+
+  it('never compares windows across measurement generations', () => {
+    const headline = buildDetailsHeadline([
+      ...windowed(1, 8, 80),
+      ...windowed(31, 8, 40, { attentionScoringVersion: 1 }),
+    ], now)
+    expect(headline.previousCount).toBe(0)
+    expect(headline.delta).toBeNull()
   })
 })
