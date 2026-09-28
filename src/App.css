@@ -45,11 +45,11 @@ button:focus-visible {
    styled through them moves with the system.                                */
 :root {
   --void:        #04060F;   /* deepest ground, behind everything            */
-  --bg:          #070B1A;   /* page ground                                  */
-  --surface:     #0D1330;   /* raised panel                                 */
+  --bg:          #060916;   /* page ground                                  */
+  --surface:     #0A0F27;   /* raised panel                                 */
   --surface-2:   #141C42;   /* hover / higher elevation                     */
-  --line:        rgba(122, 152, 255, 0.15);
-  --line-strong: rgba(122, 152, 255, 0.30);
+  --line:        rgba(170, 186, 255, 0.12);
+  --line-strong: rgba(200, 212, 255, 0.26);
 
   --ultra:        #2C46FF;  /* ultramarine core — primary action            */
   --ultra-bright: #6B8CFF;  /* luminous edge, hover, focus glow             */
@@ -58,9 +58,9 @@ button:focus-visible {
   --ultra-wash:   rgba(44, 70, 255, 0.10);
   --accent:       var(--ultra); /* shared interactive accent                 */
 
-  --text:           #E7ECFF;
-  --text-secondary: #9EAAD9;
-  --text-muted:     #5F6C9C;
+  --text:           #F5F7FF;
+  --text-secondary: #B3BBDC;
+  --text-muted:     #6A7499;
 
   --good: #2FE3A8;          /* semantic, tuned to read on a blue ground     */
   --warn: #FFB340;
@@ -3694,3 +3694,112 @@ html {
   .workspace-template-grid > button { transition: none; }
   .workspace-template-grid > button:hover { transform: none; }
 }
+
+/* ── Darker ground, white accents ─────────────────────────────────────────
+   One notch darker everywhere so white type and solid ultramarine carry the
+   emphasis: surfaces lose most of their blue wash, active controls become
+   solid ultramarine with white text, headings and big numbers use a lighter
+   weight, and kickers read in soft white instead of light blue.          */
+.analytics-details-section,
+.analytics-panel,
+.analytics-inbox,
+.analytics-history,
+.session-overview-time,
+.lab-hero,
+.lab-attention-section,
+.lab-lock,
+.lab-recent,
+.workspace-card-grid article,
+.workspace-template-grid > button {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(44, 70, 255, 0.045), transparent 55%),
+    rgba(8, 11, 28, 0.72);
+  border-color: var(--line);
+}
+.analytics-inbox {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 179, 64, 0.05), transparent 55%),
+    rgba(8, 11, 28, 0.72);
+}
+.analytics-toolbar { background: rgba(6, 9, 22, 0.8); }
+.analytics-overview-metric,
+.session-overview-stats > div,
+.analytics-session-row,
+.analytics-inbox-row,
+.lab-session-row { background: rgba(3, 5, 14, 0.5); }
+.analytics-overview-metric.is-time { background: radial-gradient(90% 120% at 100% 0%, rgba(107, 140, 255, 0.12), transparent 60%), rgba(3, 5, 14, 0.5); }
+.session-overview-stats > div { background: rgba(8, 11, 28, 0.72); }
+
+/* Active states: solid ultramarine, white text. */
+.analytics-range-thumb,
+.analytics-view-thumb {
+  background: var(--ultra);
+  box-shadow: 0 0 20px -6px var(--ultra-glow), 0 1px 0 rgba(255, 255, 255, 0.16) inset;
+}
+.analytics-filter-pill.is-active,
+.analytics-details-index button.is-active,
+.lab-segments button.is-active,
+.session-intent-tags button.is-selected,
+.session-intent-options button.is-selected,
+.workspace-view-tabs button.is-active,
+.workspace-card-actions button:first-child {
+  background: var(--ultra);
+  box-shadow: 0 0 18px -6px var(--ultra-glow), 0 1px 0 rgba(255, 255, 255, 0.16) inset;
+  color: #fff;
+}
+.analytics-details-index button.is-active::before { background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.6); }
+.analytics-pill-select.is-set { background: rgba(44, 70, 255, 0.22); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22) inset; }
+.workspace-library button,
+.workspace-templates button,
+.workspace-editor button,
+.workspace-calibration button { background: var(--ultra); }
+.workspace-palette > button,
+.workspace-template-grid > button { background: transparent; }
+.workspace-template-grid > button {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(44, 70, 255, 0.045), transparent 55%),
+    rgba(8, 11, 28, 0.72);
+}
+.workspace-actions .secondary,
+.workspace-card-actions button:not(:first-child),
+.workspace-view-tabs button:not(.is-active) { background: rgba(3, 5, 14, 0.5); }
+
+/* White accents: kickers in soft white, hover and focus rings in white. */
+.analytics-kicker,
+.analytics-heading span,
+.analytics-details-heading span,
+.session-overview-date,
+.lab-eyebrow { color: rgba(245, 247, 255, 0.62); }
+.analytics-inbox .analytics-kicker { color: var(--warn); }
+.analytics-pill-select:focus-within,
+.analytics-range-switch button:focus-visible,
+.analytics-filter-reset:focus-visible,
+.analytics-details-index button:focus-visible { outline-color: rgba(255, 255, 255, 0.85); }
+.analytics-session-row:hover,
+.analytics-pill-select:hover { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset; }
+
+/* Lighter weights: white type that is not heavy. */
+.analytics-heading h1 { font-weight: 560; }
+.analytics-section-heading h2,
+.analytics-details-heading h2,
+.session-overview-section-heading h3 { font-weight: 540; }
+.analytics-headline-value { font-weight: 480; text-shadow: 0 0 30px rgba(72, 108, 255, 0.28); }
+.analytics-overview-metric strong,
+.session-overview-stats strong,
+.analytics-clock-center strong,
+.analytics-deep-focus strong,
+.analytics-phase-hover strong,
+.analytics-workspace-list > div > strong,
+.analytics-chart-tooltip strong,
+.lab-metric strong { font-weight: 500; }
+.session-overview-hero h2 { font-weight: 560; }
+.analytics-condition-grid h3,
+.analytics-rhythm-grid h3 { font-weight: 540; }
+.analytics-session-row-title,
+.analytics-inbox-row strong,
+.analytics-workspace-list span { font-weight: 540; }
+.session-intent-heading h1,
+.workspace-library h1,
+.workspace-templates h1 { font-weight: 560; }
+.workspace-template-grid strong,
+.workspace-card-copy strong { font-weight: 540; }
