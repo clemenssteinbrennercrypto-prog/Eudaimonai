@@ -108,6 +108,10 @@ export default function FocusTrend({ rows, onSelect }) {
 
   const active = positioned.find(point => point.row.id === activeId) || null
   const latestCurrent = positioned.at(-1)
+  // Personal best on the current ruler only; the latest of equal peaks wins.
+  const best = positioned.filter(point => point.row.currentGeneration)
+    .reduce((top, point) => (!top || point.row.averageAttention >= top.row.averageAttention ? point : top), null)
+  const showBest = best && positioned.filter(point => point.row.currentGeneration).length >= 3
 
   const nearestTo = clientX => {
     const bounds = wrapRef.current?.getBoundingClientRect()
@@ -197,7 +201,17 @@ export default function FocusTrend({ rows, onSelect }) {
               <circle className="analytics-focus-point-mark" cx={point.cx} cy={point.cy} r="4.5" />
             </g>
           ))}
-          {latestCurrent && activeId !== latestCurrent.row.id && (
+          {showBest && (
+            <g className="analytics-best-mark" aria-hidden="true">
+              <circle className="analytics-best-pulse" cx={best.cx} cy={best.cy} r="9" />
+              {activeId !== best.row.id && (
+                <text x={best.cx} y={best.cy - 16} textAnchor={best.cx > plotRight - 30 ? 'end' : best.cx < left + 30 ? 'start' : 'middle'}>
+                  Best · {best.row.averageAttention}
+                </text>
+              )}
+            </g>
+          )}
+          {latestCurrent && activeId !== latestCurrent.row.id && !(showBest && best.row.id === latestCurrent.row.id) && (
             <text className="analytics-point-label" x={latestCurrent.cx} y={latestCurrent.cy - 14} textAnchor={latestCurrent.cx > plotRight - 20 ? 'end' : 'middle'} aria-hidden="true">
               {latestCurrent.row.averageAttention}
             </text>

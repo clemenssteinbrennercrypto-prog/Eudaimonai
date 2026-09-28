@@ -155,7 +155,8 @@ export default function AnalyticsShell({ onClose, onHistoryCleared = () => {} })
           <button onClick={onClose}>← Back</button>
         </div>
 
-        <div className="analytics-view-switch" aria-label="Analytics view">
+        <div className="analytics-view-switch" aria-label="Analytics view" style={{ '--view-index': Math.max(0, VIEWS.findIndex(tab => tab.id === view)) }}>
+          <span className="analytics-view-thumb" aria-hidden="true" />
           {VIEWS.map(tab => (
             <button
               key={tab.id}

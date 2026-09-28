@@ -30,19 +30,27 @@ export function useChartWidth(fallback = 960) {
 
 const easeOutCubic = t => 1 - (1 - t) ** 3
 
-/** Count from 0 to the target once per target change; instant without motion. */
+/**
+ * Animate a number toward its target: from 0 on first mount, then from the
+ * value currently on screen, so a filter change glides instead of restarting.
+ * Instant when the user prefers reduced motion (and in non-browser renders).
+ */
 export function useCountUp(target, duration = 750) {
   const [value, setValue] = useState(() => (prefersReducedMotion() ? target : 0))
+  const shownRef = useRef(value)
+  shownRef.current = value
   useEffect(() => {
     if (!Number.isFinite(target) || prefersReducedMotion() || typeof requestAnimationFrame !== 'function') {
       setValue(target)
       return undefined
     }
+    const from = Number.isFinite(shownRef.current) ? shownRef.current : 0
+    if (from === target) return undefined
     let frame = 0
     const start = performance.now()
     const tick = now => {
       const progress = Math.min(1, (now - start) / duration)
-      setValue(target * easeOutCubic(progress))
+      setValue(from + (target - from) * easeOutCubic(progress))
       if (progress < 1) frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)

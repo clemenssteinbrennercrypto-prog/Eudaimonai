@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { buildAnalyticsStory, buildOverviewSnapshot } from '../../lib/analyticsModel'
 import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
+import { useCountUp } from './chart/hooks'
 import Sessions from './Sessions'
 
 const OUTCOMES = [
@@ -64,10 +65,41 @@ const OVERVIEW_RANGE_OPTIONS = [
   { value: 'week', label: '7 days' },
 ]
 
+function CountedDuration({ seconds }) {
+  const animated = useCountUp(seconds)
+  return <>{seconds > 0 ? fmtDuration(Math.round(animated)) : '0m'}</>
+}
+
+function CountedNumber({ value }) {
+  const animated = useCountUp(value)
+  return <>{Math.round(animated)}</>
+}
+
+/** Attention out of 100 as a glowing ring; the ring is the value, never a target. */
+function AttentionRing({ value }) {
+  const animated = useCountUp(value ?? 0)
+  return (
+    <svg className="analytics-attention-ring" viewBox="0 0 84 84" aria-hidden="true">
+      <circle className="analytics-attention-ring-track" cx="42" cy="42" r="34" />
+      {value != null && (
+        <circle
+          className="analytics-attention-ring-value"
+          cx="42"
+          cy="42"
+          r="34"
+          pathLength="100"
+          strokeDasharray={`${Math.max(0, Math.min(100, animated))} 100`}
+          transform="rotate(-90 42 42)"
+        />
+      )}
+    </svg>
+  )
+}
+
 function RecentOverview({ sessions }) {
   const [range, setRange] = useState('month')
   const snapshot = useMemo(() => buildOverviewSnapshot(sessions, range), [sessions, range])
-  const focusTime = snapshot.focusSeconds > 0 ? fmtDuration(snapshot.focusSeconds) : '0m'
+  const rangeIndex = Math.max(0, OVERVIEW_RANGE_OPTIONS.findIndex(option => option.value === range))
 
   return (
     <section className="analytics-panel analytics-overview" aria-labelledby="recent-overview-heading">
@@ -76,7 +108,8 @@ function RecentOverview({ sessions }) {
           <span className="analytics-kicker">Overview</span>
           <h2 id="recent-overview-heading">Focus at a glance</h2>
         </div>
-        <div className="analytics-overview-range" aria-label="Overview range">
+        <div className="analytics-range-switch analytics-overview-range" role="group" aria-label="Overview range" style={{ '--range-index': rangeIndex }}>
+          <span className="analytics-range-thumb" aria-hidden="true" />
           {OVERVIEW_RANGE_OPTIONS.map(option => (
             <button
               key={option.value}
@@ -91,16 +124,21 @@ function RecentOverview({ sessions }) {
         </div>
       </div>
       <div className="analytics-overview-grid">
-        <div className="analytics-overview-metric">
-          <strong>{focusTime}</strong>
+        <div className="analytics-overview-metric is-time">
+          <strong><CountedDuration seconds={snapshot.focusSeconds} /></strong>
           <span>Focus time</span>
         </div>
-        <div className="analytics-overview-metric">
-          <strong>{snapshot.averageAttention == null ? '—' : `${snapshot.averageAttention}/100`}</strong>
-          <span>Average attention</span>
+        <div className="analytics-overview-metric is-attention">
+          <AttentionRing value={snapshot.averageAttention} />
+          <div>
+            <strong>
+              {snapshot.averageAttention == null ? '—' : <><CountedNumber value={snapshot.averageAttention} />/100</>}
+            </strong>
+            <span>Average attention</span>
+          </div>
         </div>
         <div className="analytics-overview-metric">
-          <strong>{snapshot.sessionCount}</strong>
+          <strong><CountedNumber value={snapshot.sessionCount} /></strong>
           <span>{snapshot.sessionCount === 1 ? 'Session' : 'Sessions'}</span>
         </div>
       </div>

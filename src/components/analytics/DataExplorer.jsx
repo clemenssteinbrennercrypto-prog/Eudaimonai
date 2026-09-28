@@ -242,7 +242,7 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
               id="focus-trend-heading"
               meta={`${plottedSessionCount} plotted · ${excludedSessionCount} excluded`}
             />
-            <DetailsHeadline key={`headline-${filterKey}`} headline={headline} />
+            <DetailsHeadline headline={headline} />
             <FocusTrend key={`trend-${filterKey}`} rows={details.timeline} onSelect={onSelectSession} />
           </RevealSection>
 

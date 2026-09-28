@@ -24,11 +24,15 @@ function fmtDate(ts) {
 function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
-function focusColor(pct) {
-  if (pct == null) return 'var(--text-muted)'
-  if (pct >= 70) return 'var(--good)'
-  if (pct >= 40) return 'var(--warn)'
-  return 'var(--bad)'
+// Older sessions without exact Deep Focus stay neutral; a row with recorded
+// Deep Focus is good; otherwise the attention band decides.
+function rowTone(pct, deepFocusSeconds) {
+  if (deepFocusSeconds == null) return 'is-muted'
+  if (deepFocusSeconds > 0) return 'is-good'
+  if (pct == null) return 'is-muted'
+  if (pct >= 70) return 'is-good'
+  if (pct >= 40) return 'is-warn'
+  return 'is-bad'
 }
 
 // CSV respects the caller's current filters — the old History dashboard
@@ -97,24 +101,15 @@ function exportFullArchive(sessions, focusLedger) {
 
 function FilterPill({ active, onClick, children }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        border: active ? '1.5px solid var(--ultra)' : '1.5px solid var(--line)',
-        borderRadius: 100, padding: '6px 14px', fontSize: 12, fontWeight: 600,
-        background: active ? 'var(--ultra)' : 'transparent',
-        color: active ? '#fff' : 'var(--text-muted)',
-        cursor: 'pointer', fontFamily: 'inherit',
-      }}
-    >{children}</button>
+    <button type="button" className={`analytics-filter-pill${active ? ' is-active' : ''}`} aria-pressed={active} onClick={onClick}>
+      {children}
+    </button>
   )
 }
 
 function SessionRow({ session, onSelect, onDelete, deleteDisabled }) {
   const pct = sessionAverageFocus(session)
   const deepFocusSeconds = sessionDeepFocusSeconds(session)
-  const color = deepFocusSeconds == null ? 'var(--text-muted)' : deepFocusSeconds > 0 ? 'var(--good)' : focusColor(pct)
   const outcome = normalizedOutcome(session)
   const outcomeLabel = outcome === 'yes' ? 'Goal reached' : outcome === 'partly' ? 'Partly reached' : outcome === 'no' ? 'Goal missed' : null
   const startedAt = sessionStartedAt(session)
@@ -122,29 +117,22 @@ function SessionRow({ session, onSelect, onDelete, deleteDisabled }) {
   const pausedSeconds = sessionPausedSeconds(session)
   const displayTimestamp = startedAt ?? session.timestamp
 
+  const tone = rowTone(pct, deepFocusSeconds)
+
   return (
-    <div
-      onClick={onSelect}
-      style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16,
-        background: 'var(--surface)', border: '1px solid var(--line)', borderLeft: `4px solid ${color}`,
-        borderRadius: 12, padding: '14px 18px', cursor: 'pointer',
-      }}
-    >
-      <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {session.task || 'Untitled session'}
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+    <div className={`analytics-session-row ${tone}`} onClick={onSelect}>
+      <div className="analytics-session-row-main">
+        <p className="analytics-session-row-title">{session.task || 'Untitled session'}</p>
+        <p className="analytics-session-row-meta">
           {fmtDate(displayTimestamp)} · {startedAt == null ? fmtTime(session.timestamp) : `${fmtTime(startedAt)}–${fmtTime(endedAt)}`}
           {session.workspace?.name ? ` · ${session.workspace.name}` : ''}
           {' · '}{fmtDuration(session.actualSeconds)} active
           {pausedSeconds != null ? ` · ${fmtDuration(pausedSeconds)} break` : ''}
         </p>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        {outcomeLabel && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{outcomeLabel}</span>}
-        <span style={{ background: color + '18', border: `1px solid ${color}40`, borderRadius: 100, padding: '4px 10px', fontSize: 12, fontWeight: 700, color }}>
+      <div className="analytics-session-row-side">
+        {outcomeLabel && <span className={`analytics-session-outcome is-${outcome}`}>{outcomeLabel}</span>}
+        <span className="analytics-session-badge">
           {deepFocusSeconds == null
             ? pct == null ? 'Not measured' : `${pct}/100 attention`
             : `${fmtDuration(deepFocusSeconds)} deep focus`}
@@ -152,28 +140,14 @@ function SessionRow({ session, onSelect, onDelete, deleteDisabled }) {
         <button
           onClick={(e) => { e.stopPropagation(); onDelete() }}
           type="button"
+          className="analytics-session-delete"
           disabled={deleteDisabled}
           aria-label={`Delete ${session.task || 'Untitled session'}`}
           title="Delete session"
-          style={{ background: 'none', border: 'none', cursor: deleteDisabled ? 'default' : 'pointer', color: 'var(--line-strong)', fontSize: 16, lineHeight: 1, padding: '6px 8px', opacity: deleteDisabled ? 0.5 : 1 }}
         >×</button>
       </div>
     </div>
   )
-}
-
-function pageBtnStyle(disabled) {
-  return {
-    padding: '7px 16px', fontSize: 13, fontWeight: 600,
-    border: '1.5px solid var(--line)', borderRadius: 100,
-    background: 'transparent', color: disabled ? 'var(--line-strong)' : 'var(--ultra)',
-    cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
-  }
-}
-
-const ghostBtnStyle = {
-  background: 'none', border: '1px solid var(--line)', color: 'var(--text-muted)',
-  fontSize: 13, padding: '8px 20px', borderRadius: 100, cursor: 'pointer', fontFamily: 'inherit',
 }
 
 /**
@@ -292,50 +266,54 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
   }
 
   if (sessions.length === 0) {
-    return <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>No sessions yet.</p>
+    return <p className="analytics-sessions-empty">No sessions yet.</p>
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="analytics-sessions">
       {!compact && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="analytics-filter-pills">
           {DATE_FILTERS.map(([val, label]) => (
             <FilterPill key={val} active={dateFilter === val} onClick={() => { setDateFilter(val); setPage(0) }}>{label}</FilterPill>
           ))}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="analytics-sessions-controls">
+      <div className="analytics-filter-pills" role="group" aria-label="Outcome filter">
         {OUTCOME_FILTERS.map(([val, label]) => (
           <FilterPill key={val} active={outcomeFilter === val} onClick={() => { setOutcomeFilter(val); setPage(0) }}>{label}</FilterPill>
         ))}
       </div>
-      {!compact && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      {!compact && <div className="analytics-filter-pills">
         {MEASURED_FILTERS.map(([val, label]) => (
           <FilterPill key={val} active={measuredFilter === val} onClick={() => { setMeasuredFilter(val); setPage(0) }}>{label}</FilterPill>
         ))}
         {workspaceOptions.length > 0 && (
           <select
+            className="analytics-filter-select"
             value={workspaceFilter}
             onChange={e => { setWorkspaceFilter(e.target.value); setPage(0) }}
-            style={{ padding: '6px 10px', fontSize: 12, borderRadius: 100, border: '1.5px solid var(--line)', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'inherit' }}
           >
             <option value="all">All workspaces</option>
             {workspaceOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select>
         )}
       </div>}
-      <input
-        type="text"
-        className="text-input"
-        value={search}
-        onChange={e => { setSearch(e.target.value); setPage(0) }}
-        placeholder="Search task or tags…"
-        style={{ maxWidth: 320 }}
-      />
+      <label className="analytics-search">
+        <span aria-hidden="true" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setPage(0) }}
+          placeholder="Search task or tags…"
+          aria-label="Search task or tags"
+        />
+      </label>
+      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="analytics-session-list">
         {paged.length === 0 ? (
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No sessions match these filters.</p>
+          <p className="analytics-sessions-empty">No sessions match these filters.</p>
         ) : paged.map(s => (
           <SessionRow
             key={s.id}
@@ -348,12 +326,12 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
       </div>
 
       {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 8 }}>
-          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} style={pageBtnStyle(page === 0)}>← Previous</button>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        <div className="analytics-pagination">
+          <button type="button" className="analytics-ghost-button" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>← Previous</button>
+          <span>
             {filtered.length ? `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, filtered.length)} of ${filtered.length}` : '0 of 0'}
           </span>
-          <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} style={pageBtnStyle(page >= totalPages - 1)}>Next →</button>
+          <button type="button" className="analytics-ghost-button" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>Next →</button>
         </div>
       )}
 
@@ -361,16 +339,16 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
         <details className="analytics-data-tools">
           <summary>Data tools</summary>
           <div>
-            <button type="button" onClick={() => exportCSV(filtered)} style={ghostBtnStyle}>Export CSV</button>
-            <button type="button" onClick={() => exportFullArchive(sessions, focusLedger)} style={ghostBtnStyle}>Export full archive (JSON)</button>
-            <button type="button" disabled={Boolean(pendingAction)} onClick={() => { setActionError(null); setConfirmClear(true) }} style={{ ...ghostBtnStyle, opacity: pendingAction ? 0.5 : 1 }}>Clear all history</button>
+            <button type="button" className="analytics-ghost-button" onClick={() => exportCSV(filtered)}>Export CSV</button>
+            <button type="button" className="analytics-ghost-button" onClick={() => exportFullArchive(sessions, focusLedger)}>Export full archive (JSON)</button>
+            <button type="button" className="analytics-ghost-button is-danger" disabled={Boolean(pendingAction)} onClick={() => { setActionError(null); setConfirmClear(true) }}>Clear all history</button>
           </div>
         </details>
       ) : (
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap' }}>
-          <button type="button" onClick={() => exportCSV(filtered)} style={ghostBtnStyle}>Export CSV</button>
-          <button type="button" onClick={() => exportFullArchive(sessions, focusLedger)} style={ghostBtnStyle}>Export full archive (JSON)</button>
-          <button type="button" disabled={Boolean(pendingAction)} onClick={() => { setActionError(null); setConfirmClear(true) }} style={{ ...ghostBtnStyle, opacity: pendingAction ? 0.5 : 1 }}>Clear all history</button>
+        <div className="analytics-data-actions">
+          <button type="button" className="analytics-ghost-button" onClick={() => exportCSV(filtered)}>Export CSV</button>
+          <button type="button" className="analytics-ghost-button" onClick={() => exportFullArchive(sessions, focusLedger)}>Export full archive (JSON)</button>
+          <button type="button" className="analytics-ghost-button is-danger" disabled={Boolean(pendingAction)} onClick={() => { setActionError(null); setConfirmClear(true) }}>Clear all history</button>
         </div>
       )}
 

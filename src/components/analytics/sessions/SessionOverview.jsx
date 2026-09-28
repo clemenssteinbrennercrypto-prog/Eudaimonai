@@ -1,5 +1,6 @@
 import CheckIn from '../../sessionReport/CheckIn'
 import TimelineBar from '../../sessionReport/TimelineBar'
+import AttentionCurve from './AttentionCurve'
 import { attentionTimelineBand, sampledAttentionBandSeconds } from '../../../lib/attentionTimeline'
 import { fmtDuration } from '../../../lib/sessionAnalysisPresentation'
 import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt } from '../../../lib/sessionTiming'
@@ -87,9 +88,12 @@ function AttentionTime({ session, entries }) {
       {total > 0 ? (
         <>
           {hasTimeline ? (
-            <div className="session-overview-timeline" aria-label="Attention states in session order">
-              <TimelineBar timeline={session.timeline} session={session} height={18} showPhases={false} />
-            </div>
+            <>
+              <AttentionCurve session={session} />
+              <div className="session-overview-timeline" aria-label="Attention states in session order">
+                <TimelineBar timeline={session.timeline} session={session} height={18} showPhases={false} />
+              </div>
+            </>
           ) : (
             <div className="session-overview-timebar" aria-label="Session time by measured attention state">
               {entries.filter(entry => entry.seconds > 0).map(entry => (
