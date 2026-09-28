@@ -228,7 +228,7 @@ function Editor({ initial, onSave, onCancel }) {
           {HEIGHT_ADJUSTABLE_TYPES.has(selected.type) && <label>Vertical position<input type="range" min="-1" max="1" step="0.05" value={selected.scene.y} onChange={event => updateScene({ y: Number(event.target.value) })}/></label>}
           {ROTATABLE_TYPES.has(selected.type) && <label>Rotation<input type="range" min="-45" max="45" step="5" value={selected.scene.rotation} onChange={event => updateScene({ rotation: Number(event.target.value) })}/></label>}
         </>}
-        <small>{WORKSPACE_ROLE_LABELS[selected.role]}</small><button className="danger" onClick={removeSelected}>Remove object</button>
+        <button className="danger" onClick={removeSelected}>Remove object</button>
       </> : <p>Select an object to place it precisely.</p>}</aside>
     </div>
   </main>

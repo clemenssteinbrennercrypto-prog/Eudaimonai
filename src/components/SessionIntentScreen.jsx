@@ -191,11 +191,9 @@ export default function SessionIntentScreen({
     <main className="session-intent">
       <header className="session-intent-heading">
         <div>
-          <span className="session-intent-kicker">Focus protocol · 01 / 03</span>
           <h1>Session Planning</h1>
           <p>Set a clear intention before the clock starts.</p>
         </div>
-        <span className="session-intent-step">Intent</span>
       </header>
 
       <div className="session-workspace-selector">
@@ -356,7 +354,7 @@ export default function SessionIntentScreen({
             <button key={`${setup.task}-${index}`} type="button" onClick={() => applySetup(setup)}>
               <span className="session-recent-index">0{index + 1}</span>
               <strong>{setup.task}</strong>
-              <p>{setup.goal || 'No definition of done recorded'}</p>
+              {setup.goal && <p>{setup.goal}</p>}
               <div>
                 <span>{setup.duration ? formatMinutes(setup.duration) : 'No limit'}</span>
                 {setup.tags.slice(0, 2).map(tag => <span key={tag}>{tag}</span>)}

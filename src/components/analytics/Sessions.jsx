@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { sessionAverageFocus, sessionDeepFocusSeconds, sessionFocusPct, hasMeasuredFocus } from '../../lib/historyTrend'
+import { FOCUSED_SCORE, GOOD_STREAK_SCORE } from '../../lib/attention'
 import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
 import ConfirmDialog from '../ConfirmDialog'
 import SessionDetailView from './sessions/SessionDetailView'
@@ -25,13 +26,13 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 // Older sessions without exact Deep Focus stay neutral; a row with recorded
-// Deep Focus is good; otherwise the attention band decides.
+// Deep Focus is good; otherwise the app-wide attention bands decide.
 function rowTone(pct, deepFocusSeconds) {
   if (deepFocusSeconds == null) return 'is-muted'
   if (deepFocusSeconds > 0) return 'is-good'
   if (pct == null) return 'is-muted'
-  if (pct >= 70) return 'is-good'
-  if (pct >= 40) return 'is-warn'
+  if (pct >= GOOD_STREAK_SCORE) return 'is-good'
+  if (pct >= FOCUSED_SCORE) return 'is-warn'
   return 'is-bad'
 }
 

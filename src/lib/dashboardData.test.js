@@ -129,6 +129,26 @@ describe('dashboard data', () => {
     expect(bins[10]).toMatchObject({ state: 'drift', score: 22 })
   })
 
+  it('uses the same attention bands as session views (65 high, 40 focused)', () => {
+    const start = new Date(2026, 7, 25, 8, 0, 0).getTime()
+    const bins = buildAttentionField([{
+      startedAt: start,
+      timestamp: start + 3 * 60 * 60 * 1000,
+      actualSeconds: 3 * 60 * 60,
+      attentionScoringVersion: NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
+      attentionMeasurementSource: NATIVE_CAMERA_MEASUREMENT_V2.id,
+      timeline: [
+        { second: 60, score: 65 },
+        { second: 60 * 60, score: 64 },
+        { second: 2 * 60 * 60, score: 39 },
+      ],
+    }], { range: 'day', now: NOW, bins: 24 })
+
+    expect(bins[8]).toMatchObject({ state: 'strong', score: 65 })
+    expect(bins[9]).toMatchObject({ state: 'focused', score: 64 })
+    expect(bins[10]).toMatchObject({ state: 'drift', score: 39 })
+  })
+
   it('keeps the session name with its bars without exposing exact activities', () => {
     const start = new Date(2026, 7, 25, 8, 0, 0).getTime()
     const bins = buildAttentionField([{

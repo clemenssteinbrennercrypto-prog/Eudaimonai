@@ -1,4 +1,4 @@
-import { FOCUSED_SCORE, FLOW_SCORE } from './attention'
+import { FOCUSED_SCORE, GOOD_STREAK_SCORE } from './attention'
 import { FOCUS_METRIC_V1, SCOREABLE_SCORING_VERSIONS, getFocusPeriodWindow } from './focusMetric'
 import { buildVersionedFocusPeriod } from './focusMetricV2'
 import { FOCUS_SCORE } from './focusScore'
@@ -103,7 +103,11 @@ export function buildAttentionField(sessions, { range = 'day', offset = 0, perio
       }
     }
     const score = Math.round(bucket.scores.reduce((sum, value) => sum + value, 0) / bucket.scores.length)
-    const state = score >= FLOW_SCORE ? 'strong' : score >= FOCUSED_SCORE ? 'focused' : 'drift'
+    // Same bands as every other attention view (attentionTimelineBand):
+    // high from GOOD_STREAK_SCORE, focused from FOCUSED_SCORE, low below.
+    // The Lab used the flow threshold (72) here, so one score could read
+    // "high" in a session and merely "focused" in the Lab.
+    const state = score >= GOOD_STREAK_SCORE ? 'strong' : score >= FOCUSED_SCORE ? 'focused' : 'drift'
     return { index, timestamp: bucketStart, state, score, ...sessionDetails }
   })
 }

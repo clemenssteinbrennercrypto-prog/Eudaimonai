@@ -9,7 +9,7 @@ const COLORS = {
   ultra: 0x2c46ff,
   bright: 0x7a98ff,
   pale: 0xb8c5f2,
-  desk: 0x101943,
+  desk: 0x1c2552,
   edge: 0x405bc7,
   white: 0xe8edff,
   danger: 0xf05d75,
@@ -177,7 +177,10 @@ export default function Workspace3DScene({ objects, selectedId, view, onSelect, 
     desk.material.roughness = .34
     desk.material.metalness = .12
     scene.add(desk)
-    const deskEdge = box(7.38, .045, 4.78, COLORS.edge, { y: -.055 })
+    // The glowing edge is a slightly larger slab tucked just under the desk
+    // top, so only its rim shows. At y -.055 it sat above the top (-.07) and
+    // painted the whole surface bright emissive blue.
+    const deskEdge = box(7.38, .045, 4.78, COLORS.edge, { y: -.1 })
     deskEdge.material.emissive = new THREE.Color(0x102265)
     deskEdge.material.emissiveIntensity = .6
     scene.add(deskEdge)

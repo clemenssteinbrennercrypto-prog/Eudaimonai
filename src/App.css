@@ -1785,8 +1785,6 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
-.session-intent-kicker,
-.session-intent-step,
 .session-recent-heading > span,
 .session-intent-field > span,
 .session-intent-field legend,
@@ -1800,7 +1798,7 @@ body {
 }
 
 .session-intent-heading h1 {
-  margin: 10px 0 6px;
+  margin: 0 0 6px;
   font-size: clamp(30px, 3.3vw, 40px);
   line-height: 1.05;
   letter-spacing: -.035em;
@@ -1813,13 +1811,6 @@ body {
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
-}
-
-.session-intent-step {
-  padding: 8px 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
-  border-radius: 999px;
-  color: var(--accent);
 }
 
 .session-intent-grid {
@@ -2134,7 +2125,6 @@ body {
 @media (max-width: 820px) {
   .session-intent { width: min(100% - 36px, 680px); padding-top: 42px; }
   .session-intent-heading { display: block; }
-  .session-intent-step { display: inline-block; margin-top: 18px; }
   .session-intent-grid { grid-template-columns: 1fr; }
   .session-intent-form { padding: 24px; }
   .session-recent-setups { margin-top: 0; }
@@ -3650,9 +3640,30 @@ html {
 .lab-session-row { padding: 0 16px; border: 0; border-radius: 12px; background: rgba(4, 6, 15, 0.35); box-shadow: 0 0 0 1px var(--line) inset; font-size: 11px; }
 .lab-session-row strong { font-size: 13px; font-weight: 600; }
 
+/* Lab stays the calm, dark room: the same glass cards, with less blue. */
+.lab-hero,
+.lab-attention-section,
+.lab-lock,
+.lab-recent {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(44, 70, 255, 0.05), transparent 55%),
+    rgba(9, 13, 32, 0.62);
+}
+
+/* One colour language for attention bands across the app — the same as the
+   session curve and timeline: high green, focused amber, low red, no signal
+   grey, break hatched. Muted a step in the Lab so the dark stays calm. */
+.attention-bin.is-strong { background: linear-gradient(180deg, rgba(47, 227, 168, 0.92), rgba(47, 227, 168, 0.55)); box-shadow: 0 0 12px rgba(47, 227, 168, 0.18); }
+.attention-bin.is-focused { background: linear-gradient(180deg, rgba(255, 179, 64, 0.88), rgba(255, 179, 64, 0.5)); }
+.attention-bin.is-drift { background: linear-gradient(180deg, rgba(255, 77, 106, 0.82), rgba(255, 77, 106, 0.48)); }
+.attention-bin.is-no-signal { background: rgba(102, 112, 133, 0.45); }
+.attention-legend .is-strong::before { background: var(--good); }
+.attention-legend .is-focused::before { background: var(--warn); }
+.attention-legend .is-drift::before { background: var(--bad); }
+.attention-legend .is-no-signal::before { background: rgba(102, 112, 133, 0.8); }
+
 /* Session setup: ultramarine #2C46FF is a fill, not a text colour — as text
    on the dark ground it made selected options quieter than unselected ones. */
-.session-intent-step,
 .session-plan-preview strong,
 .session-protection-actions button,
 .session-start-icon,
