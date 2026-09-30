@@ -46,11 +46,11 @@ workflow runs only from `release-v*` tags or manual dispatch, rebuilds
 then signs, notarizes, verifies, and publishes the macOS bundle.
 
 Pushes to `main` use `.github/workflows/companion-test.yml`. That workflow
-refreshes and verifies the bundled UI, builds unsigned internal macOS artifacts,
-uploads them as GitHub Actions artifacts, and publishes updater artifacts to the
-`internal-test` prerelease using `TAURI_SIGNING_PRIVATE_KEY`. These test builds
-are for internal validation; public downloads and production native updater
-metadata still come from production releases.
+refreshes and verifies the bundled UI, builds Developer ID signed and notarized
+internal macOS artifacts, verifies Gatekeeper acceptance, and publishes a
+stable tester DMG plus updater artifacts to the `internal-test` prerelease.
+Production downloads and production native updater metadata remain a separate
+release channel.
 
 The native app displays a small build/version badge. Use it, or inspect
 `companion/webui/build-info.json`, to confirm a fresh build contains the commit

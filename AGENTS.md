@@ -391,8 +391,9 @@ Explain *why*, not what — the diff already says what. Name the failure mode th
 change prevents. Note anything a later agent would otherwise rediscover. End
 with your own attribution trailer.
 
-Do not push to `.github/workflows/` — that is Stony's area and tokens are
-typically scoped to reject it.
+Workflow changes may be prepared by any agent, but must not be pushed or merged
+without explicit review by Clemens or the designated workflow owner. Production
+publication must use a protected GitHub Environment with manual approval.
 
 ---
 

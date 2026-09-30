@@ -281,3 +281,29 @@ lowering their own target. Formula, boundaries and remaining calibration estimat
 - Rust verification was not runnable in this workspace because `cargo` is not
   installed or available on `PATH`. No Rust source changed.
 - No installed app, updater channel or live native camera was changed.
+
+## Apple signing credentials staged — 1 October 2026
+
+Clemens completed Apple Developer Program enrollment and created a Developer
+ID Application certificate on the private MacBook. After installing Apple's
+official Developer ID G2 intermediate certificate, Keychain reported one valid
+code-signing identity. The certificate/private-key pair was exported as a
+password-protected PKCS#12 file; its contents and passwords were not shared in
+the repository or conversation.
+
+- GitHub reports all six required `APPLE_*` repository-secret names plus
+  `TAURI_SIGNING_PRIVATE_KEY`. Secret values remain opaque and have not yet been
+  proven by a CI import, signing or notarization attempt.
+- A local workflow patch makes manual production dispatch non-publishing by
+  default, signs/notarizes the internal channel, verifies `codesign`, Gatekeeper,
+  stapling, arm64-only output and the updater signature before publication, and
+  adds a stable tester DMG asset. Workflow changes may be prepared by any agent
+  but require explicit review by Clemens or the designated workflow owner;
+  production publication additionally requires approval through the protected
+  `production-release` GitHub Environment.
+- `npm test -- --run`: **76 files, 822 tests passed**, including regression
+  coverage for the release-channel boundaries. Both workflow files parse as
+  YAML, both Tauri overlays parse as JSON, and `git diff --check` passes.
+- No public release, internal updater change or installer replacement has
+  occurred. Signing, notarization, stapling and clean-machine Gatekeeper
+  acceptance remain open until the private validation run succeeds.

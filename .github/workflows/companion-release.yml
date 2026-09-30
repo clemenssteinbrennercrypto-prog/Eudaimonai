@@ -1,8 +1,8 @@
 name: Release Companion
 
 # Production-only Companion pipeline. Builds a signed Apple Silicon macOS app,
-# notarizes and staples the DMG, verifies Gatekeeper acceptance, then publishes
-# the release used by the native updater.
+# notarizes and staples the DMG, verifies Gatekeeper acceptance, then waits for
+# protected-environment approval before publishing the native updater release.
 
 on:
   push:
@@ -14,6 +14,11 @@ on:
         description: 'Release version, without the release-v prefix'
         required: true
         type: string
+      publish:
+        description: 'Publish the verified build as the public latest release'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -21,6 +26,9 @@ permissions:
 jobs:
   release:
     runs-on: macos-latest
+    outputs:
+      publish: ${{ steps.release-meta.outputs.publish }}
+      version: ${{ steps.release-meta.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -72,15 +80,19 @@ jobs:
           fi
 
       - name: Set release build identity
+        id: release-meta
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
         run: |
           set -euo pipefail
 
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             version="${GITHUB_REF_NAME#release-v}"
+            publish=true
           else
             version="${INPUT_VERSION}"
+            publish="${INPUT_PUBLISH:-false}"
           fi
 
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z.-]+)?$ ]]; then
@@ -103,6 +115,8 @@ jobs:
             echo "EUDONOMIA_BUILD_ID=release-v$version-${GITHUB_SHA::7}"
             echo "EUDONOMIA_BUILD_SHA=$GITHUB_SHA"
           } >> "$GITHUB_ENV"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Refresh bundled companion UI
         run: npm run refresh:companion-webui
@@ -110,7 +124,25 @@ jobs:
       - name: Verify bundled companion UI
         run: npm run verify:companion-webui
 
-      - id: tauri-build
+      - name: Build private signed release candidate
+        if: steps.release-meta.outputs.publish != 'true'
+        uses: tauri-apps/tauri-action@v1
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: companion
+          args: --target aarch64-apple-darwin --config src-tauri/tauri.release.conf.json
+
+      - name: Build public release draft
+        id: tauri-build
+        if: steps.release-meta.outputs.publish == 'true'
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -133,7 +165,7 @@ jobs:
           releaseDraft: true
           prerelease: false
           releaseAssetNamePattern: '[name]-[version]-[arch][ext]'
-          args: --target aarch64-apple-darwin --verbose --config src-tauri/tauri.release.conf.json
+          args: --target aarch64-apple-darwin --config src-tauri/tauri.release.conf.json
 
       - name: Verify signed and notarized macOS artifacts
         run: |
@@ -153,6 +185,21 @@ jobs:
             exit 1
           fi
 
+          executable_count=0
+          while IFS= read -r executable; do
+            executable_count=$((executable_count + 1))
+            archs="$(lipo -archs "$executable")"
+            if [ "$archs" != "arm64" ]; then
+              echo "Expected arm64-only executable, found '$archs': $executable" >&2
+              exit 1
+            fi
+          done < <(find "$bundle_root" -path '*/Contents/MacOS/*' -type f)
+
+          if [ "$executable_count" -eq 0 ]; then
+            echo "No app executable found under $bundle_root" >&2
+            exit 1
+          fi
+
           dmg_count=0
           while IFS= read -r dmg; do
             dmg_count=$((dmg_count + 1))
@@ -165,10 +212,57 @@ jobs:
             exit 1
           fi
 
+      - name: Verify release updater signature
+        run: |
+          set -euo pipefail
+
+          bundle_root="companion/src-tauri/target/aarch64-apple-darwin/release/bundle"
+          archive_count="$(find "$bundle_root" -type f -name '*.app.tar.gz' | wc -l | tr -d ' ')"
+          if [ "$archive_count" -ne 1 ]; then
+            echo "Expected exactly one updater archive, found $archive_count." >&2
+            exit 1
+          fi
+
+          archive="$(find "$bundle_root" -type f -name '*.app.tar.gz' | head -n 1)"
+          signature="${archive}.sig"
+          if [ ! -f "$signature" ]; then
+            echo "Missing updater signature for $(basename "$archive")." >&2
+            exit 1
+          fi
+
+          node scripts/verify-tauri-updater-signature.mjs \
+            "$archive" \
+            "$signature" \
+            companion/src-tauri/tauri.conf.json \
+            "$EUDONOMIA_BUILD_VERSION"
+
+      - name: Upload private validated release candidate
+        if: steps.release-meta.outputs.publish != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eudaimonai-signed-release-candidate-${{ github.run_number }}
+          path: |
+            companion/src-tauri/target/aarch64-apple-darwin/release/bundle/**/*.app
+            companion/src-tauri/target/aarch64-apple-darwin/release/bundle/**/*.dmg
+            companion/src-tauri/target/aarch64-apple-darwin/release/bundle/**/*.app.tar.gz
+            companion/src-tauri/target/aarch64-apple-darwin/release/bundle/**/*.app.tar.gz.sig
+          if-no-files-found: error
+
+  publish:
+    name: Publish verified production release
+    needs: release
+    if: needs.release.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-release
+    permissions:
+      contents: write
+    steps:
       - name: Publish verified release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.tauri-build.outputs.appVersion }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.release.outputs.version }}
         run: |
           set -euo pipefail
           gh release edit "release-v${VERSION}" --draft=false --latest
