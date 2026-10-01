@@ -290,9 +290,19 @@ fn main() {
         .setup(move |app| {
             #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
             {
-                let media_pipe_library = app.path().resource_dir()?.join("libmediapipe.dylib");
-                // The runtime crate has no download feature. Point it at the
-                // verified app resource before the prototype worker can start.
+                let resource_dir = app.path().resource_dir()?;
+                let bundled_framework = resource_dir
+                    .parent()
+                    .map(|contents_dir| contents_dir.join("Frameworks/libmediapipe.dylib"));
+                let media_pipe_library = bundled_framework
+                    .filter(|path| path.is_file())
+                    // Local development runs outside an application bundle, so
+                    // use the hash-verified build input prepared by build.rs.
+                    .unwrap_or_else(|| {
+                        std::path::PathBuf::from(env!("EUDAIMONIA_MEDIAPIPE_BUILD_LIB"))
+                    });
+                // Native code belongs in Contents/Frameworks so Tauri signs it
+                // inside-out with the Developer ID identity and secure timestamp.
                 std::env::set_var("MEDIAPIPE_LIB", media_pipe_library);
             }
 
