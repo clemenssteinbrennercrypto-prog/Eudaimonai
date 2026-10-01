@@ -167,6 +167,30 @@ jobs:
           releaseAssetNamePattern: '[name]-[version]-[arch][ext]'
           args: --target aarch64-apple-darwin --config src-tauri/tauri.release.conf.json
 
+      - name: Notarize and staple release disk image
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          bundle_root="companion/src-tauri/target/aarch64-apple-darwin/release/bundle"
+          dmg_count="$(find "$bundle_root" -type f -name '*.dmg' | wc -l | tr -d ' ')"
+          if [ "$dmg_count" -ne 1 ]; then
+            echo "Expected exactly one signed DMG, found $dmg_count." >&2
+            exit 1
+          fi
+
+          dmg="$(find "$bundle_root" -type f -name '*.dmg' | head -n 1)"
+          xcrun notarytool submit "$dmg" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$dmg"
+          xcrun stapler validate "$dmg"
+
       - name: Verify signed and notarized macOS artifacts
         run: |
           set -euo pipefail
@@ -177,6 +201,7 @@ jobs:
           while IFS= read -r app; do
             app_count=$((app_count + 1))
             codesign --verify --deep --strict --verbose=2 "$app"
+            xcrun stapler validate "$app"
             /usr/sbin/spctl --assess --type execute --verbose=4 "$app"
           done < <(find "$bundle_root" -name '*.app' -type d)
 
@@ -235,6 +260,32 @@ jobs:
             "$signature" \
             companion/src-tauri/tauri.conf.json \
             "$EUDONOMIA_BUILD_VERSION"
+
+      - name: Replace public draft disk image with verified stapled artifact
+        if: steps.release-meta.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release-meta.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          tag="release-v${VERSION}"
+          bundle_root="companion/src-tauri/target/aarch64-apple-darwin/release/bundle"
+          dmg="$(find "$bundle_root" -type f -name '*.dmg' | head -n 1)"
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}")"
+          asset_count="$(jq '[.assets[] | select(.name | endswith(".dmg"))] | length' <<< "$release_json")"
+          if [ "$asset_count" -ne 1 ]; then
+            echo "Expected exactly one DMG asset in the public draft, found $asset_count." >&2
+            exit 1
+          fi
+
+          asset_id="$(jq -r '.assets[] | select(.name | endswith(".dmg")) | .id' <<< "$release_json")"
+          asset_name="$(jq -r '.assets[] | select(.name | endswith(".dmg")) | .name' <<< "$release_json")"
+          upload_dir="$(mktemp -d)"
+          cp "$dmg" "$upload_dir/$asset_name"
+
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+          gh release upload "$tag" "$upload_dir/$asset_name"
 
       - name: Upload private validated release candidate
         if: steps.release-meta.outputs.publish != 'true'

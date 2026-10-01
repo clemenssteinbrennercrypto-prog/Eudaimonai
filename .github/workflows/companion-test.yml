@@ -130,6 +130,30 @@ jobs:
           projectPath: companion
           args: --target aarch64-apple-darwin --config src-tauri/tauri.test.conf.json
 
+      - name: Notarize and staple internal disk image
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          bundle_root="companion/src-tauri/target/aarch64-apple-darwin/release/bundle"
+          dmg_count="$(find "$bundle_root" -type f -name '*.dmg' | wc -l | tr -d ' ')"
+          if [ "$dmg_count" -ne 1 ]; then
+            echo "Expected exactly one signed DMG, found $dmg_count." >&2
+            exit 1
+          fi
+
+          dmg="$(find "$bundle_root" -type f -name '*.dmg' | head -n 1)"
+          xcrun notarytool submit "$dmg" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$dmg"
+          xcrun stapler validate "$dmg"
+
       - name: Verify signed and notarized internal artifacts
         run: |
           set -euo pipefail
@@ -140,6 +164,7 @@ jobs:
           while IFS= read -r app; do
             app_count=$((app_count + 1))
             codesign --verify --deep --strict --verbose=2 "$app"
+            xcrun stapler validate "$app"
             /usr/sbin/spctl --assess --type execute --verbose=4 "$app"
           done < <(find "$bundle_root" -name '*.app' -type d)
 
