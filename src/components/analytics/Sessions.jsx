@@ -8,6 +8,7 @@ import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt, sessionWallSeco
 import { loadFocusScoreSchedule } from '../../lib/focusScoreSchedule'
 import { readArchiveSettings } from '../../lib/sessionArchive'
 import { collectSupportReport } from '../../lib/supportReport'
+import DsSelect from '../DsSelect'
 
 const PAGE_SIZE = 10
 const DATE_FILTERS = [['all', 'All time'], ['week', 'This week'], ['month', 'This month']]
@@ -370,14 +371,13 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
           <FilterPill key={val} active={measuredFilter === val} onClick={() => { setMeasuredFilter(val); setPage(0) }}>{label}</FilterPill>
         ))}
         {workspaceOptions.length > 0 && (
-          <select
-            className="analytics-filter-select"
+          <DsSelect
+            className="ds-select-pill"
+            label="Workspace"
             value={workspaceFilter}
-            onChange={e => { setWorkspaceFilter(e.target.value); setPage(0) }}
-          >
-            <option value="all">All workspaces</option>
-            {workspaceOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-          </select>
+            options={[{ value: 'all', label: 'All workspaces' }, ...workspaceOptions.map(([id, name]) => ({ value: id, label: name }))]}
+            onChange={value => { setWorkspaceFilter(value); setPage(0) }}
+          />
         )}
       </div>}
       <label className="analytics-search">

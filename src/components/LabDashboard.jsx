@@ -10,9 +10,33 @@ import { FOCUS_SCORE } from '../lib/focusScore'
 
 const PERIOD_RANGES = [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']]
 
+// SF Symbols-style glyphs: 1.5px stroke at 16px, round caps, currentColor.
+function Chevron({ direction }) {
+  return (
+    <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path d={direction === 'left' ? 'M10 3.5 5.5 8l4.5 4.5' : 'M6 3.5 10.5 8 6 12.5'} />
+    </svg>
+  )
+}
+
+function LockGlyph() {
+  return (
+    <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="3.25" y="7" width="9.5" height="6.75" rx="1.75" />
+      <path d="M5.25 7V5.25a2.75 2.75 0 0 1 5.5 0V7" />
+    </svg>
+  )
+}
+
 function SegmentedControl({ items, value, onChange, label }) {
   return (
-    <div className="lab-segments" role="group" aria-label={label}>
+    <div
+      className="lab-segments"
+      role="group"
+      aria-label={label}
+      style={{ '--seg-count': items.length, '--seg-index': Math.max(0, items.findIndex(([id]) => id === value)) }}
+    >
+      <span className="lab-segments-thumb" aria-hidden="true" />
       {items.map(([id, text]) => (
         <button key={id} type="button" aria-pressed={value === id} className={value === id ? 'is-active' : ''} onClick={() => onChange(id)}>{text}</button>
       ))}
@@ -20,15 +44,84 @@ function SegmentedControl({ items, value, onChange, label }) {
   )
 }
 
-function Metric({ label, value, suffix, detail }) {
+// The Focus Score inside three thin rings, one per component, outer to
+// inner: Focus time against the score's own weekday reference, average
+// attention out of 100, and Deep Focus as a share of measured time. Each arc
+// is a measured fraction and nothing else; an unknown value draws no arc, so
+// a gap can never pass for a value.
+const RING_RADII = [56, 48, 40]
+// Platinum, silver, titanium: three cool metals instead of three hues, so the
+// rings read as one object and the score stays the brightest thing.
+const SILVER_TONES = [
+  ['time', '#FFFFFF', '#E3E7EF'],
+  ['attention', '#F0F2F7', '#B4BCCC'],
+  ['deep', '#CDD3DF', '#8C95A9'],
+]
+
+function ScoreRings({ score, caption, rings }) {
   return (
-    <div className="lab-metric">
+    <div className={`lab-ring${score == null ? ' is-empty' : ''}`}>
+      <svg viewBox="0 0 128 128" aria-hidden="true">
+        {/* Brushed-metal sheen: each silver tone runs from a lighter to a
+            deeper shade along the arc. userSpaceOnUse keeps the light
+            direction fixed regardless of how far an arc reaches. */}
+        <defs>
+          {SILVER_TONES.map(([key, light, deep]) => (
+            <linearGradient key={key} id={`lab-ring-${key}-sheen`} gradientUnits="userSpaceOnUse" x1="120" y1="20" x2="8" y2="108">
+              <stop offset="0" stopColor={light} />
+              <stop offset="1" stopColor={deep} />
+            </linearGradient>
+          ))}
+        </defs>
+        {rings.map(({ key, fraction }, index) => {
+          const radius = RING_RADII[index]
+          const circumference = 2 * Math.PI * radius
+          return (
+            <g key={key} className={`lab-ring-${key}`}>
+              <circle className="lab-ring-track" cx="64" cy="64" r={radius} />
+              {fraction != null && fraction > 0 && (
+                <circle
+                  className="lab-ring-arc"
+                  cx="64"
+                  cy="64"
+                  r={radius}
+                  style={{
+                    strokeDasharray: circumference,
+                    '--ring-offset': circumference * (1 - Math.min(1, fraction)),
+                    '--ring-circumference': circumference,
+                    animationDelay: `${index * 80}ms`,
+                  }}
+                />
+              )}
+            </g>
+          )
+        })}
+      </svg>
+      <div className="lab-ring-center">
+        <strong>{score ?? '—'}</strong>
+        <span>{caption}</span>
+      </div>
+    </div>
+  )
+}
+
+function fractionOf(value, whole) {
+  return Number.isFinite(value) && Number.isFinite(whole) && whole > 0 && value >= 0 ? value / whole : null
+}
+
+function Metric({ label, value, suffix, detail, tone }) {
+  return (
+    <div className={`lab-metric lab-metric-${tone}`}>
       <span>{label}</span>
       <strong>{value ?? '—'}{value != null && suffix ? <small>{suffix}</small> : null}</strong>
       {detail ? <small className="lab-metric-detail">{detail}</small> : null}
     </div>
   )
 }
+
+// Every other screen formats dates in en-US; the system locale here put
+// German weekdays ("MO., 28.") between English labels.
+const DATE_LOCALE = 'en-US'
 
 function formatSessionTime(bin, range) {
   if (!Number.isFinite(bin?.sessionStartedAt) || !Number.isFinite(bin?.sessionEndedAt)) return ''
@@ -39,7 +132,7 @@ function formatSessionTime(bin, range) {
   })
   const time = `${formatTime(bin.sessionStartedAt)}–${formatTime(bin.sessionEndedAt)}`
   if (range === 'day') return time
-  const date = new Date(bin.sessionStartedAt).toLocaleDateString([], { day: '2-digit', month: 'short' })
+  const date = new Date(bin.sessionStartedAt).toLocaleDateString(DATE_LOCALE, { day: '2-digit', month: 'short' })
   return `${date} · ${time}`
 }
 
@@ -56,9 +149,9 @@ function AttentionField({ bins, range, title }) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
     }
     if (range === 'week') {
-      return date.toLocaleDateString([], { weekday: 'short', day: '2-digit' })
+      return date.toLocaleDateString(DATE_LOCALE, { weekday: 'short', day: '2-digit' })
     }
-    return date.toLocaleDateString([], { day: '2-digit', month: 'short' })
+    return date.toLocaleDateString(DATE_LOCALE, { day: '2-digit', month: 'short' })
   }
   const ticks = Number.isFinite(start) && Number.isFinite(end)
     ? range === 'day'
@@ -114,17 +207,14 @@ function AttentionField({ bins, range, title }) {
           role="tooltip"
           style={{ '--attention-tooltip-x': tooltipPosition }}
         >
-          <small>Session</small>
-          <span>
-            <strong>{hoveredBin?.sessionName || ''}</strong>
-            {sessionTime && <time>{sessionTime}</time>}
-          </span>
+          <strong>{hoveredBin?.sessionName || ''}</strong>
+          {sessionTime && <time>{sessionTime}</time>}
         </div>
       </div>
       <div className="attention-axis" aria-hidden="true">
         {ticks.map((tick, index) => (
           <span key={tick.timestamp} style={{ left: `${tick.position * 100}%` }}>
-            <i />{formatTick(tick.timestamp, index)}
+            {formatTick(tick.timestamp, index)}
           </span>
         ))}
       </div>
@@ -156,8 +246,15 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
   }), [source, focusModeEnabled, periodSelection, dashboardNow, nativeStatus])
   const { period, time } = data
   const deepFocusDetail = time.deepFocusSeconds == null
-    ? time.sessionCount > 0 ? 'Not recorded for every session' : 'No sessions in this period'
-    : 'Sustained high-attention blocks'
+    ? time.sessionCount > 0 ? 'Missing for some sessions' : 'No sessions in this period'
+    : 'Stretches of 90 s or more of steady attention'
+  const referenceMinutes = period.referenceMinutes ??
+    (period.referenceWorkdays > 0 ? FOCUS_SCORE.referenceMinutesPerWorkday * period.referenceWorkdays : null)
+  const rings = [
+    { key: 'time', fraction: fractionOf(time.focusSeconds == null ? null : time.focusSeconds / 60, referenceMinutes) },
+    { key: 'attention', fraction: fractionOf(period.averageAttention, 100) },
+    { key: 'deep', fraction: fractionOf(time.deepFocusSeconds, time.measuredSeconds) },
+  ]
   const hasAttentionSignal = data.attention.some(bin => !['inactive', 'no-signal', 'paused', 'future'].includes(bin.state))
   const selectRange = range => setPeriodSelection({ range, periodStart: null })
   const movePeriod = delta => setPeriodSelection(current => {
@@ -182,82 +279,67 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
 
   return (
     <main className="lab-dashboard">
-      <section className="lab-period-toolbar" aria-label="Dashboard time period">
+      <section className="lab-toolbar" aria-label="Dashboard time period">
         <SegmentedControl items={PERIOD_RANGES} value={periodSelection.range} onChange={selectRange} label="Dashboard range" />
         <div className="lab-period-navigation">
-          <button type="button" onClick={() => movePeriod(-1)} aria-label={`Show previous ${periodSelection.range}`}>←</button>
+          <button type="button" onClick={() => movePeriod(-1)} aria-label={`Show previous ${periodSelection.range}`}><Chevron direction="left" /></button>
           <strong aria-live="polite">{period.title}</strong>
-          <button type="button" onClick={() => period.canGoForward && movePeriod(1)} aria-disabled={!period.canGoForward} aria-label={`Show next ${periodSelection.range}`}>→</button>
+          <button type="button" onClick={() => period.canGoForward && movePeriod(1)} aria-disabled={!period.canGoForward} aria-label={`Show next ${periodSelection.range}`}><Chevron direction="right" /></button>
         </div>
+        <button className="ds-button-primary lab-start" type="button" onClick={onSession} aria-label="Open session setup">Start session</button>
       </section>
 
-      <section className="lab-hero" aria-labelledby="lab-title">
-        <div className="lab-score-block">
-          <div className="lab-section-head">
-            <div>
-              <span className="lab-eyebrow">Command / Lab</span>
-              <h1 id="lab-title">Focus Score</h1>
-            </div>
-          </div>
-          <div className={`lab-score${period.score == null ? ' is-empty' : ''}`}>
-            <strong>{period.score ?? '—'}</strong>
-            <span>{focusScoreLabel(period)}</span>
-          </div>
-        </div>
-
-        <div className="lab-metric-rail">
+      <section className="lab-panel lab-hero" aria-labelledby="lab-title">
+        <h1 id="lab-title">Focus Score</h1>
+        <ScoreRings score={period.score} caption={period.score == null ? focusScoreLabel(period) : 'of 100'} rings={rings} />
+        <div className="lab-metric-row">
           <Metric
+            tone="time"
             label="Focus time"
             value={time.focusSeconds == null ? null : fmtDuration(time.focusSeconds)}
-            detail="Active session time · breaks excluded"
+            detail="Time in sessions, without breaks"
           />
           <Metric
+            tone="attention"
+            label="Average attention"
+            value={period.averageAttention == null ? null : Math.round(period.averageAttention)}
+            suffix="/100"
+            detail="Average while the camera could see you"
+          />
+          <Metric
+            tone="deep"
             label="Deep Focus"
             value={time.deepFocusSeconds == null ? null : fmtDuration(time.deepFocusSeconds)}
             detail={deepFocusDetail}
           />
-          <Metric
-            label="Average attention"
-            value={period.averageAttention == null ? null : Math.round(period.averageAttention)}
-            suffix="/100"
-            detail="Quality multiplier for measured time"
-          />
         </div>
-
-        <button className="lab-session-orb" type="button" onClick={onSession} aria-label="Open session setup">
-          <span className="lab-session-orb-ring" aria-hidden="true" />
-          <span className="lab-session-orb-copy"><small>Session</small><b>Start</b><i aria-hidden="true">↗</i></span>
-        </button>
       </section>
 
-      <FocusScoreExplanation period={period} time={time} />
+      <FocusScoreExplanation period={period} time={time} warningsOnly />
 
-      <section className="lab-attention-section">
-        <div className="lab-section-head">
-          <div>
-            <span className="lab-eyebrow">Measured signal</span>
-            <h2>Attention Field</h2>
-          </div>
-          <span className="lab-period-scope">{period.title}</span>
+      <section className="lab-panel lab-attention-section">
+        <div className="lab-panel-head">
+          <h2>Attention</h2>
+          <span>{period.title}</span>
         </div>
         <AttentionField bins={data.attention} range={periodSelection.range} title={period.title} />
-        {!hasAttentionSignal && <p className="attention-empty">Complete a measured session to reveal your attention field.</p>}
+        {!hasAttentionSignal && <p className="attention-empty">Your attention shows up here after your first session.</p>}
         <div className="attention-legend">
-          <span className="is-strong">High attention</span><span className="is-focused">Focused</span><span className="is-drift">Low attention</span><span className="is-paused">Break</span><span className="is-no-signal">No signal</span>
+          <span className="is-strong">High attention</span><span className="is-focused">Focused</span><span className="is-drift">Low attention</span><span className="is-paused">Break</span><span className="is-no-signal">Not measured</span>
         </div>
       </section>
 
       <section className="lab-lower-grid">
-        <button className={`lab-lock lab-lock-${data.protection.state}`} type="button" onClick={onProtection}>
-          <span className="lab-lock-icon" aria-hidden="true"><i /></span>
-          <span><small>Locked In</small><strong>{data.protection.label}</strong><em>{data.protection.detail}</em></span>
-          <b aria-hidden="true">Configure →</b>
+        <button className={`lab-panel lab-lock lab-lock-${data.protection.state}`} type="button" onClick={onProtection}>
+          <span className="lab-lock-icon"><LockGlyph /></span>
+          <span className="lab-lock-copy"><small>Protection</small><strong>{data.protection.label}</strong><em>{data.protection.detail}</em></span>
+          <b>Edit<Chevron direction="right" /></b>
         </button>
 
-        <div className="lab-recent">
-          <div className="lab-section-head">
-            <div><span className="lab-eyebrow">Last runs</span><h2>Recent Sessions</h2></div>
-            <button type="button" className="lab-text-action" onClick={onAnalytics}>View all →</button>
+        <div className="lab-panel lab-recent">
+          <div className="lab-panel-head">
+            <h2>Recent sessions</h2>
+            <button type="button" className="lab-text-action" onClick={onAnalytics}>All sessions<Chevron direction="right" /></button>
           </div>
           {data.recentSessions.length === 0 ? (
             <p className="lab-empty-copy">Your completed sessions will appear here.</p>
@@ -267,8 +349,9 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
                 <div className="lab-session-row" key={session.id}>
                   <strong>{session.task}</strong>
                   <span>{fmtDuration(session.durationSeconds)}</span>
-                  <span>{session.efficiency == null ? 'Not measured' : `${Math.round(session.efficiency)}/100 attention`}</span>
-                  <em className={`is-${session.outcome.toLowerCase()}`}>{session.outcome}</em>
+                  <span>{session.efficiency == null ? 'Not measured' : `Attention ${Math.round(session.efficiency)}`}</span>
+                  {/* "Unset" is the absence of an outcome, not an outcome. */}
+                  <em className={`is-${session.outcome.toLowerCase()}`}>{session.outcome === 'Unset' ? '' : session.outcome}</em>
                 </div>
               ))}
             </div>

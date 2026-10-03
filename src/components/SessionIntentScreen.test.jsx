@@ -62,7 +62,7 @@ describe('SessionIntentScreen', () => {
       activeWorkspaceId: 'desk',
     })
 
-    expect(html).toContain('class="session-select-control"')
+    expect(html).toContain('session-select-control')
     expect(html).toContain('id="session-workspace-help"')
     expect(html).toContain('aria-describedby="session-workspace-help"')
   })
@@ -164,7 +164,9 @@ describe('SessionIntentScreen', () => {
     })
 
     expect(html).toContain('aria-label="Protection setup"')
-    expect(html).toContain('<option value="study">Study</option>')
+    // A pop-up button: options render when it opens (DsSelect.test.jsx).
+    expect(html).toContain('aria-haspopup="listbox"')
+    expect(html).toContain('>Writing</span>')
   })
 
   describe('protection activation at session start', () => {

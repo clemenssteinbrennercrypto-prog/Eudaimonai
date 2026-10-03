@@ -71,50 +71,11 @@ function ageLabel(ts, now = Date.now()) {
 }
 
 function AppChip({ app, tone, onRemove }) {
-  const colors = tone === 'focus'
-    ? { bg: 'rgba(47,227,168,0.07)', border: 'rgba(47,227,168,0.30)', text: 'var(--good)', xBg: 'rgba(47,227,168,0.10)', xText: 'var(--good)' }
-    : { bg: 'rgba(255,77,106,0.07)', border: 'rgba(255,77,106,0.30)', text: 'var(--bad)', xBg: 'rgba(255,77,106,0.12)', xText: 'var(--bad)' }
-
   return (
-    <span
-      style={{
-        minHeight: 34,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-        background: colors.bg,
-        border: `1.5px solid ${colors.border}`,
-        borderRadius: 100,
-        padding: '6px 7px 6px 13px',
-        color: colors.text,
-        fontSize: 13,
-        fontWeight: 700,
-        maxWidth: '100%',
-      }}
-    >
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app}</span>
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={`Remove ${app}`}
-        style={{
-          width: 21,
-          height: 21,
-          borderRadius: '50%',
-          border: 'none',
-          background: colors.xBg,
-          color: colors.xText,
-          cursor: 'pointer',
-          lineHeight: 1,
-          fontSize: 15,
-          fontWeight: 700,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        x
+    <span className={`ds-chip is-${tone === 'focus' ? 'good' : 'bad'}`}>
+      <span className="ds-chip-label">{app}</span>
+      <button type="button" onClick={onRemove} aria-label={`Remove ${app}`}>
+        <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7" /></svg>
       </button>
     </span>
   )
@@ -132,27 +93,16 @@ function AppSection({ title, subtitle, apps, setApps, presets, inputValue, setIn
   }
 
   return (
-    <section style={{ display: 'grid', gap: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+    <section className="protection-app-section">
+      <div className="protection-app-section-head">
         <div>
-          <h2 style={{ margin: 0, color: 'var(--ultra-bright)', fontSize: 20, fontWeight: 800, letterSpacing: 0 }}>{title}</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.45 }}>{subtitle}</p>
+          <h2>{title}</h2>
+          <p>{subtitle}</p>
         </div>
-        <span style={{
-          border: '1px solid var(--line)',
-          borderRadius: 100,
-          padding: '4px 10px',
-          color: 'var(--text-muted)',
-          fontSize: 12,
-          fontWeight: 700,
-          background: 'var(--surface)',
-          flexShrink: 0,
-        }}>
-          {apps.length}
-        </span>
+        <span className="ds-count">{apps.length}</span>
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="protection-add-row">
         <input
           type="text"
           className="text-input"
@@ -165,29 +115,13 @@ function AppSection({ title, subtitle, apps, setApps, presets, inputValue, setIn
             }
           }}
           placeholder="Type app or website"
-          style={{ flex: 1, minWidth: 0, fontSize: 15, borderRadius: 13 }}
         />
-        <button
-          type="button"
-          onClick={() => addApp()}
-          style={{
-            background: 'var(--ultra)',
-            border: 'none',
-            borderRadius: 13,
-            padding: '0 16px',
-            color: 'var(--text)',
-            fontSize: 13,
-            fontWeight: 800,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <button type="button" className="ds-button-primary" onClick={() => addApp()}>
           Add
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 34 }}>
+      <div className="protection-chip-row">
         {apps.map(app => (
           <AppChip
             key={app}
@@ -197,38 +131,19 @@ function AppSection({ title, subtitle, apps, setApps, presets, inputValue, setIn
           />
         ))}
         {apps.length === 0 && (
-          <div style={{
-            width: '100%',
-            border: '1.5px dashed var(--line)',
-            borderRadius: 14,
-            padding: '14px 16px',
-            color: 'var(--text-muted)',
-            fontSize: 13,
-            lineHeight: 1.45,
-            background: 'rgba(122,152,255,0.06)',
-          }}>
+          <div className="protection-empty-list">
             Nothing here yet. Add a preset or type your own.
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+      <div className="protection-preset-row">
         {availablePresets.map(preset => (
           <button
             key={preset}
             type="button"
+            className="ds-chip-add"
             onClick={() => addApp(preset)}
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--line)',
-              borderRadius: 100,
-              padding: '6px 12px',
-              color: 'var(--text-muted)',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
           >
             + {preset}
           </button>
@@ -761,7 +676,7 @@ export default function FocusAppsScreen({
                 checking: 'Checking the Companion',
                 disconnected: 'Companion not connected',
                 permission: 'Automation permission required',
-                helper: 'Website helper required',
+                helper: 'Website blocking needs one more step',
                 ready: 'Ready for focus',
               }[readiness.state]}</span>
               <p>
@@ -894,7 +809,7 @@ export default function FocusAppsScreen({
 
       {SHOW_NATIVE_CAMERA_DIAGNOSTICS && (
         <details className="protection-internal-diagnostics">
-          <summary>Internal camera diagnostics</summary>
+          <summary>Camera test (internal)</summary>
           <NativeCameraDiagnostics />
         </details>
       )}

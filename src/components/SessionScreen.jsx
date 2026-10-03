@@ -93,6 +93,7 @@ import {
   PROLONGED_CLOSE_MS,
   UNCERTAIN_HOLD_MS,
 } from '../lib/cameraScoringConstants'
+import { playSessionStartChime } from '../lib/signatureSound'
 
 // ── Thresholds ────────────────────────────────────────────────────────────────
 // Science sources:
@@ -205,23 +206,23 @@ const PHASE_INTERVENTION_POLICY = {
 const PHASE_ALERT_COPY = {
   arrival: {
     default: { text: 'Settle back into the session.', sub: 'Take one clean minute on the intended task' },
-    distraction_app: { text: 'Start on the intended work.', sub: 'Close the detour before the ramp begins' },
+    distraction_app: { text: 'Start on the intended work.', sub: 'Close the distraction to get started' },
     phone: { text: 'Put the phone down.', sub: 'Set the workspace before focus starts' },
   },
   ramp: {
     default: { text: 'Catch this drift now.', sub: 'The ramp is where focus either locks in or slips' },
     distraction_app: { text: 'Switch back now.', sub: 'Protect the ramp before the detour becomes the session' },
-    away: { text: 'Back to the work.', sub: 'The ramp needs a clean minute' },
+    away: { text: 'Back to the work.', sub: 'Give it one undistracted minute' },
   },
   lock_in: {
     default: { text: 'Brief reset, then return.', sub: 'You were in lock-in; keep the interruption small' },
-    distraction_app: { text: 'Close the interruption.', sub: 'Preserve the lock-in block' },
-    yawn: { text: 'Take a real break.', sub: 'Lock-in is fading into fatigue' },
+    distraction_app: { text: 'Close the interruption.', sub: "You're in deep focus. Keep going" },
+    yawn: { text: 'Take a real break.', sub: 'You look tired. A short break may help' },
     prolonged: { text: 'Take a real break.', sub: 'Rest your eyes before continuing' },
   },
   fade: {
     default: { text: 'Reset before this becomes drift.', sub: 'Stand up, breathe, or simplify the next step' },
-    distraction_app: { text: 'Close the off-goal window.', sub: 'Fade is turning into a detour' },
+    distraction_app: { text: 'Close the off-goal window.', sub: 'Attention is fading' },
     lookingup: { text: 'Name the next action.', sub: 'Make the task smaller and restart' },
   },
   recovery: {
@@ -230,8 +231,8 @@ const PHASE_ALERT_COPY = {
     phone: { text: 'Put the phone away.', sub: 'Recovery needs fewer inputs, not more' },
   },
   drift: {
-    default: { text: 'Take a break or switch back.', sub: 'The session has left productive focus' },
-    distraction_app: { text: 'Switch back or end the session.', sub: 'This is now active drift' },
+    default: { text: 'Take a break or switch back.', sub: "You've been away from the work for a while" },
+    distraction_app: { text: 'Switch back or end the session.', sub: "You've drifted off" },
     away: { text: 'Return or take a break.', sub: 'Do not leave the timer running unattended' },
   },
 }
@@ -441,71 +442,73 @@ function formatShortDuration(ms) {
 }
 
 // ── Focus Ring (SVG) ──────────────────────────────────────────────────────────
+// The live counterpart of the Lab's score rings. Outer platinum ring: how much
+// of the planned session has passed (no arc without a time limit, so nothing
+// pretends to a length that was never set). Inner ring: the live attention
+// score in the shared band colours. While the live Flow state is active the
+// inner ring breathes slowly; that is presentation only and reads the
+// existing inFlowState, it never feeds back into scoring.
 function FocusRing({
   score,
   timeLeft,
+  totalSeconds = null,
   isCalibrating,
   isPaused,
+  inFlow = false,
   calibProgress = 0,
   focusedThreshold = 65,
   alertThreshold = 38,
   countUp = false,
 }) {
-  const size   = 220
-  const radius = 96
-  const stroke = 10
-  const circ   = 2 * Math.PI * radius
-  const fill   = isCalibrating ? calibProgress : score / 100
-  const offset = circ * (1 - fill)
+  const size = 240
+  const c = size / 2
+  const outerRadius = 112
+  const innerRadius = 100
+  const outerCirc = 2 * Math.PI * outerRadius
+  const innerCirc = 2 * Math.PI * innerRadius
+  const progress = !countUp && Number.isFinite(totalSeconds) && totalSeconds > 0 && Number.isFinite(timeLeft)
+    ? Math.min(1, Math.max(0, 1 - timeLeft / totalSeconds))
+    : null
+  const fill = isCalibrating ? calibProgress : score / 100
 
-  const color = isCalibrating
-    ? 'var(--text-secondary)'
-    : score >= focusedThreshold ? 'var(--good)'
-    : score >= alertThreshold ? 'var(--warn)'
-    : 'var(--bad)'
+  const tone = isCalibrating
+    ? 'is-calibrating'
+    : score >= focusedThreshold ? 'is-good'
+    : score >= alertThreshold ? 'is-warn'
+    : 'is-bad'
 
   return (
-    <div className={isCalibrating ? 'ring--calibrating' : ''} style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
-      {/* The glow follows the same semantic colours as the arc, and fades
-          between states rather than snapping when the score crosses a
-          threshold. */}
-      <svg
-        width={size}
-        height={size}
-        style={{
-          position: 'absolute', top: 0, left: 0,
-          filter: isCalibrating
-            ? 'drop-shadow(0 0 10px rgba(122,152,255,0.20))'
-            : score >= focusedThreshold ? 'drop-shadow(0 0 16px rgba(47,227,168,0.32))'
-            : score >= alertThreshold ? 'drop-shadow(0 0 16px rgba(255,179,64,0.28))'
-            : 'drop-shadow(0 0 16px rgba(255,77,106,0.30))',
-          transition: 'filter 0.5s var(--ease-soft)',
-        }}
-      >
+    <div className={`live-ring ${tone}${isCalibrating ? ' ring--calibrating' : ''}${inFlow && !isCalibrating && !isPaused ? ' is-flow' : ''}`} style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <defs>
+          <linearGradient id="live-ring-platinum" gradientUnits="userSpaceOnUse" x1={size} y1="0" x2="0" y2={size}>
+            <stop offset="0" stopColor="#FFFFFF" />
+            <stop offset="1" stopColor="#C9CFDB" />
+          </linearGradient>
+        </defs>
+        <circle className="live-ring-track" cx={c} cy={c} r={outerRadius} />
+        {progress != null && progress > 0 && (
+          <circle
+            className="live-ring-progress"
+            cx={c} cy={c} r={outerRadius}
+            strokeDasharray={outerCirc}
+            strokeDashoffset={outerCirc * (1 - progress)}
+            transform={`rotate(-90 ${c} ${c})`}
+          />
+        )}
+        <circle className="live-ring-track" cx={c} cy={c} r={innerRadius} />
         <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke="#0D1330" strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={offset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: 'stroke-dashoffset 0.7s var(--ease-out), stroke 0.45s var(--ease-soft)' }}
+          className="live-ring-attention"
+          cx={c} cy={c} r={innerRadius}
+          strokeDasharray={innerCirc}
+          strokeDashoffset={innerCirc * (1 - fill)}
+          transform={`rotate(-90 ${c} ${c})`}
         />
       </svg>
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        gap: 0,
-      }}>
-        <span className="timer" style={{ fontSize: 42, lineHeight: 1, color: isPaused ? 'var(--text-muted)' : '#ffffff', fontWeight: 200 }}>{formatTimer(timeLeft)}</span>
-        {countUp && <span style={{ marginTop: 8, color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>No time limit</span>}
+      <div className="live-ring-center">
+        <span className="timer" style={{ color: isPaused ? 'var(--text-muted)' : undefined }}>{formatTimer(timeLeft)}</span>
+        {countUp && <span className="live-ring-caption">No time limit</span>}
+        {!countUp && inFlow && !isCalibrating && !isPaused && <span className="live-ring-caption">Deep Focus</span>}
       </div>
     </div>
   )
@@ -516,7 +519,7 @@ const STATUS_CONFIG = {
   focused:    { color: 'var(--good)', label: 'Focused'    },
   distracted: { color: 'var(--warn)', label: 'Distracted' },
   alert:      { color: 'var(--bad)', label: 'Alert'      },
-  uncertain:  { color: 'var(--text-secondary)', label: 'Signal weak'},
+  uncertain:  { color: 'var(--text-secondary)', label: 'Camera can barely see you'},
   calibrating:{ color: 'var(--text-secondary)', label: 'Calibrating'},
 }
 
@@ -796,6 +799,8 @@ export default function SessionScreen({
 }) {
   const cameraMeasurement = PRIMARY_CAMERA_MEASUREMENT
   const hasTimeLimit = isTimed(duration)
+  // Signature sound: one soft rising chime as the session opens.
+  useEffect(() => { playSessionStartChime() }, [])
   const totalSeconds = hasTimeLimit ? duration * 60 : null
   const sessionIntent = useMemo(
     () => deriveSessionIntent({ task, goal, energyLevel, tags }),
@@ -2970,8 +2975,10 @@ export default function SessionScreen({
         <FocusRing
           score={focusScore}
           timeLeft={timeLeft}
+          totalSeconds={totalSeconds}
           isCalibrating={isCalibrating}
           isPaused={isPaused}
+          inFlow={inFlowState}
           calibProgress={calibProgress}
           focusedThreshold={GOOD_STREAK_SCORE}
           alertThreshold={ALERT_SCORE}

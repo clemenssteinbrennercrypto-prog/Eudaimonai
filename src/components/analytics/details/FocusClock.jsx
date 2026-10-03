@@ -89,7 +89,7 @@ export default function FocusClock({ rows, comparison, usableCount, required }) 
           ) : (
             <>
               <strong>{usableCount < required ? `${usableCount}/${required}` : usableCount}</strong>
-              <span>Qualified sessions</span>
+              <span>Sessions that count</span>
               <small>{comparison.ready ? 'No clear peak yet' : 'Collecting'}</small>
             </>
           )}

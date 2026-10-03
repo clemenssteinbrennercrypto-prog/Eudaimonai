@@ -746,16 +746,7 @@ export default function IsometricWorkspace({ devices, setDevices, onContinue }) 
                   <select
                     value={activeDevice.role || defaultRoleForType(activeDevice.type)}
                     onChange={e => updateDeviceRole(activeDevice.id, e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '7px 8px',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: 8,
-                      background: '#0A1028',
-                      fontSize: 12,
-                      color: '#9EAAD9',
-                      fontFamily: 'inherit',
-                    }}
+                    className="ds-native-select"
                   >
                     {WORKSPACE_ROLES.map(role => (
                       <option key={role.id} value={role.id}>{role.label}</option>

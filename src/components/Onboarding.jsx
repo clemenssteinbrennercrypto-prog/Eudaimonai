@@ -54,12 +54,12 @@ function RingMark({ size = 88, active = false }) {
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
         style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1)' }}
       />
-      <circle cx={size / 2} cy={6} r={3.5} fill="#6496ed"
+      <circle cx={size / 2} cy={6} r={3.5} fill="#F5F7FF"
         style={{ transformOrigin: `${size / 2}px ${size / 2}px`, animation: 'ringSpin 3.6s linear infinite' }} />
       <defs>
         <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#6496ed" />
-          <stop offset="100%" stopColor="#22c55e" />
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#9AA3B5" />
         </linearGradient>
       </defs>
     </svg>
@@ -204,8 +204,9 @@ export default function Onboarding({ onComplete }) {
         @keyframes scanSweep { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
         @keyframes lockPop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes softPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.0); } 50% { box-shadow: 0 0 0 6px rgba(34,197,94,0.10); } }
-        .ob-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(122,152,255,0.55); }
-        .ob-cta:active { transform: translateY(0); }
+        .ob-cta { min-height: 44px; font-size: 15px; }
+        .ob-cta:hover { background: var(--ds-accent-hover); }
+        .ob-cta:active { transform: scale(0.97); }
       `}</style>
 
       {/* Ambient glow */}
@@ -228,7 +229,7 @@ export default function Onboarding({ onComplete }) {
             opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(10px)',
             transition: 'opacity .22s ease, transform .22s ease',
           }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#5a6b8c' }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ds-label-3)' }}>
               {slide.kicker}
             </span>
             <h1 style={{ fontSize: 'clamp(30px,7vw,40px)', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.08, margin: 0, whiteSpace: 'pre-line' }}>
@@ -246,17 +247,10 @@ export default function Onboarding({ onComplete }) {
           )}
 
           <button
-            className="ob-cta"
+            className="ob-cta ds-button-primary"
             onClick={() => step === 2 ? handleEnableCamera() : transitionTo(step + 1)}
             disabled={loading}
-            style={{
-              width: '100%', maxWidth: 340, height: 54, fontSize: 15.5, fontWeight: 700,
-              background: 'linear-gradient(135deg,var(--ultra) 0%,#243d61 100%)', color: 'var(--text)',
-              border: '1px solid rgba(100,149,237,0.3)', borderRadius: 15,
-              cursor: loading ? 'default' : 'pointer', fontFamily: font, letterSpacing: '0.01em',
-              boxShadow: '0 6px 24px rgba(122,152,255,0.45)', transition: 'all .18s ease',
-              opacity: loading ? 0.7 : 1,
-            }}
+            style={{ width: '100%', maxWidth: 340, opacity: loading ? 0.7 : 1, cursor: loading ? 'default' : 'pointer' }}
           >
             {loading ? 'Requesting camera…' : slide.cta}
           </button>
@@ -341,7 +335,7 @@ export default function Onboarding({ onComplete }) {
             </div>
           )}
           {awakenPhase === 'locked' && (
-            <button type="button" ref={awakenActionRef} className="ob-cta" onClick={completeOnboarding} aria-describedby="onboarding-camera-readiness-message" style={{ width: '100%', maxWidth: 340, height: 54, fontSize: 15.5, fontWeight: 700, background: 'linear-gradient(135deg,var(--ultra) 0%,#243d61 100%)', color: 'var(--text)', border: '1px solid rgba(100,149,237,0.3)', borderRadius: 15, cursor: 'pointer', fontFamily: font, letterSpacing: '0.01em', boxShadow: '0 6px 24px rgba(122,152,255,0.45)' }}>
+            <button type="button" ref={awakenActionRef} className="ob-cta ds-button-primary" onClick={completeOnboarding} aria-describedby="onboarding-camera-readiness-message" style={{ width: '100%', maxWidth: 340 }}>
               Continue
             </button>
           )}
