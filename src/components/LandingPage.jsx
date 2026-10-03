@@ -20,7 +20,10 @@ const STEPS = [
 ]
 
 const font = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif'
-const DOWNLOAD_URL = 'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/latest'
+// Until a protected production release exists, the public surface must never
+// fall back to the historical unsigned `latest` release. Internal-test is the
+// moving, signed/notarized beta channel verified by companion-test.yml.
+const DOWNLOAD_URL = 'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/download/internal-test/Eudaimonai-Test.dmg'
 
 export default function LandingPage() {
   const [legalTab, setLegalTab] = useState(null)

@@ -31,6 +31,15 @@ describe('native updater channels', () => {
     ])
   })
 
+  it('never sends website visitors to the retired unsigned latest release', () => {
+    const landingPage = readText('../components/LandingPage.jsx')
+
+    expect(landingPage).toContain(
+      'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/download/internal-test/Eudaimonai-Test.dmg',
+    )
+    expect(landingPage).not.toContain("const DOWNLOAD_URL = 'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/latest'")
+  })
+
   it('applies the production endpoint overlay in the signed release workflow', () => {
     const workflow = readText('../../.github/workflows/companion-release.yml')
 
