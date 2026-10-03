@@ -206,10 +206,13 @@ The product's central visual and, later, the logo. Chosen by Clemens on
 rings with the numbers beside them) in silver.
 
 - **Lab:** three thin rings (stroke 2.8 on a 128 viewBox) around the score.
-  Outer **platinum** = Focus time against the score's own weekday reference
-  (80 min × elapsed weekdays), middle **silver** = average attention / 100,
-  inner **titanium** = Deep Focus / measured time. Each tone is a brushed
-  gradient (`SILVER_TONES` in `LabDashboard.jsx`).
+  Outer **white** = Focus time against the score's own weekday reference
+  (80 min × elapsed weekdays), middle **silver** `#B4BBC6` = average
+  attention / 100, inner **dark silver** `#6B7280` = Deep Focus / measured
+  time. Clean flat 2D strokes (4.5 on a 128 viewBox): no gloss, shading or
+  shadow. Clemens tried a lit "metal tube" version and found it too 3D; the
+  metal look belongs to the app icon, the rings stay flat with clearly
+  different tones.
 - The three numbers stand on their own beside the ring, each in a glass tile
   whose left edge carries its ring's tone. No legend needed.
 - **Session (live ring):** outer platinum = elapsed share of the planned
@@ -278,6 +281,14 @@ Quiet signatures, chosen 3 Oct 2026:
   Clemens with a screenshot first.
 
 ---
+
+## 5b. App icon
+
+A silver ring with a silver core on night blue `#080B1C`, rendered as lit
+metal with a shallow, machined relief (chosen 4 Oct 2026 over a fully 3D and
+a flat version). `docs/brand/render-silver-icon.py` reproduces it and a flat
+variant for 16–32 px uses (favicon, small marks). Don't redraw it as flat
+SVG gradients: that read as grey, which is why it was redone.
 
 ## 6. Website
 
