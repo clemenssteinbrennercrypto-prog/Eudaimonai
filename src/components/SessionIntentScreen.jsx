@@ -5,6 +5,7 @@ import { hasTimeLimit as isTimed, isCustomDuration } from '../lib/sessionDuratio
 import { getProtectionReadiness } from '../lib/protectionReadiness'
 import { useCompanionStatus } from '../lib/useCompanionStatus'
 import { formatMinutes } from '../lib/durationFormat'
+import DsSelect from './DsSelect'
 
 const DURATIONS = [15, 30, 60, 90]
 
@@ -201,11 +202,14 @@ export default function SessionIntentScreen({
           <span>Active workspace</span>
           <small id="session-workspace-help">Spatial context used by focus tracking</small>
         </div>
-        <span className="session-select-control">
-          <select aria-label="Active workspace" aria-describedby="session-workspace-help" value={activeWorkspaceId || ''} onChange={event => onWorkspaceChange?.(event.target.value)}>
-            {workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
-          </select>
-        </span>
+        <DsSelect
+          className="session-select-control"
+          label="Active workspace"
+          describedBy="session-workspace-help"
+          value={activeWorkspaceId || ''}
+          options={workspaces.map(workspace => ({ value: workspace.id, label: workspace.name }))}
+          onChange={value => onWorkspaceChange?.(value)}
+        />
         <button type="button" onClick={onEditWorkspaces}>Manage</button>
       </div>
 
@@ -324,15 +328,13 @@ export default function SessionIntentScreen({
             </div>
             <div className="session-protection-actions">
               {protectionSetups.length > 1 && onProtectionSetupChange && (
-                <span className="session-select-control">
-                  <select
-                    aria-label="Protection setup"
-                    value={protectionSetup?.id || ''}
-                    onChange={event => onProtectionSetupChange(event.target.value)}
-                  >
-                    {protectionSetups.map(setup => <option key={setup.id} value={setup.id}>{setup.name}</option>)}
-                  </select>
-                </span>
+                <DsSelect
+                  className="session-select-control"
+                  label="Protection setup"
+                  value={protectionSetup?.id || ''}
+                  options={protectionSetups.map(setup => ({ value: setup.id, label: setup.name }))}
+                  onChange={value => onProtectionSetupChange(value)}
+                />
               )}
               {onEditProtection && <button type="button" onClick={onEditProtection}>{protectionConfigured ? 'Edit' : 'Set up'}</button>}
             </div>

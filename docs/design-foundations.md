@@ -168,6 +168,16 @@ numbers, edges). Ultramarine stays the action colour.
   outlines without a replacement.
 - No gradients, no glows, no inset highlights on any button.
 
+### Pop-up button (`DsSelect`)
+
+Visible pickers use `src/components/DsSelect.jsx`, not a native `<select>`:
+the WebView's native menu fell back to a serif font and a grey sheet. It is
+a 34 px glass pill with the value and a chevron; the menu is the popover
+material with a check on the selected row and the accent on the hovered
+one, arrow keys, Home/End, Enter/Space, Escape. Selects that tests drive as
+native comboboxes (workspace editor properties) stay native and get the same
+pill look via CSS.
+
 ### Segmented control
 
 The Analytics control, shared everywhere: a pill track (`--ds-surface` with a
@@ -239,16 +249,15 @@ Concrete proposals: [`copy-plain-language.md`](copy-plain-language.md).
 
 ## 4. Uniqueness ("spice")
 
-Three quiet signatures, chosen 3 Oct 2026:
+Quiet signatures, chosen 3 Oct 2026:
 
 1. **The breathing ring:** see the live ring above. The only ambient motion
    in the app.
-2. **One editorial line** at the top of the Lab score panel, set in New York
-   (`--ds-serif`, `ui-serif` in WebKit), italic. It states one fact from
-   measured data: the best measured session of the period
-   (`src/lib/labEditorial.js`). It stays silent without a validated attention
-   value and never infers a reason; patterns belong to `calibration.js`. The
-   serif is used nowhere else in the UI.
+2. ~~One editorial line in New York~~ — built, then removed at Clemens'
+   request on 3 Oct 2026, together with the routine score notes under the
+   Lab score panel. The Lab now shows only real warnings there
+   (`FocusScoreExplanation warningsOnly`); Analytics keeps the full
+   explanation.
 3. **The signature sound:** a soft two-note bell (D5→A5 at start, A5→D5 at the
    end), synthesised in `src/lib/signatureSound.js`, peak gain 0.05, about a
    fifth of the drift alert.

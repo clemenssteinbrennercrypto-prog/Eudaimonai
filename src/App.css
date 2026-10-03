@@ -3342,16 +3342,6 @@ html {
   align-items: center;
   gap: var(--ds-space-4) var(--ds-space-8);
 }
-/* Spice: one editorial line in the serif (New York, Instrument Serif as the
-   fallback). The only serif text in the app UI; it carries a fact, never
-   a control or a number to compare.                                       */
-.lab-editorial {
-  grid-column: 1 / -1;
-  margin: calc(-1 * var(--ds-space-2)) 0 0;
-  color: var(--ds-label-2);
-  font: italic 400 19px/1.4 var(--ds-serif);
-  letter-spacing: 0;
-}
 .lab-hero h1 {
   grid-column: 1 / -1;
   justify-self: start;
@@ -3687,7 +3677,7 @@ html {
 /* Primary: solid ultramarine pill. */
 .ds-button-primary,
 .protection-heading .is-primary,
-.workspace-library button:not(.secondary):not(.danger),
+.workspace-library > footer button,
 .workspace-calibration button {
   min-height: 34px;
   padding: 0 var(--ds-space-5);
@@ -3702,7 +3692,7 @@ html {
   transition: background var(--ds-dur-fast) var(--ds-ease), transform var(--ds-dur-fast) var(--ds-ease);
 }
 .protection-heading .is-primary:hover,
-.workspace-library button:not(.secondary):not(.danger):hover:not(:disabled),
+.workspace-library > footer button:hover:not(:disabled),
 .workspace-calibration button:hover:not(:disabled) { background: var(--ds-accent-hover); filter: none; }
 
 /* Secondary: glass pill with a hairline. */
@@ -4004,3 +3994,162 @@ html {
 .analytics-detail-back,
 .analytics-ghost-button,
 .restart-btn { box-shadow: 0 0 0 1px var(--ds-silver-edge) inset; }
+
+/* ── Pop-up button (DsSelect) ───────────────────────────────────────────── */
+.ds-select { position: relative; display: inline-block; min-width: 0; }
+.ds-select-button {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  width: 100%;
+  min-height: 34px;
+  padding: 0 var(--ds-space-3) 0 var(--ds-space-4);
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-glass-inset);
+  box-shadow: 0 0 0 1px var(--ds-silver-line) inset;
+  color: var(--ds-label);
+  font: 500 13px/1 var(--ds-font);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ds-dur-fast) var(--ds-ease), box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+.ds-select-button:hover,
+.ds-select.is-open .ds-select-button { background: var(--ds-fill-strong); box-shadow: 0 0 0 1px var(--ds-silver-edge) inset; }
+.ds-select-prefix { color: var(--ds-label-3); }
+.ds-select-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-select-chevron { width: 14px; height: 14px; color: var(--ds-label-2); transition: transform var(--ds-dur-base) var(--ds-ease); }
+.ds-select.is-open .ds-select-chevron { transform: rotate(180deg); }
+.ds-select-menu {
+  position: absolute;
+  z-index: 300;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: max(100%, 200px);
+  max-height: 280px;
+  margin: 0;
+  padding: 5px;
+  overflow: auto;
+  list-style: none;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-material-popover);
+  -webkit-backdrop-filter: var(--ds-blur);
+  backdrop-filter: var(--ds-blur);
+  box-shadow: 0 0 0 1px var(--ds-silver-line) inset, var(--ds-shadow-float);
+  animation: dsMenuIn var(--ds-dur-base) var(--ds-ease) both;
+}
+.ds-select-menu li {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  min-height: 30px;
+  padding: 0 var(--ds-space-3) 0 var(--ds-space-2);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-label);
+  font: 400 13px/1.2 var(--ds-font);
+  white-space: nowrap;
+  cursor: default;
+}
+.ds-select-menu li.is-active { background: var(--ds-accent); color: #fff; }
+.ds-select-menu li.is-disabled { color: var(--ds-label-4); }
+.ds-select-check { width: 14px; height: 14px; visibility: hidden; }
+.ds-select-menu li[aria-selected='true'] .ds-select-check { visibility: visible; }
+@keyframes dsMenuIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+/* Session planning pickers fill their slot; analytics filters are pills. */
+.session-select-control.ds-select { display: block; width: 100%; height: auto; border: 0; background: none; }
+.session-select-control.ds-select::after { content: none; }
+.session-protection-actions .session-select-control.ds-select { width: min(180px, 40vw); }
+.ds-select-pill.is-set .ds-select-button { background: rgba(44, 70, 255, 0.22); box-shadow: 0 0 0 1px var(--ds-silver-edge) inset; }
+
+/* Native selects that stay (workspace editor properties): same look, SF. */
+.workspace-properties select,
+.workspace-editor select,
+.ds-native-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 32px 0 12px;
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-glass-inset) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5' fill='none' stroke='%23B3BBDC' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 14px;
+  box-shadow: 0 0 0 1px var(--ds-silver-line) inset;
+  color: var(--ds-label);
+  font: 500 13px var(--ds-font);
+}
+select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-serif; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-select-menu { animation: none; }
+  .ds-select-chevron { transition: none; }
+}
+
+/* ── Workspace: library, editor, calibration in the shared language ─────── */
+.workspace-library > header span,
+.workspace-templates header span,
+.workspace-editor-header span,
+.workspace-calibration-copy > span { color: var(--ds-label-3); font: 500 13px var(--ds-font); }
+.workspace-library > header button { background: var(--ds-glass-inset); box-shadow: 0 0 0 1px var(--ds-silver-edge) inset; color: var(--ds-label); }
+.workspace-library > header button:hover:not(:disabled) { background: var(--ds-fill-strong); }
+
+/* Card actions are secondary; only Done/Save carry the accent. */
+.workspace-card-actions { gap: var(--ds-space-2); }
+.workspace-card-actions button,
+.workspace-card-actions button:first-child {
+  min-height: 32px;
+  padding: 0 var(--ds-space-4);
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-glass-inset);
+  box-shadow: 0 0 0 1px var(--ds-silver-edge) inset;
+  color: var(--ds-label);
+  font: 600 12px/1 var(--ds-font);
+}
+.workspace-card-actions button:hover:not(:disabled) { background: var(--ds-fill-strong); filter: none; }
+.workspace-card-actions button:last-child { color: var(--ds-bad); }
+.workspace-card-actions button:disabled { opacity: 0.4; }
+.workspace-card-grid article,
+.workspace-card-grid article.is-active {
+  border-color: var(--ds-silver-line);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-glass);
+  box-shadow: var(--ds-glass-shadow);
+}
+.workspace-card-grid article.is-active { border-color: var(--ds-silver-edge); }
+.workspace-card-copy em { padding: 3px 9px; border-radius: var(--ds-radius-full); background: var(--ds-fill-strong); color: var(--ds-label); font: 600 11px/1.3 var(--ds-font); }
+
+/* Editor chrome: material bar on top, glass side panels with silver edges. */
+.workspace-editor { background: var(--ds-bg); }
+.workspace-editor-header { background: var(--ds-material-bar); -webkit-backdrop-filter: var(--ds-blur); backdrop-filter: var(--ds-blur); border-bottom: 1px solid var(--ds-silver-line); }
+.workspace-palette,
+.workspace-properties { background: rgba(13, 19, 48, 0.42); }
+.workspace-palette { border-right: 1px solid var(--ds-silver-line); }
+.workspace-properties { border-left: 1px solid var(--ds-silver-line); }
+.workspace-palette h3,
+.workspace-properties h3 { color: var(--ds-label-3); font: 600 12px var(--ds-font); }
+.workspace-palette > button { min-height: 36px; border-radius: var(--ds-radius-md); color: var(--ds-label-2); font: 500 13px var(--ds-font); }
+.workspace-palette > button span { display: grid; place-items: center; width: 22px; font-size: 0; color: var(--ds-label-2); }
+.workspace-palette > button span .ds-icon { width: 16px; height: 16px; }
+.workspace-palette > button:hover:not(:disabled) { background: var(--ds-fill-strong); color: var(--ds-label); }
+.workspace-palette > button.is-camera {
+  border: 0;
+  background: var(--ds-glass-inset);
+  box-shadow: 0 0 0 1px var(--ds-silver-edge) inset;
+  color: var(--ds-label);
+}
+.workspace-object-kind span { display: grid; place-items: center; color: var(--ds-label); }
+.workspace-object-kind span .ds-icon { width: 18px; height: 18px; }
+.workspace-properties label { color: var(--ds-label-2); font: 500 12px var(--ds-font); }
+.workspace-properties small { color: var(--ds-label-3); }
+.workspace-view-tabs button:not(.is-active) { box-shadow: 0 0 0 1px var(--ds-silver-line) inset; color: var(--ds-label-2); }
+.workspace-quality { border-color: var(--ds-silver-line); background: var(--ds-glass); box-shadow: var(--ds-glass-shadow); }
+.workspace-stage:has(.workspace-3d-host):before { border-color: var(--ds-silver-line); background: var(--ds-material-popover); color: var(--ds-label-2); }
+.workspace-properties .danger { box-shadow: 0 0 0 1px rgba(255, 77, 106, 0.4) inset; }
+.workspace-object-kind { border-color: var(--ds-silver-line); background: var(--ds-glass-inset); }
+.workspace-object-kind > span { background: var(--ds-fill-strong); }
+.workspace-object-kind strong { color: var(--ds-label); font-size: 13px; }
+.session-select-control.ds-select:focus-within { color: inherit; border-color: transparent; }
+.session-select-control.ds-select .ds-select-button { color: var(--ds-label); }
+.session-recent-setups button div span { padding: 3px 9px; border: 0; border-radius: var(--ds-radius-full); background: var(--ds-fill); box-shadow: 0 0 0 1px var(--ds-silver-line) inset; color: var(--ds-label-2); }
+.session-recent-setups > button { border-color: var(--ds-silver-line); border-radius: var(--ds-radius-md); }

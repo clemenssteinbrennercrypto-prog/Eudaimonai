@@ -7,7 +7,6 @@ import { useCurrentTime } from '../lib/useCurrentTime'
 import FocusScoreExplanation, { focusScoreLabel } from './FocusScoreExplanation'
 import { fmtDuration } from '../lib/sessionAnalysisPresentation'
 import { FOCUS_SCORE } from '../lib/focusScore'
-import { buildLabEditorialLine } from '../lib/labEditorial'
 
 const PERIOD_RANGES = [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']]
 
@@ -256,12 +255,6 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
     { key: 'attention', fraction: fractionOf(period.averageAttention, 100) },
     { key: 'deep', fraction: fractionOf(time.deepFocusSeconds, time.measuredSeconds) },
   ]
-  const editorialLine = useMemo(() => buildLabEditorialLine(sessions, {
-    start: period.start,
-    endExclusive: period.endExclusive,
-    range: periodSelection.range,
-    now: dashboardNow,
-  }), [sessions, period.start, period.endExclusive, periodSelection.range, dashboardNow])
   const hasAttentionSignal = data.attention.some(bin => !['inactive', 'no-signal', 'paused', 'future'].includes(bin.state))
   const selectRange = range => setPeriodSelection({ range, periodStart: null })
   const movePeriod = delta => setPeriodSelection(current => {
@@ -298,7 +291,6 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
 
       <section className="lab-panel lab-hero" aria-labelledby="lab-title">
         <h1 id="lab-title">Focus Score</h1>
-        {editorialLine && <p className="lab-editorial">{editorialLine}</p>}
         <ScoreRings score={period.score} caption={period.score == null ? focusScoreLabel(period) : 'of 100'} rings={rings} />
         <div className="lab-metric-row">
           <Metric
@@ -323,7 +315,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
         </div>
       </section>
 
-      <FocusScoreExplanation period={period} time={time} />
+      <FocusScoreExplanation period={period} time={time} warningsOnly />
 
       <section className="lab-panel lab-attention-section">
         <div className="lab-panel-head">

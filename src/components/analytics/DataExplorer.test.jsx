@@ -82,7 +82,8 @@ describe('Analytics Details', () => {
       session(3, { goalOutcome: null }),
     ])
 
-    fireEvent.change(screen.getByLabelText('Outcome'), { target: { value: 'no' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Outcome' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Missed' }))
     expect(screen.getByText('session · 1 measured')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reset' })).toBeTruthy()
     expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(1)
@@ -242,7 +243,8 @@ describe('Analytics Details', () => {
       session(2, { workspace: { id: 'desk', name: 'New desk', revision: 2 } }),
     ])
 
-    const workspace = screen.getByLabelText('Workspace')
+    fireEvent.click(screen.getByRole('button', { name: 'Workspace' }))
+    const workspace = screen.getByRole('listbox', { name: 'Workspace' })
     expect(within(workspace).getByRole('option', { name: 'New desk' })).toBeTruthy()
     expect(within(workspace).queryByRole('option', { name: 'Old desk' })).toBeNull()
   })

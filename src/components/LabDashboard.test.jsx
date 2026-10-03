@@ -125,7 +125,9 @@ describe('LabDashboard metric labels', () => {
     expect(focusTime).toHaveTextContent('Time in sessions, without breaks')
     expect(focusTime).not.toHaveTextContent('2m')
     expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Missing for some sessions')
-    expect(screen.getByText(/Focus Score uses 1h of 2h 40s Focus Time/)).toBeInTheDocument()
+    // The Lab shows warnings only; the routine "uses X of Y" note lives in
+    // Analytics. Both numbers stay visible as separate metrics above.
+    expect(screen.queryByText(/Focus Score uses 1h of 2h 40s Focus Time/)).not.toBeInTheDocument()
     expect(screen.queryByText('Measured days')).not.toBeInTheDocument()
     expect(screen.getByText('Average attention').parentElement).toHaveTextContent('80/100')
     expect(screen.queryByText('Time credit')).not.toBeInTheDocument()
@@ -515,5 +517,32 @@ describe('LabDashboard metric labels', () => {
     const secondTooltip = screen.getByRole('tooltip').textContent
     expect(secondTooltip).toMatch(/Aug 26|26 Aug/)
     expect(secondTooltip).toContain('11:00–11:10')
+  })
+})
+
+describe('LabDashboard score notes', () => {
+  it('keeps real measurement warnings while dropping routine score lines', () => {
+    const period = {
+      range: 'week', days: [], today: { status: 'measured', score: 45 }, score: 53,
+      referenceWorkdays: 5, measuredSeconds: 3600, partialMetricPeriod: false,
+    }
+    const time = { focusSeconds: 7200, measurementWarning: true, measurementCoverage: 0.6 }
+    render(React.createElement(FocusScoreExplanation, { period, time, warningsOnly: true }))
+    expect(screen.getByText(/Only 60% of Focus Time could be measured/)).toBeInTheDocument()
+    expect(screen.queryByText(/Today’s score/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/scored against/)).not.toBeInTheDocument()
+    expect(screen.queryByText('How this score works')).not.toBeInTheDocument()
+  })
+
+  it('keeps a refusal visible in the Lab', () => {
+    const period = { range: 'week', days: [], today: null, score: null, refusal: 'missing_exact_deep_focus' }
+    render(React.createElement(FocusScoreExplanation, { period, time: null, warningsOnly: true }))
+    expect(screen.getByText(/missing exact Deep Focus time, so no period score is shown/)).toBeInTheDocument()
+  })
+
+  it('renders nothing when there is nothing to warn about', () => {
+    const period = { range: 'day', days: [{ status: 'measured' }], today: { status: 'measured', score: 45 }, score: 45 }
+    const view = render(React.createElement(FocusScoreExplanation, { period, time: { focusSeconds: 600 }, warningsOnly: true }))
+    expect(view.container).toBeEmptyDOMElement()
   })
 })
