@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 const ITEMS = [
   ['lab', 'Lab'],
   ['session-setup', 'Session'],
-  ['setup', 'Workspace Setup'],
+  ['setup', 'Workspace'],
   ['ai-companion', 'AI Companion'],
   ['analytics', 'Analytics'],
 ]
@@ -14,8 +14,9 @@ function Clock() {
     const id = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(id)
   }, [])
-  const date = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
-  const time = now.toLocaleTimeString('en-GB', { hour12: false })
+  // Menu-bar style: "Sat 3 Oct 18:39". Ticking seconds pulled the eye.
+  const date = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
   return <span className="app-shell-clock" aria-label={`${date}, ${time}`}>{date}<b>{time}</b></span>
 }
 

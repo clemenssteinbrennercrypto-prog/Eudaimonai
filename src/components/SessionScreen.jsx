@@ -102,6 +102,7 @@ import {
   PROLONGED_CLOSE_MS,
   UNCERTAIN_HOLD_MS,
 } from '../lib/cameraScoringConstants'
+import { playSessionStartChime } from '../lib/signatureSound'
 
 // ── Thresholds ────────────────────────────────────────────────────────────────
 // Science sources:
@@ -214,23 +215,23 @@ const PHASE_INTERVENTION_POLICY = {
 const PHASE_ALERT_COPY = {
   arrival: {
     default: { text: 'Settle back into the session.', sub: 'Take one clean minute on the intended task' },
-    distraction_app: { text: 'Start on the intended work.', sub: 'Close the detour before the ramp begins' },
+    distraction_app: { text: 'Start on the intended work.', sub: 'Close the distraction to get started' },
     phone: { text: 'Put the phone down.', sub: 'Set the workspace before focus starts' },
   },
   ramp: {
     default: { text: 'Catch this drift now.', sub: 'The ramp is where focus either locks in or slips' },
     distraction_app: { text: 'Switch back now.', sub: 'Protect the ramp before the detour becomes the session' },
-    away: { text: 'Back to the work.', sub: 'The ramp needs a clean minute' },
+    away: { text: 'Back to the work.', sub: 'Give it one undistracted minute' },
   },
   lock_in: {
     default: { text: 'Brief reset, then return.', sub: 'You were in lock-in; keep the interruption small' },
-    distraction_app: { text: 'Close the interruption.', sub: 'Preserve the lock-in block' },
-    yawn: { text: 'Take a real break.', sub: 'Lock-in is fading into fatigue' },
+    distraction_app: { text: 'Close the interruption.', sub: "You're in deep focus. Keep going" },
+    yawn: { text: 'Take a real break.', sub: 'You look tired. A short break may help' },
     prolonged: { text: 'Take a real break.', sub: 'Rest your eyes before continuing' },
   },
   fade: {
     default: { text: 'Reset before this becomes drift.', sub: 'Stand up, breathe, or simplify the next step' },
-    distraction_app: { text: 'Close the off-goal window.', sub: 'Fade is turning into a detour' },
+    distraction_app: { text: 'Close the off-goal window.', sub: 'Attention is fading' },
     lookingup: { text: 'Name the next action.', sub: 'Make the task smaller and restart' },
   },
   recovery: {
@@ -239,8 +240,8 @@ const PHASE_ALERT_COPY = {
     phone: { text: 'Put the phone away.', sub: 'Recovery needs fewer inputs, not more' },
   },
   drift: {
-    default: { text: 'Take a break or switch back.', sub: 'The session has left productive focus' },
-    distraction_app: { text: 'Switch back or end the session.', sub: 'This is now active drift' },
+    default: { text: 'Take a break or switch back.', sub: "You've been away from the work for a while" },
+    distraction_app: { text: 'Switch back or end the session.', sub: "You've drifted off" },
     away: { text: 'Return or take a break.', sub: 'Do not leave the timer running unattended' },
   },
 }
@@ -332,6 +333,8 @@ export default function SessionScreen({
 }) {
   const cameraMeasurement = PRIMARY_CAMERA_MEASUREMENT
   const hasTimeLimit = isTimed(duration)
+  // Signature sound: one soft rising chime as the session opens.
+  useEffect(() => { playSessionStartChime() }, [])
   const totalSeconds = hasTimeLimit ? duration * 60 : null
   const sessionIntent = useMemo(
     () => deriveSessionIntent({ task, goal, energyLevel, tags }),
@@ -2506,8 +2509,10 @@ export default function SessionScreen({
         <FocusRing
           score={focusScore}
           timeLeft={timeLeft}
+          totalSeconds={totalSeconds}
           isCalibrating={isCalibrating}
           isPaused={isPaused}
+          inFlow={inFlowState}
           calibProgress={calibProgress}
           focusedThreshold={GOOD_STREAK_SCORE}
           alertThreshold={ALERT_SCORE}

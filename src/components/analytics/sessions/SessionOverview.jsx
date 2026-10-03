@@ -156,7 +156,7 @@ export default function SessionOverview({ session, analysis, onUpdateSession }) 
         <div>
           <span>Focused time</span>
           <strong>{measurement.focusedSeconds == null ? '—' : fmtDuration(measurement.focusedSeconds)}</strong>
-          <small>At or above the focus threshold</small>
+          <small>Score 40 or higher</small>
         </div>
         <div className={outcomeTone(analysis.goalOutcome)}>
           <span>Goal</span>

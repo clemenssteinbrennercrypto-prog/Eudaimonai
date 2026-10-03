@@ -28,6 +28,7 @@ import {
 import { useAppUpdateStatus } from './lib/useUpdateAvailable'
 import { emptyFocusLedger, withSessionFocusMetric } from './lib/focusMetric'
 import { durationFromSetup } from './lib/sessionDuration'
+import { playSessionEndChime } from './lib/signatureSound'
 
 const isNativeRuntime = () => Boolean(window.__TAURI__?.core?.invoke)
 
@@ -192,6 +193,7 @@ export default function App() {
   }, [])
 
   const handleEnd = useCallback((data) => {
+    playSessionEndChime()
     const enriched = withSessionFocusMetric({
       ...data,
       task,
