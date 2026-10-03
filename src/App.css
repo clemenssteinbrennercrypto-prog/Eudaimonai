@@ -3350,10 +3350,10 @@ html {
   font: 600 15px/1.35 var(--ds-font);
 }
 
-/* Ring colours: platinum for time, silver for attention, titanium for Deep
-   Focus. The tiles carry the same tone on their left edge, so each number
-   points at its ring without a legend.                                     */
-.lab-hero { --ring-time: #FFFFFF; --ring-attention: #D3D8E3; --ring-deep: #A9B1C3; }
+/* Ring colours: white for time, the logo's polished silver for attention,
+   a darker silver for Deep Focus. The tiles carry the same tone on their
+   left edge, so each number points at its ring without a legend.          */
+.lab-hero { --ring-time: #FFFFFF; --ring-attention: #C4C9D2; --ring-deep: #7F8794; }
 
 .lab-ring {
   position: relative;
@@ -3362,7 +3362,7 @@ html {
   aspect-ratio: 1;
 }
 .lab-ring svg { width: 100%; height: 100%; display: block; transform: rotate(-90deg); overflow: visible; }
-.lab-ring circle { fill: none; stroke-width: 3.2; }
+.lab-ring circle { fill: none; stroke-width: 3.6; }
 .lab-ring-track { stroke: rgba(225, 230, 245, 0.09); }
 .lab-ring-arc {
   stroke-linecap: round;
