@@ -1,5 +1,8 @@
 # Eudaimonai — Companion-first Focus Tracker
 
+[![Quality](https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/actions/workflows/ci.yml/badge.svg)](https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/actions/workflows/ci.yml)
+[![Dependency Security](https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/actions/workflows/security.yml/badge.svg)](https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/actions/workflows/security.yml)
+
 Eudaimonai is a native macOS Companion app for focus sessions. The React UI is
 bundled into the Companion, while the public website should explain the vision
 and route users to the app download.
@@ -17,6 +20,16 @@ and route users to the app download.
 ```bash
 npm install
 npm run dev
+```
+
+Before opening a pull request, run the protected quality baseline:
+
+```bash
+npm run lint
+npm test -- --run
+npm run test:coverage
+npm run build
+cargo test --manifest-path companion/src-tauri/Cargo.toml
 ```
 
 Open the Vite development URL for isolated UI iteration only. It is not a
@@ -107,3 +120,14 @@ Before replacing or removing an installed app copy, export an archive and keep
 it outside the application bundle. Removing an `.app` normally leaves its app
 data in place, but the backup is the explicit recovery path and should be
 verified before duplicate installations are cleaned up.
+
+## Security and project policy
+
+- Vulnerabilities: [SECURITY.md](SECURITY.md)
+- Change process: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Release history: [CHANGELOG.md](CHANGELOG.md)
+- Detailed engineering invariants: [AGENTS.md](AGENTS.md)
+
+This repository is publicly visible but is **not open source**. See
+[LICENSE](LICENSE). Public releases are signed distribution artifacts; source
+visibility does not grant reuse rights.
