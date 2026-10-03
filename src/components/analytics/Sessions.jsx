@@ -7,6 +7,7 @@ import SessionDetailView from './sessions/SessionDetailView'
 import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt, sessionWallSeconds } from '../../lib/sessionTiming'
 import { loadFocusScoreSchedule } from '../../lib/focusScoreSchedule'
 import { readArchiveSettings } from '../../lib/sessionArchive'
+import { collectSupportReport } from '../../lib/supportReport'
 
 const PAGE_SIZE = 10
 const DATE_FILTERS = [['all', 'All time'], ['week', 'This week'], ['month', 'This month']]
@@ -104,6 +105,17 @@ function exportFullArchive(sessions, focusLedger) {
   const a = document.createElement('a')
   a.href = url
   a.download = `eudaimonai-full-archive-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function exportSupportReport() {
+  const report = await collectSupportReport()
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `eudaimonai-support-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -221,6 +233,11 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
       </button>
     </>
   )
+  const supportControl = (
+    <button type="button" className="analytics-ghost-button" onClick={exportSupportReport}>
+      Export private support report
+    </button>
+  )
 
   const requestDelete = (id) => {
     if (mutationPendingRef.current) return
@@ -323,6 +340,7 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
     return (
       <div className="analytics-sessions-empty">
         <p>No sessions yet.</p>
+        {supportControl}
         {restoreControl}
         {restoreError && <p role="alert">{restoreError}</p>}
         {restoreMessage && <p role="status">{restoreMessage}</p>}
@@ -404,6 +422,7 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
           <div>
             <button type="button" className="analytics-ghost-button" onClick={() => exportCSV(filtered)}>Export CSV</button>
             <button type="button" className="analytics-ghost-button" onClick={() => exportFullArchive(sessions, focusLedger)}>Export full archive (JSON)</button>
+            {supportControl}
             {restoreControl}
             <button type="button" className="analytics-ghost-button is-danger" disabled={Boolean(pendingAction)} onClick={() => { setActionError(null); setConfirmClear(true) }}>Clear all history</button>
           </div>
@@ -412,6 +431,7 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
         <div className="analytics-data-actions">
           <button type="button" className="analytics-ghost-button" onClick={() => exportCSV(filtered)}>Export CSV</button>
           <button type="button" className="analytics-ghost-button" onClick={() => exportFullArchive(sessions, focusLedger)}>Export full archive (JSON)</button>
+          {supportControl}
           {restoreControl}
           <button type="button" className="analytics-ghost-button is-danger" disabled={Boolean(pendingAction)} onClick={() => { setActionError(null); setConfirmClear(true) }}>Clear all history</button>
         </div>
