@@ -49,30 +49,20 @@ function SegmentedControl({ items, value, onChange, label }) {
 // attention out of 100, and Deep Focus as a share of measured time. Each arc
 // is a measured fraction and nothing else; an unknown value draws no arc, so
 // a gap can never pass for a value.
-const RING_RADII = [56, 48, 40]
-// Platinum, silver, titanium: three cool metals instead of three hues, so the
-// rings read as one object and the score stays the brightest thing.
+const RING_RADII = [55, 47, 39]
+// Clean, flat 2D strokes in three clearly different metals: white, silver
+// and dark silver. No gloss, shading or shadow on the rings (Clemens: the
+// tube look was too 3D); the difference between the tones does the work.
 const SILVER_TONES = [
-  ['time', '#FFFFFF', '#E3E7EF'],
-  ['attention', '#F0F2F7', '#B4BCCC'],
-  ['deep', '#CDD3DF', '#8C95A9'],
+  ['time', '#FFFFFF'],
+  ['attention', '#B4BBC6'],
+  ['deep', '#6B7280'],
 ]
 
 function ScoreRings({ score, caption, rings }) {
   return (
     <div className={`lab-ring${score == null ? ' is-empty' : ''}`}>
       <svg viewBox="0 0 128 128" aria-hidden="true">
-        {/* Brushed-metal sheen: each silver tone runs from a lighter to a
-            deeper shade along the arc. userSpaceOnUse keeps the light
-            direction fixed regardless of how far an arc reaches. */}
-        <defs>
-          {SILVER_TONES.map(([key, light, deep]) => (
-            <linearGradient key={key} id={`lab-ring-${key}-sheen`} gradientUnits="userSpaceOnUse" x1="120" y1="20" x2="8" y2="108">
-              <stop offset="0" stopColor={light} />
-              <stop offset="1" stopColor={deep} />
-            </linearGradient>
-          ))}
-        </defs>
         {rings.map(({ key, fraction }, index) => {
           const radius = RING_RADII[index]
           const circumference = 2 * Math.PI * radius
@@ -86,6 +76,7 @@ function ScoreRings({ score, caption, rings }) {
                   cy="64"
                   r={radius}
                   style={{
+                    stroke: SILVER_TONES[index][1],
                     strokeDasharray: circumference,
                     '--ring-offset': circumference * (1 - Math.min(1, fraction)),
                     '--ring-circumference': circumference,
