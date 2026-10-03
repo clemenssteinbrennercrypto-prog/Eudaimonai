@@ -52,6 +52,10 @@ stable tester DMG plus updater artifacts to the `internal-test` prerelease.
 Production downloads and production native updater metadata remain a separate
 release channel.
 
+Until a protected production release is approved, the marketing download
+buttons point directly at the signed and notarized `internal-test` DMG. They
+must not point at GitHub's historical `/releases/latest` release.
+
 The native app displays a small build/version badge. Use it, or inspect
 `companion/webui/build-info.json`, to confirm a fresh build contains the commit
 or workflow run you expected.
