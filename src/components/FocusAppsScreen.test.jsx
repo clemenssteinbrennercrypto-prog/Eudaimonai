@@ -66,7 +66,10 @@ const setupButton = name => within(screen.getByRole('complementary', { name: 'Pr
 const unavailableSection = () => screen.getByRole('heading', { name: 'Unavailable during focus' }).closest('section')
 
 beforeEach(() => {
-  globalThis.localStorage = new MemoryStorage()
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: new MemoryStorage(),
+  })
   companion.debug = { helperInstalled: true }
 })
 

@@ -29,7 +29,10 @@ function renderIntent(overrides = {}) {
 const CONNECTED = { checked: true, connected: true, helperInstalled: true }
 
 beforeEach(() => {
-  globalThis.localStorage = new MemoryStorage()
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: new MemoryStorage(),
+  })
 })
 
 afterEach(cleanup)
