@@ -1,0 +1,53 @@
+name: Quality
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Run JavaScript tests
+        run: npm test -- --run
+
+      - name: Build web surfaces
+        run: npm run build
+
+      - name: Refresh and verify bundled companion UI
+        run: |
+          npm run refresh:companion-webui
+          npm run verify:companion-webui
+
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable 2026-10-03
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: companion/src-tauri
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path companion/src-tauri/Cargo.toml
+
+      - name: Check committed diff hygiene
+        run: git diff --check
