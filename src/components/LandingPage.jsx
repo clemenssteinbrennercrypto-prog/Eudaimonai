@@ -1,22 +1,33 @@
 import { useState } from 'react'
 import LegalModal from './LegalModal'
 
+// A session is the unit of the product: focus time only counts inside one, and
+// blocking is an optional rule set the user brings to it. Keep the copy from
+// promising background tracking or "one click blocks everything".
 const STEPS = [
   {
     num: '01',
-    title: 'Download the Companion',
-    body: 'Install the native macOS app. The website is only here to explain the product and point you to the app.',
+    title: 'Start a session',
+    body: 'Name what you are working on and pick a length. Only time inside a session counts as focus time.',
   },
   {
     num: '02',
-    title: 'Run sessions in the app',
-    body: 'The Companion hosts the focus UI, reads attention signals locally, and keeps the experience out of a browser tab.',
+    title: 'Work, measured',
+    body: 'The camera estimates your attention on your Mac. Your chosen setup keeps out the apps and sites you picked, or nothing at all.',
   },
   {
     num: '03',
-    title: 'Stay inside your work',
-    body: 'When your focus slips, Eudaimonai can call you back and enforce native app and website guardrails.',
+    title: 'See your day in one number',
+    body: 'Your Focus Score sums up the day. Over time, Eudaimonai shows which hours and session lengths work best for you.',
   },
+]
+
+const FAQ = [
+  { q: 'Is my camera footage stored?', a: 'No. Frames are analysed in memory on your Mac and discarded. Only measurements such as head position and blink rate are kept, and they stay on your Mac.' },
+  { q: 'Do I have to block anything?', a: 'No. You choose what to keep out during a session, if anything. Measuring your focus works without blocking.' },
+  { q: 'What does it ask access to?', a: 'Your camera, to estimate attention during a session. Browser access, to see which app or site is in front and keep blocked ones closed. And your admin password once, to install a small helper that blocks the sites you list.' },
+  { q: 'Which Macs are supported?', a: 'Apple Silicon Macs with an M1 chip or newer, running macOS 11 or later, with a camera. The built-in one works. Intel Macs are not supported.' },
+  { q: 'Is it free?', a: 'Free during the beta. No account and no credit card.' },
 ]
 
 const font = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif'
@@ -33,12 +44,8 @@ export default function LandingPage() {
 
       <style>{`
         @keyframes heroGlow {
-          0%, 100% { opacity: 0.7; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.08); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
+          0%, 100% { opacity: 0.7; transform: translate(-50%, -55%) scale(1); }
+          50% { opacity: 1; transform: translate(-50%, -55%) scale(1.08); }
         }
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -53,8 +60,11 @@ export default function LandingPage() {
           border-color: rgba(100,149,237,0.25) !important;
           background: rgba(255,255,255,0.04) !important;
         }
-        .faq-card:hover { border-color: rgba(255,255,255,0.1) !important; }
+        .faq-card:hover { border-color: rgba(255,255,255,0.14) !important; }
         .pill-btn:hover { color: #ffffff !important; }
+        @media (prefers-reduced-motion: reduce) {
+          .landing-motion { animation: none !important; }
+        }
       `}</style>
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
@@ -80,7 +90,7 @@ export default function LandingPage() {
             top: '50%', left: '50%',
             transform: 'translate(-50%, -55%)',
             animation: 'heroGlow 8s ease-in-out infinite',
-          }} />
+          }} className="landing-motion" />
           {/* Secondary accent glow */}
           <div style={{
             position: 'absolute',
@@ -108,15 +118,15 @@ export default function LandingPage() {
           maxWidth: 640, width: '100%', textAlign: 'center',
           position: 'relative', zIndex: 1,
           animation: 'fadeUp 0.6s ease',
-        }}>
+        }} className="landing-motion">
 
           {/* Label pill */}
           <div style={{ marginBottom: 28 }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.14em',
-              color: '#6479a0',
-              border: '1px solid rgba(100,121,160,0.25)',
+              color: '#9AA6C8',
+              border: '1px solid rgba(154,166,200,0.3)',
               borderRadius: 100, padding: '6px 16px',
             }}>
               <span style={{
@@ -125,7 +135,7 @@ export default function LandingPage() {
                 boxShadow: '0 0 6px #6496ed',
                 display: 'inline-block',
               }} />
-              Native macOS Companion
+              Beta · for Apple Silicon Macs
             </span>
           </div>
 
@@ -139,18 +149,18 @@ export default function LandingPage() {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
           }}>
-            Eudaimonai<br />Companion
+            Lock in.<br />See it pay off.
           </h1>
 
           {/* Subtitle */}
           <p style={{
-            fontSize: 18, color: 'rgba(255,255,255,0.42)', lineHeight: 1.75,
-            maxWidth: 440, margin: '0 auto 44px',
+            fontSize: 18, color: 'rgba(255,255,255,0.72)', lineHeight: 1.7,
+            maxWidth: 500, margin: '0 auto 44px',
             letterSpacing: '0.01em',
           }}>
-            Eudaimonai is a native Mac app for focus sessions. It tracks
-            attention locally, helps you notice drift, and keeps the core
-            experience in the Companion app instead of the browser.
+            Eudaimonai is a Mac app for focus sessions. Start one and it
+            measures how focused you really are, keeps out whatever you chose
+            to block, and sums up your day in one Focus Score.
           </p>
 
           {/* CTA */}
@@ -179,60 +189,21 @@ export default function LandingPage() {
             justifyContent: 'center', flexWrap: 'wrap',
           }}>
             {[
-              { icon: '🔒', label: 'Local-first' },
-              { icon: '⌘', label: 'M1 or newer · macOS 11+' },
-              { icon: '✓', label: 'No account needed' },
-            ].map(({ icon, label }) => (
+              'Camera data stays on your Mac',
+              'M1 or newer · macOS 11+',
+              'Free during the beta',
+            ].map((label) => (
               <span key={label} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '5px 13px', borderRadius: 100,
                 background: 'rgba(122,152,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.07)',
-                fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500,
+                fontSize: 12, color: 'rgba(255,255,255,0.68)', fontWeight: 500,
               }}>
-                <span style={{ fontSize: 10 }}>{icon}</span> {label}
+                {label}
               </span>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── STATS BAR ─────────────────────────────────────────────────────── */}
-      <section style={{
-        background: '#0D0F14',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        padding: '44px 24px',
-      }}>
-        <div style={{
-          maxWidth: 720, margin: '0 auto',
-          display: 'flex', justifyContent: 'center',
-          gap: 0, flexWrap: 'wrap',
-        }}>
-          {[
-            { value: 'Mac', label: 'Companion app runtime' },
-            { value: '100%', label: 'Local attention processing' },
-            { value: '0',    label: 'Accounts required' },
-          ].map(({ value, label }, i) => (
-            <div key={label} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: 6, flex: '1 1 180px',
-              padding: '16px 24px',
-              borderRight: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-            }}>
-              <span style={{
-                fontSize: 42, fontWeight: 200, lineHeight: 1,
-                background: 'linear-gradient(135deg, #ffffff 0%, #6496ed 100%)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>
-                {value}
-              </span>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.03em' }}>
-                {label}
-              </span>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -243,7 +214,7 @@ export default function LandingPage() {
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
             <span style={{
               fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.14em',
-              color: '#4a6080', display: 'block', marginBottom: 14,
+              color: '#9AA6C8', display: 'block', marginBottom: 14,
             }}>
               How it works
             </span>
@@ -251,12 +222,12 @@ export default function LandingPage() {
               fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 700,
               letterSpacing: '-0.03em', color: 'var(--text)', margin: 0,
             }}>
-              Website to app,<br />then focus
+              How a session works
             </h2>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {STEPS.map((s, i) => (
+            {STEPS.map((s) => (
               <div
                 key={s.num}
                 className="step-card"
@@ -271,7 +242,7 @@ export default function LandingPage() {
                 }}
               >
                 <span style={{
-                  fontSize: 13, fontWeight: 600, color: '#2a3a56',
+                  fontSize: 13, fontWeight: 600, color: 'var(--ultra-bright)',
                   letterSpacing: '0.05em', flexShrink: 0, marginTop: 2,
                   fontVariantNumeric: 'tabular-nums',
                 }}>
@@ -284,7 +255,7 @@ export default function LandingPage() {
                   }}>
                     {s.title}
                   </p>
-                  <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.38)', lineHeight: 1.7, margin: 0 }}>
+                  <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.68)', lineHeight: 1.7, margin: 0 }}>
                     {s.body}
                   </p>
                 </div>
@@ -310,15 +281,16 @@ export default function LandingPage() {
             fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700,
             color: 'var(--text)', margin: '0 0 18px', letterSpacing: '-0.025em',
           }}>
-            Built for privacy, by design
+            Everything stays on your Mac
           </h2>
           <p style={{
-            fontSize: 16, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75,
+            fontSize: 16, color: 'rgba(255,255,255,0.88)', lineHeight: 1.75,
             margin: '0 auto 36px',
           }}>
-            No account. No video storage. The Companion processes camera
-            signals locally on your Mac using MediaPipe; the website does not
-            run your focus sessions.
+            The camera image is analysed in memory on your Mac and thrown
+            away. Your session history stays in a local database you can
+            delete at any time. No account, no cloud. The only thing that
+            leaves your Mac is a regular check for app updates.
           </p>
           <a
             href={DOWNLOAD_URL}
@@ -333,7 +305,7 @@ export default function LandingPage() {
               letterSpacing: '0.01em', textDecoration: 'none',
             }}
           >
-            Get the Companion
+            Download for Mac
           </a>
         </div>
       </section>
@@ -348,23 +320,36 @@ export default function LandingPage() {
             Common questions
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {[
-              { q: 'Is my camera footage stored?', a: 'Never. Attention processing happens locally on your device using MediaPipe. No frames leave your device.' },
-              { q: 'Can I use Eudaimonai in the browser?', a: 'The public website is only a landing and download surface. The main experience runs in the native macOS Companion app.' },
-              { q: 'Which Macs are supported?', a: 'Apple Silicon Macs with an M1 chip or newer, running macOS 11 or later. Intel Macs are not supported.' },
-              { q: 'Does it work without a webcam?', a: 'No. A camera is required for attention tracking; a built-in laptop camera works.' },
-              { q: 'Is it free?', a: 'Yes. No account, subscription, or credit card is required.' },
-            ].map(({ q, a }) => (
+            {FAQ.map(({ q, a }) => (
               <div key={q} className="faq-card" style={{
                 padding: '20px 24px',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 12,
                 transition: 'border-color 0.2s',
               }}>
                 <p style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.85)', margin: '0 0 7px' }}>{q}</p>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', margin: 0, lineHeight: 1.65 }}>{a}</p>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.68)', margin: 0, lineHeight: 1.65 }}>{a}</p>
               </div>
             ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 48 }}>
+            <a
+              href={DOWNLOAD_URL}
+              className="hero-cta"
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--ultra)', color: 'var(--text)',
+                border: '1px solid rgba(100,149,237,0.3)', height: 52, padding: '0 32px',
+                borderRadius: 14, fontSize: 15, fontWeight: 600,
+                cursor: 'pointer', fontFamily: font,
+                transition: 'all 0.2s ease', textDecoration: 'none',
+              }}
+            >
+              Download for Mac
+            </a>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '14px 0 0' }}>
+              Free during the beta · Apple Silicon · macOS 11 or later
+            </p>
           </div>
         </div>
       </section>
@@ -379,7 +364,7 @@ export default function LandingPage() {
           maxWidth: 680, margin: '0 auto',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
             Eudaimonai
           </span>
           <div style={{ display: 'flex', gap: 20 }}>
@@ -394,7 +379,7 @@ export default function LandingPage() {
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   fontSize: 11, textTransform: 'uppercase',
-                  letterSpacing: '0.07em', color: 'rgba(255,255,255,0.25)',
+                  letterSpacing: '0.07em', color: 'rgba(255,255,255,0.6)',
                   fontFamily: font, transition: 'color 0.15s',
                 }}
               >
