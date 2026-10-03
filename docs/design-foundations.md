@@ -208,9 +208,12 @@ rings with the numbers beside them) in silver.
 - **Lab:** three thin rings (stroke 2.8 on a 128 viewBox) around the score.
   Outer **white** = Focus time against the score's own weekday reference
   (80 min × elapsed weekdays), middle **polished silver** (the app icon's
-  metal) = average attention / 100, inner **dark silver** = Deep Focus /
-  measured time. The silver tones carry several light bands
-  (`SILVER_TONES` in `LabDashboard.jsx`), so a flat stroke reads as metal.
+  metal) = average attention / 100, inner **gunmetal** = Deep Focus /
+  measured time. Stroke 6 on a 128 viewBox. Each tone carries high-contrast
+  light bands (`SILVER_TONES` in `LabDashboard.jsx`), and each arc has a gloss
+  line on its outer edge and a shade line on its inner edge, so it reads as a
+  metal tube rather than a coloured stroke. Clemens asked twice for stronger,
+  more distinct metal; don't soften it back to flat greys.
 - The three numbers stand on their own beside the ring, each in a glass tile
   whose left edge carries its ring's tone. No legend needed.
 - **Session (live ring):** outer platinum = elapsed share of the planned
