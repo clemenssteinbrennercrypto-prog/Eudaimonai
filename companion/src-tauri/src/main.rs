@@ -282,6 +282,7 @@ fn main() {
             db::db_replace_focus_ledger,
             db::db_apply_focus_backfill,
             db::db_export_archive,
+            db::db_restore_archive,
             db::db_migrate_legacy,
             pick_output_folder,
             install_native_update,

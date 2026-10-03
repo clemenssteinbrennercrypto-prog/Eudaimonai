@@ -33,7 +33,8 @@ import { buildSessionSummary } from './sessionSummary'
 import { analyzeSession } from './sessionAnalysis'
 import { DEFAULT_PAGE_SIZE, dateRangeCutoff } from './sessionQuery'
 import { createLocalSessionRepository } from './sessionRepository.local'
-import { loadFocusScoreSchedule } from './focusScoreSchedule'
+import { loadFocusScoreSchedule, saveFocusScoreSchedule } from './focusScoreSchedule'
+import { readArchiveSettings, restoreArchiveSettings, validateSessionArchive } from './sessionArchive'
 
 export const ARCHIVE_SCHEMA_VERSION = 1
 
@@ -361,7 +362,43 @@ export function createNativeSessionRepository({ legacy = createLocalSessionRepos
 
     async exportArchive() {
       const archive = await invoke('db_export_archive')
-      return { ...archive, exportedAt: new Date().toISOString(), focusScoreSchedule: loadFocusScoreSchedule() }
+      return {
+        ...archive,
+        exportedAt: new Date().toISOString(),
+        focusScoreSchedule: loadFocusScoreSchedule(),
+        appSettings: readArchiveSettings(),
+      }
+    },
+
+    async restoreArchive(archive) {
+      if (await servedByLegacy()) {
+        return legacy.restoreArchive(archive)
+      }
+      const validated = validateSessionArchive(archive)
+      const existing = await repository.loadAll()
+      const existingIds = new Set(existing.map(session => session?.id).filter(Boolean))
+      const additions = validated.sessions
+        .filter(session => !existingIds.has(session.id))
+        .map(withSessionFocusMetric)
+      const combined = [...existing, ...additions]
+      const ledger = rebuildFocusLedger(emptyFocusLedger(), combined)
+      const items = additions.map(session => ({
+        session,
+        summary: buildSessionSummary(session),
+        analysis: analyzeSession(session),
+      }))
+      const result = await invoke('db_restore_archive', { items, ledger })
+      if (result?.verified !== true) throw new Error('The restored sessions could not be verified.')
+      let settingsWarning = null
+      try {
+        if (validated.focusScoreSchedule) saveFocusScoreSchedule(validated.focusScoreSchedule)
+        restoreArchiveSettings(validated.appSettings)
+      } catch (error) { settingsWarning = String(error?.message || error) }
+      return {
+        ...result,
+        skippedDuplicateCount: validated.sessions.length - additions.length,
+        settingsWarning,
+      }
     },
 
     /**

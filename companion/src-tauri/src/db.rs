@@ -27,6 +27,7 @@
 use rusqlite::{params, Connection, OptionalExtension, Transaction};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
+use std::collections::HashSet;
 use std::sync::Mutex;
 
 /// Bumping this triggers `migrate()` on next open. Add a new arm there; never
@@ -151,6 +152,22 @@ pub struct MigrationOutcome {
     pub skipped_duplicate_count: i64,
     pub verified: bool,
     pub reason: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreOutcome {
+    pub imported_count: i64,
+    pub skipped_duplicate_count: i64,
+    pub verified: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArchiveRestoreItem {
+    pub session: Value,
+    pub summary: SessionSummary,
+    pub analysis: Option<Value>,
 }
 
 /// One re-derived session record sent by the JavaScript scoring authority.
@@ -788,6 +805,101 @@ pub fn export_archive(connection: &Connection) -> Result<Value, String> {
     }))
 }
 
+/// Merge a validated archive into the native database without replacing any
+/// existing session. The caller supplies a ledger rebuilt from the union of
+/// existing and imported records, so sessions and their score contributions
+/// land in one transaction.
+pub fn restore_archive(
+    connection: &mut Connection,
+    items: &[ArchiveRestoreItem],
+    ledger: &Value,
+) -> Result<RestoreOutcome, String> {
+    let days = ledger
+        .get("days")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "backup focus ledger is invalid".to_string())?;
+
+    let mut archive_ids = HashSet::new();
+    for item in items {
+        let record_id = item
+            .session
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        if record_id.is_empty() || item.summary.id.is_empty() {
+            return Err("backup contains a session without an id".into());
+        }
+        if record_id != item.summary.id {
+            return Err(format!(
+                "backup session id mismatch: {record_id} != {}",
+                item.summary.id
+            ));
+        }
+        if !archive_ids.insert(record_id.to_string()) {
+            return Err(format!("backup contains duplicate session id: {record_id}"));
+        }
+    }
+
+    let tx = connection.transaction().map_err(to_err)?;
+    let mut imported = 0_i64;
+    let mut skipped = 0_i64;
+    for item in items {
+        let exists = tx
+            .query_row(
+                "SELECT 1 FROM sessions WHERE id = ?1",
+                params![item.summary.id],
+                |_| Ok(true),
+            )
+            .optional()
+            .map_err(to_err)?
+            .unwrap_or(false);
+        if exists {
+            skipped += 1;
+            continue;
+        }
+        write_session(
+            &tx,
+            &item.session,
+            &item.summary,
+            item.analysis.as_ref(),
+        )?;
+        imported += 1;
+    }
+
+    tx.execute("DELETE FROM focus_ledger_days", [])
+        .map_err(to_err)?;
+    for (day_key, entry) in days {
+        write_ledger_day(&tx, day_key, entry)?;
+    }
+
+    for item in items {
+        let present = tx
+            .query_row(
+                "SELECT 1 FROM sessions WHERE id = ?1",
+                params![item.summary.id],
+                |_| Ok(true),
+            )
+            .optional()
+            .map_err(to_err)?
+            .unwrap_or(false);
+        if !present {
+            tx.rollback().map_err(to_err)?;
+            return Ok(RestoreOutcome {
+                imported_count: 0,
+                skipped_duplicate_count: 0,
+                verified: false,
+            });
+        }
+    }
+
+    tx.commit().map_err(to_err)?;
+    Ok(RestoreOutcome {
+        imported_count: imported,
+        skipped_duplicate_count: skipped,
+        verified: true,
+    })
+}
+
 // ── Legacy migration ────────────────────────────────────────────────────────
 
 /// Import the localStorage archive once, then never again.
@@ -1019,6 +1131,15 @@ pub fn db_apply_focus_backfill(
 #[tauri::command]
 pub fn db_export_archive(state: tauri::State<'_, DbState>) -> Result<Value, String> {
     with_connection(&state, |connection| export_archive(connection))
+}
+
+#[tauri::command]
+pub fn db_restore_archive(
+    state: tauri::State<'_, DbState>,
+    items: Vec<ArchiveRestoreItem>,
+    ledger: Value,
+) -> Result<RestoreOutcome, String> {
+    with_connection(&state, |connection| restore_archive(connection, &items, &ledger))
 }
 
 #[tauri::command]
@@ -1473,6 +1594,92 @@ mod tests {
         assert_eq!(archive["sessions"].as_array().unwrap().len(), 1);
         assert_eq!(archive["sessions"][0]["timeline"].as_array().unwrap().len(), 2);
         assert_eq!(archive["focusLedger"]["days"]["2026-08-15"]["sessions"]["a"]["version"], 1);
+    }
+
+    #[test]
+    fn restore_merges_without_overwriting_and_replaces_the_ledger_atomically() {
+        let mut connection = db();
+        save_session(
+            &mut connection,
+            &session_value("existing"),
+            &summary("existing", 1),
+            None,
+            None,
+        )
+        .unwrap();
+
+        let items = vec![
+            ArchiveRestoreItem {
+                session: session_value("existing"),
+                summary: summary("existing", 1),
+                analysis: None,
+            },
+            ArchiveRestoreItem {
+                session: session_value("restored"),
+                summary: summary("restored", 2),
+                analysis: Some(json!({ "version": 1, "status": "ready" })),
+            },
+        ];
+        let ledger = json!({
+            "schemaVersion": 1,
+            "days": {
+                "2026-08-15": {
+                    "sessions": {
+                        "existing": { "version": 1 },
+                        "restored": { "version": 1 }
+                    }
+                }
+            }
+        });
+
+        let outcome = restore_archive(&mut connection, &items, &ledger).unwrap();
+        assert!(outcome.verified);
+        assert_eq!(outcome.imported_count, 1);
+        assert_eq!(outcome.skipped_duplicate_count, 1);
+        assert_eq!(load_all(&connection).unwrap().len(), 2);
+        assert_eq!(
+            get_session(&connection, "restored").unwrap().unwrap()["analysisSnapshot"]["status"],
+            "ready"
+        );
+        assert_eq!(
+            load_ledger(&connection).unwrap()["days"]["2026-08-15"]["sessions"]
+                .as_object()
+                .unwrap()
+                .len(),
+            2
+        );
+    }
+
+    #[test]
+    fn restore_rejects_invalid_input_before_writing_anything() {
+        let mut connection = db();
+        let duplicate = ArchiveRestoreItem {
+            session: session_value("duplicate"),
+            summary: summary("duplicate", 1),
+            analysis: None,
+        };
+
+        let error = restore_archive(
+            &mut connection,
+            &[duplicate.clone(), duplicate],
+            &json!({ "schemaVersion": 1, "days": {} }),
+        )
+        .unwrap_err();
+        assert!(error.contains("duplicate session id"));
+        assert!(load_all(&connection).unwrap().is_empty());
+
+        let error = restore_archive(
+            &mut connection,
+            &[ArchiveRestoreItem {
+                session: session_value("a"),
+                summary: summary("a", 1),
+                analysis: None,
+            }],
+            &json!({ "schemaVersion": 1 }),
+        )
+        .unwrap_err();
+        assert!(error.contains("focus ledger"));
+        assert!(load_all(&connection).unwrap().is_empty());
     }
 
     #[test]

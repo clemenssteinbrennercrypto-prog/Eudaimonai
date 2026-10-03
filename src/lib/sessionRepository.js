@@ -17,6 +17,7 @@
 //   loadFocusLedger()             -> FocusLedgerV1
 //   backfillFocusLedger()         -> FocusLedgerV1    startup catch-up
 //   exportArchive()               -> { schemaVersion, exportedAt, sessions, focusLedger }
+//   restoreArchive(archive)       -> { importedCount, skippedDuplicateCount, verified }
 //   migrateLegacyIfNeeded()       -> { migrated, importedCount, ... }
 //
 // `query` accepts { dateRange, outcome, workspaceId, measurement, search,

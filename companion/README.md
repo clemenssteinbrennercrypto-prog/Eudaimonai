@@ -32,7 +32,8 @@ with a Developer ID Application certificate, notarizes it, staples the
 notarization ticket, verifies Gatekeeper acceptance, and only then publishes the
 GitHub Release.
 
-The user-facing download is the `.dmg` asset from the latest Companion release.
+The user-facing beta download is the verified `.dmg` asset from the
+`internal-test` prerelease until a protected production release is approved.
 The `.app.tar.gz`, `.sig`, and `latest.json` assets are updater inputs and
 should not be presented as manual-install downloads.
 
@@ -104,6 +105,16 @@ The app shows a small build badge in the lower-left corner, for example
 
 The bundled WebView and Rust core communicate in-process through Tauri IPC.
 No local HTTP server or listening socket is part of the app.
+
+## Backup and restore
+
+Analytics → History → Data tools exposes a complete JSON archive and a matching
+restore action. The archive includes sessions, timelines, workspaces,
+protection setups, and non-secret preferences; credentials and machine-specific
+paths are excluded. Restore is merge-only: existing session IDs remain untouched,
+new sessions and the rebuilt focus ledger commit atomically, and malformed or
+duplicate-ID archives are rejected before any write. Keep a verified archive
+outside the app before replacing or removing duplicate app bundles.
 
 Commands:
 

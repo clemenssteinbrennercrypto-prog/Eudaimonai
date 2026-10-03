@@ -91,3 +91,19 @@ blocking require the Companion runtime.
 - Break reminders
 - CSV export
 - Dark mode ambient display
+
+## Data safety
+
+Session history is stored locally in the native app's SQLite database. In
+Analytics → History → Data tools, **Export full archive (JSON)** creates a
+lossless backup including timelines, the focus ledger, workspaces, protection
+setups, preferences, and dated workday settings. Machine-specific paths and
+credentials are deliberately excluded. **Restore full archive (JSON)** merges only sessions whose IDs are
+not already present; it never overwrites existing sessions. The native restore
+validates the archive first and commits the new sessions and rebuilt ledger in
+one SQLite transaction.
+
+Before replacing or removing an installed app copy, export an archive and keep
+it outside the application bundle. Removing an `.app` normally leaves its app
+data in place, but the backup is the explicit recovery path and should be
+verified before duplicate installations are cleaned up.

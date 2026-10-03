@@ -197,3 +197,28 @@ describe('Sessions — destructive actions', () => {
     expect(screen.getByText('Keep this')).toBeInTheDocument()
   })
 })
+
+describe('Sessions — backup restore', () => {
+  it('loads a JSON archive through the non-destructive restore callback', async () => {
+    const onRestoreArchive = vi.fn().mockResolvedValue({ importedCount: 2, skippedDuplicateCount: 1, verified: true })
+    const { container } = renderInteractive([], { onRestoreArchive })
+    const file = { text: async () => JSON.stringify({ schemaVersion: 1, sessions: [{ id: 'a' }, { id: 'b' }] }) }
+
+    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } })
+
+    await waitFor(() => expect(onRestoreArchive).toHaveBeenCalledWith({ schemaVersion: 1, sessions: [{ id: 'a' }, { id: 'b' }] }))
+    expect(await screen.findByRole('status')).toHaveTextContent('2 sessions restored')
+    expect(screen.getByRole('status')).toHaveTextContent('1 existing duplicate kept unchanged')
+  })
+
+  it('reports invalid JSON without calling the repository', async () => {
+    const onRestoreArchive = vi.fn()
+    const { container } = renderInteractive([], { onRestoreArchive })
+    const file = { text: async () => '{not json' }
+
+    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nothing was restored')
+    expect(onRestoreArchive).not.toHaveBeenCalled()
+  })
+})
