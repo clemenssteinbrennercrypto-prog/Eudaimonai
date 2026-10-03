@@ -50,12 +50,13 @@ function SegmentedControl({ items, value, onChange, label }) {
 // is a measured fraction and nothing else; an unknown value draws no arc, so
 // a gap can never pass for a value.
 const RING_RADII = [56, 48, 40]
-// Platinum, silver, titanium: three cool metals instead of three hues, so the
-// rings read as one object and the score stays the brightest thing.
+// White, the logo's polished silver, and a darker silver. The middle and
+// inner tones carry several light bands like the rendered icon, which is
+// what makes a flat stroke read as metal rather than grey.
 const SILVER_TONES = [
-  ['time', '#FFFFFF', '#E3E7EF'],
-  ['attention', '#F0F2F7', '#B4BCCC'],
-  ['deep', '#CDD3DF', '#8C95A9'],
+  ['time', [[0, '#FFFFFF'], [1, '#F1F3F7']]],
+  ['attention', [[0, '#F4F6F9'], [0.22, '#B4BAC5'], [0.42, '#EEF0F4'], [0.62, '#8D94A1'], [0.82, '#DADEE5'], [1, '#A2A9B5']]],
+  ['deep', [[0, '#A9B0BC'], [0.22, '#6C7381'], [0.42, '#B3B9C4'], [0.62, '#5A616E'], [0.82, '#9198A5'], [1, '#666D7A']]],
 ]
 
 function ScoreRings({ score, caption, rings }) {
@@ -66,10 +67,9 @@ function ScoreRings({ score, caption, rings }) {
             deeper shade along the arc. userSpaceOnUse keeps the light
             direction fixed regardless of how far an arc reaches. */}
         <defs>
-          {SILVER_TONES.map(([key, light, deep]) => (
-            <linearGradient key={key} id={`lab-ring-${key}-sheen`} gradientUnits="userSpaceOnUse" x1="120" y1="20" x2="8" y2="108">
-              <stop offset="0" stopColor={light} />
-              <stop offset="1" stopColor={deep} />
+          {SILVER_TONES.map(([key, stops]) => (
+            <linearGradient key={key} id={`lab-ring-${key}-sheen`} gradientUnits="userSpaceOnUse" x1="14" y1="10" x2="114" y2="118">
+              {stops.map(([offset, color]) => <stop key={offset} offset={offset} stopColor={color} />)}
             </linearGradient>
           ))}
         </defs>
