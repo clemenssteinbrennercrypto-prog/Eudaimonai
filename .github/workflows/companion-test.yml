@@ -290,7 +290,7 @@ jobs:
               raise SystemExit("EUDONOMIA_BUILD_VERSION is required to generate latest.json")
 
           asset_url = (
-              "https://github.com/clemenssteinbrennercrypto-prog/eudonomia"
+              "https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai"
               f"/releases/download/internal-test/{quote(archive.name)}"
           )
           platform = {"signature": signature, "url": asset_url}

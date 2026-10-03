@@ -2,7 +2,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/clemenssteinbrennercrypto-prog/eudonomia/releases/latest/download/latest.json"
+        "https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/latest/download/latest.json"
       ]
     }
   },

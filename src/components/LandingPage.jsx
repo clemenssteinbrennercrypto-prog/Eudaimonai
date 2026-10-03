@@ -20,7 +20,7 @@ const STEPS = [
 ]
 
 const font = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif'
-const DOWNLOAD_URL = 'https://github.com/clemenssteinbrennercrypto-prog/eudonomia/releases/latest'
+const DOWNLOAD_URL = 'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/latest'
 
 export default function LandingPage() {
   const [legalTab, setLegalTab] = useState(null)

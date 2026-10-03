@@ -13,7 +13,7 @@ describe('native updater channels', () => {
   it('keeps local and internal builds on the moving main-branch channel', () => {
     const base = readConfig('../../companion/src-tauri/tauri.conf.json')
     const test = readConfig('../../companion/src-tauri/tauri.test.conf.json')
-    const internalEndpoint = 'https://github.com/clemenssteinbrennercrypto-prog/eudonomia/releases/download/internal-test/latest.json'
+    const internalEndpoint = 'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/download/internal-test/latest.json'
 
     expect(base.plugins.updater.endpoints).toEqual([internalEndpoint])
     expect(test.plugins.updater.endpoints).toEqual([internalEndpoint])
@@ -27,7 +27,7 @@ describe('native updater channels', () => {
     const release = readConfig('../../companion/src-tauri/tauri.release.conf.json')
 
     expect(release.plugins.updater.endpoints).toEqual([
-      'https://github.com/clemenssteinbrennercrypto-prog/eudonomia/releases/latest/download/latest.json',
+      'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/latest/download/latest.json',
     ])
   })
 

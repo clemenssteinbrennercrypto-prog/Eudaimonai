@@ -6,7 +6,7 @@ You are doing autonomous overnight work on **Eudaimonai**, a browser-based focus
 Your job: research the science of attention and eye tracking deeply, then iteratively improve
 `src/components/SessionScreen.jsx` based on what you find.
 
-**GitHub:** https://github.com/clemenssteinbrennercrypto-prog/eudonomia  
+**GitHub:** https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai
 **Stack:** React 18 + Vite, MediaPipe FaceMesh (CDN), no backend, no TypeScript.  
 **Main file:** `src/components/SessionScreen.jsx` — all detection + scoring logic lives here.
 

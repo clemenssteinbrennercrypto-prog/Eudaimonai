@@ -121,4 +121,4 @@ been fixed. Check this list before and after editing scoring/detection logic.
 
 ## GitHub
 
-https://github.com/clemenssteinbrennercrypto-prog/eudonomia
+https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai
