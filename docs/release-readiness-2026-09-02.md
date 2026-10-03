@@ -1,5 +1,13 @@
 # Release-readiness evidence — 2 September 2026
 
+> **Superseded status (3 October 2026):** the Apple Developer credentials and
+> current release pipeline described below as missing have since been exercised
+> successfully. Signed app and DMG notarization/stapling, Gatekeeper, arm64, and
+> updater-signature gates passed in internal run `36935503351`, non-publishing
+> production dry-run `37110105602`, and the post-rename signed run
+> `37111408775`. No public production release was created. The historical
+> entries below remain as dated evidence and must not be read as current status.
+
 This is a point-in-time checklist for commit `ab3a07fb4e28a7316a63ef9b6a70406c11e3e17f` (`ab3a07f`). It records what was verified from the Mac Mini/build worktree and what still requires a real target Mac, a human decision, or protected release credentials. The durable product constraints and owner-held blockers remain in [`AGENTS.md`](../AGENTS.md); this dated record supplies evidence rather than replacing that source.
 
 Rechecked on 7 September 2026: `origin/main` was still `ab3a07f`, the latest internal CI run and updater assets were unchanged, the production release was still `companion-v0.1.10`, and the 442-test JavaScript suite passed again. A workflow/config regression test was then added on this branch, bringing its local suite to 443 tests. The open gates below therefore remain current.
