@@ -49,14 +49,15 @@ function SegmentedControl({ items, value, onChange, label }) {
 // attention out of 100, and Deep Focus as a share of measured time. Each arc
 // is a measured fraction and nothing else; an unknown value draws no arc, so
 // a gap can never pass for a value.
-const RING_RADII = [56, 48, 40]
-// White, the logo's polished silver, and a darker silver. The middle and
-// inner tones carry several light bands like the rendered icon, which is
-// what makes a flat stroke read as metal rather than grey.
+const RING_RADII = [55, 46, 37]
+// White, polished silver and gunmetal, far enough apart to tell at a glance.
+// High-contrast light bands plus a gloss line on the outer edge and a shade
+// line on the inner edge make each thin ring read as a metal tube, the same
+// way the app icon is lit.
 const SILVER_TONES = [
-  ['time', [[0, '#FFFFFF'], [1, '#F1F3F7']]],
-  ['attention', [[0, '#F4F6F9'], [0.22, '#B4BAC5'], [0.42, '#EEF0F4'], [0.62, '#8D94A1'], [0.82, '#DADEE5'], [1, '#A2A9B5']]],
-  ['deep', [[0, '#A9B0BC'], [0.22, '#6C7381'], [0.42, '#B3B9C4'], [0.62, '#5A616E'], [0.82, '#9198A5'], [1, '#666D7A']]],
+  ['time', [[0, '#FFFFFF'], [0.25, '#E2E6EC'], [0.45, '#FFFFFF'], [0.7, '#CDD2DA'], [1, '#F7F8FA']]],
+  ['attention', [[0, '#EEF0F4'], [0.2, '#8A919E'], [0.4, '#E4E7EC'], [0.6, '#6B7280'], [0.8, '#CDD1D8'], [1, '#7C8390']]],
+  ['deep', [[0, '#8F96A3'], [0.2, '#3F4550'], [0.4, '#7E8592'], [0.6, '#323741'], [0.8, '#6C7380'], [1, '#3A3F49']]],
 ]
 
 function ScoreRings({ score, caption, rings }) {
@@ -79,20 +80,28 @@ function ScoreRings({ score, caption, rings }) {
           return (
             <g key={key} className={`lab-ring-${key}`}>
               <circle className="lab-ring-track" cx="64" cy="64" r={radius} />
-              {fraction != null && fraction > 0 && (
-                <circle
-                  className="lab-ring-arc"
-                  cx="64"
-                  cy="64"
-                  r={radius}
-                  style={{
-                    strokeDasharray: circumference,
-                    '--ring-offset': circumference * (1 - Math.min(1, fraction)),
-                    '--ring-circumference': circumference,
-                    animationDelay: `${index * 80}ms`,
-                  }}
-                />
-              )}
+              {fraction != null && fraction > 0 && [
+                ['lab-ring-arc', radius],
+                ['lab-ring-gloss', radius + 1.6],
+                ['lab-ring-shade', radius - 1.9],
+              ].map(([layer, layerRadius]) => {
+                const layerCircumference = 2 * Math.PI * layerRadius
+                return (
+                  <circle
+                    key={layer}
+                    className={layer}
+                    cx="64"
+                    cy="64"
+                    r={layerRadius}
+                    style={{
+                      strokeDasharray: layerCircumference,
+                      '--ring-offset': layerCircumference * (1 - Math.min(1, fraction)),
+                      '--ring-circumference': layerCircumference,
+                      animationDelay: `${index * 80}ms`,
+                    }}
+                  />
+                )
+              })}
             </g>
           )
         })}
