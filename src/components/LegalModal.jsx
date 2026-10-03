@@ -72,6 +72,10 @@ Es werden dabei keine Sitzungs-, Kamera- oder Aktivitätsdaten übertragen. Rech
     body: `Es werden keine Cookies gesetzt und kein Analyse- oder Tracking-Dienst eingebunden. Der verwendete localStorage dient ausschließlich der von Ihnen angeforderten Funktion und ist damit nicht einwilligungsbedürftig.`,
   },
   {
+    heading: 'Support-Bericht',
+    body: `Sie können in der App freiwillig einen lokalen Support-Bericht als JSON-Datei exportieren. Er wird nicht automatisch übertragen und enthält keine Sitzungen, Scores, Kamera- oder Landmark-Daten, App-Namen, URLs, Fenstertitel, Dateipfade oder Zugangsdaten. Fehlerzustände werden nur als technische Ja/Nein-Merkmale ausgegeben. Sie entscheiden selbst, ob und an wen Sie diese Datei weitergeben.`,
+  },
+  {
     heading: 'Ihre Rechte',
     body: `Ihnen stehen die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch zu, ebenso ein Beschwerderecht bei der Österreichischen Datenschutzbehörde.
 
