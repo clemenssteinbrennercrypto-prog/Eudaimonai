@@ -112,7 +112,6 @@ export default function Onboarding({ onComplete }) {
       controller.abort()
       if (streamRef.current === stream) stopStream()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAwakening, cameraAttempt])
 
   // Always release the camera when leaving onboarding.

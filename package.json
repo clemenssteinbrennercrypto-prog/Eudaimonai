@@ -18,7 +18,9 @@
     "predev": "node scripts/copy-mediapipe.mjs",
     "prebuild": "node scripts/copy-mediapipe.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src scripts vite.config.js"
   },
   "dependencies": {
     "@mediapipe/face_mesh": "^0.4.1633559619",
@@ -31,6 +33,10 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
     "jsdom": "^30.1.1",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
