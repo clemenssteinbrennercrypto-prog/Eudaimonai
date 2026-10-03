@@ -191,13 +191,49 @@ Glass (see Materials), hairline edge, `--ds-radius-lg`, 20–24 px padding. Titl
 `--ds-type-headline`, optional one-line description in footnote/`--ds-label-2`
 under it. Panels do not nest.
 
-### Window bar (app header)
+### Window structure (sidebar)
 
-Sticky, 52 px, `--ds-material-bar`, hairline bottom edge. Brand wordmark on the
-left in 15/650 sentence case. Navigation as toolbar tabs: 13/500
-`--ds-label-2`; the current tab is `--ds-label` on a `--ds-fill-strong` pill.
-Status on the right in footnote with tabular numbers. No animated underline, no
-glowing line.
+The app is a macOS source-list window (since 4 Oct 2026, after a design
+review): `titleBarStyle: Overlay` puts the traffic lights over a translucent
+sidebar (220 px, `--ds-blur`), content fills the rest of the window.
+
+- **Sidebar:** Lab, Session, Workspace, Protection, Analytics, AI Companion
+  (disabled, "Soon"). 30 px rows, SF-style line icons, the current item on
+  `--ds-fill-strong`. Protection shows a status dot (green ready, amber needs
+  attention). Footer: Reload (kept by request), Legal, build identity.
+- **Toolbar:** each screen starts with one sticky row in the window material:
+  title left (17/700), actions right. It is a `data-tauri-drag-region`, so it
+  drags the window like a native title bar. No page-sized headings, no
+  eyebrow labels, no Back buttons between main areas.
+- **Keyboard and menu:** ⌘1–⌘5 switch areas, ⌘N opens a new session; the
+  native menu gains a Go menu with the same shortcuts and "Legal Notice &
+  Privacy" under Help (`src/lib/nativeAppMenu.js`, built on Tauri's default
+  menu so the Edit menu keeps working). Leaving Protection with unsaved
+  changes asks first (leave guard), wherever the navigation came from.
+- **Cursor:** the arrow everywhere, as in Mac apps; no pointing hand on
+  buttons.
+- **Selection is quiet:** segmented controls, chips and tabs mark the chosen
+  item with a lighter fill and a silver edge. Ultramarine is only for the one
+  primary action of a screen (Start session, Save workspace, Done).
+- **Accessibility:** "Increase contrast" strengthens hairlines and secondary
+  text; "Reduce transparency" makes sidebar, toolbars and panels solid.
+- **Narrow windows** (< 760 px) keep an icon-only sidebar.
+- **Menu-bar extra:** a monochrome template image (`icons/tray-icon.png`),
+  tinted by macOS. The app icon sits on Apple's grid (824 px body in a
+  1024 px canvas with a soft shadow) so it matches Dock neighbours.
+
+### Attention colours
+
+Good attention is silver, only a problem is coloured: Deep Focus white
+(`--ds-attn-deep`), high attention silver (`--ds-attn-high`), focused dark
+silver (`--ds-attn-focused`), low attention amber (`--ds-attn-low`). Used by
+the Lab field, the live ring, session curves, timelines and history rows.
+Outcome colours (Done / Partial / Missed) and status colours stay separate.
+
+### Durations
+
+Summaries (Lab, Analytics overview, recent sessions) are rounded to the
+minute with `formatDurationCompact` ("6h 10m"); detail views keep seconds.
 
 ### Ring (the Focus Score)
 

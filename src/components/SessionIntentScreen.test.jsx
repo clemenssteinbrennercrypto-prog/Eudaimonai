@@ -40,7 +40,7 @@ afterEach(cleanup)
 describe('SessionIntentScreen', () => {
   it('is an intent briefing and does not display a focus metric', () => {
     const html = renderIntent()
-    expect(html).toContain('Session Planning')
+    expect(html).toContain('New Session')
     expect(html).toContain('Definition of plan')
     expect(html).toContain('1000 words')
     expect(html).toContain('aria-labelledby="session-plan-field-label"')

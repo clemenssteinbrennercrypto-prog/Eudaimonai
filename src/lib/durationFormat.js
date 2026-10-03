@@ -20,6 +20,16 @@ export function formatDuration(seconds) {
   ].filter(Boolean).join(' ')
 }
 
+// Summary totals (Lab, Analytics overview) are read at a glance, so they are
+// rounded to the minute: "6h 10m", not "6h 9m 34s". Seconds only remain
+// below one minute, where they are the whole value. Detail views keep
+// formatDuration.
+export function formatDurationCompact(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0))
+  if (total < 60) return `${total}s`
+  return formatDuration(Math.round(total / 60) * 60)
+}
+
 export function formatMinutes(minutes) {
   return formatDuration((Number(minutes) || 0) * 60)
 }

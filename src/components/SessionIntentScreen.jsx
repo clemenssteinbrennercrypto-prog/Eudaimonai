@@ -190,11 +190,8 @@ export default function SessionIntentScreen({
 
   return (
     <main className="session-intent">
-      <header className="session-intent-heading">
-        <div>
-          <h1>Session Planning</h1>
-          <p>Set a clear intention before the clock starts.</p>
-        </div>
+      <header className="session-intent-heading" data-tauri-drag-region>
+        <h1>New Session</h1>
       </header>
 
       <div className="session-workspace-selector">
@@ -207,6 +204,7 @@ export default function SessionIntentScreen({
           label="Active workspace"
           describedBy="session-workspace-help"
           value={activeWorkspaceId || ''}
+          placeholder="Choose a workspace…"
           options={workspaces.map(workspace => ({ value: workspace.id, label: workspace.name }))}
           onChange={value => onWorkspaceChange?.(value)}
         />
@@ -227,6 +225,46 @@ export default function SessionIntentScreen({
             <small>{task.length}/80</small>
           </label>
 
+          <div className="session-intent-options">
+            <fieldset>
+              <legend>Duration</legend>
+              <div>
+                {DURATIONS.map(value => (
+                  <button key={value} type="button" className={duration === value ? 'is-selected' : ''} onClick={() => setDuration(value)}>
+                    {formatMinutes(value)}
+                  </button>
+                ))}
+                <button type="button" className={customDurationOpen && hasTimeLimit && !DURATIONS.includes(duration) ? 'is-selected' : ''} onClick={() => setCustomDurationOpen(true)}>
+                  Custom
+                </button>
+                <button type="button" className={!hasTimeLimit ? 'is-selected' : ''} onClick={() => { setDuration(null); setCustomDurationOpen(false) }}>
+                  No limit
+                </button>
+              </div>
+              {customDurationOpen && (
+                <label className="session-custom-duration">
+                  <span>Minutes</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="720"
+                    value={hasTimeLimit && !DURATIONS.includes(duration) ? duration : ''}
+                    onChange={event => {
+                      const value = Number(event.target.value)
+                      if (Number.isFinite(value) && value > 0) setDuration(Math.min(720, Math.round(value)))
+                    }}
+                    placeholder="e.g. 45"
+                    autoFocus
+                  />
+                </label>
+              )}
+            </fieldset>
+          </div>
+          {/* Name and duration are all a session needs; the rest is optional
+              context, folded away like a Mac "Show more" section. Rendered
+              closed but present, so it never loses what was entered. */}
+          <details className="session-more" open={Boolean(goal.trim() || normalizedTags.length)}>
+            <summary>Plan, tags and energy</summary>
           <div className="session-intent-field session-plan-field">
             <span id="session-plan-field-label">Definition of plan <em>optional</em></span>
             <button type="button" className="session-plan-preview" aria-labelledby="session-plan-field-label" onClick={() => setPlanOpen(true)}>
@@ -273,51 +311,19 @@ export default function SessionIntentScreen({
             </div>
           </fieldset>
 
-          <div className="session-intent-options">
-            <fieldset>
-              <legend>Duration</legend>
-              <div>
-                {DURATIONS.map(value => (
-                  <button key={value} type="button" className={duration === value ? 'is-selected' : ''} onClick={() => setDuration(value)}>
-                    {formatMinutes(value)}
-                  </button>
-                ))}
-                <button type="button" className={customDurationOpen && hasTimeLimit && !DURATIONS.includes(duration) ? 'is-selected' : ''} onClick={() => setCustomDurationOpen(true)}>
-                  Custom
+          <div className="session-intent-options session-energy">
+          <fieldset>
+            <legend>Energy <em>for your notes, never changes the score</em></legend>
+            <div>
+              {['fresh', 'medium', 'tired'].map(value => (
+                <button key={value} type="button" className={energyLevel === value ? 'is-selected' : ''} onClick={() => setEnergyLevel(value)}>
+                  {value[0].toUpperCase() + value.slice(1)}
                 </button>
-                <button type="button" className={!hasTimeLimit ? 'is-selected' : ''} onClick={() => { setDuration(null); setCustomDurationOpen(false) }}>
-                  No limit
-                </button>
-              </div>
-              {customDurationOpen && (
-                <label className="session-custom-duration">
-                  <span>Minutes</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="720"
-                    value={hasTimeLimit && !DURATIONS.includes(duration) ? duration : ''}
-                    onChange={event => {
-                      const value = Number(event.target.value)
-                      if (Number.isFinite(value) && value > 0) setDuration(Math.min(720, Math.round(value)))
-                    }}
-                    placeholder="e.g. 45"
-                    autoFocus
-                  />
-                </label>
-              )}
-            </fieldset>
-            <fieldset>
-              <legend>Energy <em>context only</em></legend>
-              <div>
-                {['fresh', 'medium', 'tired'].map(value => (
-                  <button key={value} type="button" className={energyLevel === value ? 'is-selected' : ''} onClick={() => setEnergyLevel(value)}>
-                    {value}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
+              ))}
+            </div>
+          </fieldset>
           </div>
+          </details>
 
           <section className={`session-protection-summary is-${protection.state}${protectionReady ? ' is-ready' : ''}`} aria-label="Focus protection">
             <span className="session-protection-icon" aria-hidden="true"><i /></span>
@@ -354,7 +360,6 @@ export default function SessionIntentScreen({
           </div>
           {recentSetups.length ? recentSetups.map((setup, index) => (
             <button key={`${setup.task}-${index}`} type="button" onClick={() => applySetup(setup)}>
-              <span className="session-recent-index">0{index + 1}</span>
               <strong>{setup.task}</strong>
               {setup.goal && <p>{setup.goal}</p>}
               <div>
@@ -364,7 +369,6 @@ export default function SessionIntentScreen({
             </button>
           )) : (
             <div className="session-recent-empty">
-              <span>01</span>
               <p>Complete a session and its briefing becomes reusable here.</p>
             </div>
           )}

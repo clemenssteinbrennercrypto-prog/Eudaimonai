@@ -5,7 +5,7 @@ import { buildDashboardData } from '../lib/dashboardData'
 import { useCompanionStatus } from '../lib/useCompanionStatus'
 import { useCurrentTime } from '../lib/useCurrentTime'
 import FocusScoreExplanation, { focusScoreLabel } from './FocusScoreExplanation'
-import { fmtDuration } from '../lib/sessionAnalysisPresentation'
+import { formatDurationCompact } from '../lib/durationFormat'
 import { FOCUS_SCORE } from '../lib/focusScore'
 
 const PERIOD_RANGES = [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']]
@@ -15,15 +15,6 @@ function Chevron({ direction }) {
   return (
     <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true">
       <path d={direction === 'left' ? 'M10 3.5 5.5 8l4.5 4.5' : 'M6 3.5 10.5 8 6 12.5'} />
-    </svg>
-  )
-}
-
-function LockGlyph() {
-  return (
-    <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true">
-      <rect x="3.25" y="7" width="9.5" height="6.75" rx="1.75" />
-      <path d="M5.25 7V5.25a2.75 2.75 0 0 1 5.5 0V7" />
     </svg>
   )
 }
@@ -213,7 +204,7 @@ function AttentionField({ bins, range, title }) {
   )
 }
 
-export default function LabDashboard({ focusModeEnabled, sessions = [], ledger = null, onSession, onProtection, onAnalytics }) {
+export default function LabDashboard({ focusModeEnabled, sessions = [], ledger = null, onSession, onAnalytics }) {
   const [periodSelection, setPeriodSelection] = useState({ range: 'day', periodStart: null })
   const nativeStatus = useCompanionStatus()
   // Sessions and the ledger arrive as props — App owns loading them and
@@ -270,24 +261,27 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
 
   return (
     <main className="lab-dashboard">
-      <section className="lab-toolbar" aria-label="Dashboard time period">
-        <SegmentedControl items={PERIOD_RANGES} value={periodSelection.range} onChange={selectRange} label="Dashboard range" />
+      <header className="ds-toolbar lab-toolbar" aria-label="Dashboard time period" data-tauri-drag-region>
+        <h1>Lab</h1>
         <div className="lab-period-navigation">
           <button type="button" onClick={() => movePeriod(-1)} aria-label={`Show previous ${periodSelection.range}`}><Chevron direction="left" /></button>
           <strong aria-live="polite">{period.title}</strong>
           <button type="button" onClick={() => period.canGoForward && movePeriod(1)} aria-disabled={!period.canGoForward} aria-label={`Show next ${periodSelection.range}`}><Chevron direction="right" /></button>
         </div>
-        <button className="ds-button-primary lab-start" type="button" onClick={onSession} aria-label="Open session setup">Start session</button>
-      </section>
+        <div className="ds-toolbar-actions">
+          <SegmentedControl items={PERIOD_RANGES} value={periodSelection.range} onChange={selectRange} label="Dashboard range" />
+          <button className="ds-button-primary lab-start" type="button" onClick={onSession} aria-label="Open session setup" title="New session (⌘N)">Start session</button>
+        </div>
+      </header>
 
       <section className="lab-panel lab-hero" aria-labelledby="lab-title">
-        <h1 id="lab-title">Focus Score</h1>
+        <h2 id="lab-title">Focus Score</h2>
         <ScoreRings score={period.score} caption={period.score == null ? focusScoreLabel(period) : 'of 100'} rings={rings} />
         <div className="lab-metric-row">
           <Metric
             tone="time"
             label="Focus time"
-            value={time.focusSeconds == null ? null : fmtDuration(time.focusSeconds)}
+            value={time.focusSeconds == null ? null : formatDurationCompact(time.focusSeconds)}
             detail="Time in sessions, without breaks"
           />
           <Metric
@@ -300,7 +294,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
           <Metric
             tone="deep"
             label="Deep Focus"
-            value={time.deepFocusSeconds == null ? null : fmtDuration(time.deepFocusSeconds)}
+            value={time.deepFocusSeconds == null ? null : formatDurationCompact(time.deepFocusSeconds)}
             detail={deepFocusDetail}
           />
         </div>
@@ -320,13 +314,6 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
         </div>
       </section>
 
-      <section className="lab-lower-grid">
-        <button className={`lab-panel lab-lock lab-lock-${data.protection.state}`} type="button" onClick={onProtection}>
-          <span className="lab-lock-icon"><LockGlyph /></span>
-          <span className="lab-lock-copy"><small>Protection</small><strong>{data.protection.label}</strong><em>{data.protection.detail}</em></span>
-          <b>Edit<Chevron direction="right" /></b>
-        </button>
-
         <div className="lab-panel lab-recent">
           <div className="lab-panel-head">
             <h2>Recent sessions</h2>
@@ -339,7 +326,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
               {data.recentSessions.map(session => (
                 <div className="lab-session-row" key={session.id}>
                   <strong>{session.task}</strong>
-                  <span>{fmtDuration(session.durationSeconds)}</span>
+                  <span>{formatDurationCompact(session.durationSeconds)}</span>
                   <span>{session.efficiency == null ? 'Not measured' : `Attention ${Math.round(session.efficiency)}`}</span>
                   {/* "Unset" is the absence of an outcome, not an outcome. */}
                   <em className={`is-${session.outcome.toLowerCase()}`}>{session.outcome === 'Unset' ? '' : session.outcome}</em>
@@ -348,7 +335,6 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
             </div>
           )}
         </div>
-      </section>
     </main>
   )
 }

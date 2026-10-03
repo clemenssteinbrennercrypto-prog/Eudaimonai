@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, formatMinutes, formatTimer } from './durationFormat'
+import { formatDuration, formatDurationCompact, formatMinutes, formatTimer } from './durationFormat'
 
 describe('duration display policy', () => {
   it('uses seconds and minutes below one hour', () => {
@@ -32,5 +32,17 @@ describe('duration display policy', () => {
     expect(formatDuration(Number.NaN)).toBe('0s')
     expect(formatDuration(-30)).toBe('0s')
     expect(formatMinutes(60.5)).toBe('1h 30s')
+  })
+})
+
+describe('formatDurationCompact', () => {
+  it('rounds summaries to the minute and keeps seconds only below one minute', () => {
+    expect(formatDurationCompact(0)).toBe('0s')
+    expect(formatDurationCompact(45)).toBe('45s')
+    expect(formatDurationCompact(89)).toBe('1m')
+    expect(formatDurationCompact(90)).toBe('2m')
+    expect(formatDurationCompact(22174)).toBe('6h 10m')
+    expect(formatDurationCompact(7200 + 40)).toBe('2h 1m')
+    expect(formatDurationCompact(7200 + 20)).toBe('2h')
   })
 })

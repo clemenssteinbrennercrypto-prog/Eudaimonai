@@ -334,9 +334,12 @@ fn main() {
             let quit = MenuItem::with_id(app, "quit", "Quit Eudaimonai", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &quit])?;
 
+            // A monochrome template image (black + alpha) so macOS tints it for
+            // light and dark menu bars, like every native menu-bar extra. The
+            // app icon is a full-colour artwork and read as a grey blob here.
             TrayIconBuilder::with_id("main-tray")
-                .icon(app.default_window_icon().cloned().expect("bundled icon"))
-                .icon_as_template(false)
+                .icon(tauri::image::Image::from_bytes(include_bytes!("../icons/tray-icon.png"))?)
+                .icon_as_template(true)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {

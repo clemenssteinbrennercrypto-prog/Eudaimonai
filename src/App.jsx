@@ -29,6 +29,9 @@ import { useAppUpdateStatus } from './lib/useUpdateAvailable'
 import { emptyFocusLedger, withSessionFocusMetric } from './lib/focusMetric'
 import { durationFromSetup } from './lib/sessionDuration'
 import { playSessionEndChime } from './lib/signatureSound'
+import { useCompanionStatus } from './lib/useCompanionStatus'
+import { getProtectionReadiness } from './lib/protectionReadiness'
+import { useNativeAppMenu } from './lib/nativeAppMenu'
 
 const isNativeRuntime = () => Boolean(window.__TAURI__?.core?.invoke)
 
@@ -76,6 +79,15 @@ export default function App() {
   // SessionIntentScreen render whatever they are handed.
   const [history, setHistory] = useState({ sessions: [], ledger: emptyFocusLedger() })
   const [legalTab, setLegalTab] = useState(null)
+  // Declared before the landing/onboarding early returns (rules of hooks);
+  // navigateRef.current is filled in once the app shell's navigate exists.
+  const nativeStatus = useCompanionStatus()
+  const navigateRef = useRef(() => {})
+  useNativeAppMenu({
+    onNavigate: destination => navigateRef.current(destination),
+    onLegal: () => setLegalTab('impressum'),
+    enabled: flow === 'app' && screen !== 'session',
+  })
   useEffect(() => {
     let cancelled = false
     Promise.all([sessionRepository.loadAll(), sessionRepository.loadFocusLedger()])
@@ -158,6 +170,13 @@ export default function App() {
     setProtectionReturnScreen(returnScreen)
     setScreen('focus-apps')
   }
+
+  // Protection edits a draft that is saved explicitly. Leaving it through the
+  // sidebar, a shortcut or the Go menu asks the screen first, so unsaved rules
+  // are never dropped silently; it shows its own Save & leave / Discard choice
+  // and remembers where the user was heading.
+  const protectionLeaveGuardRef = useRef(null)
+  const [pendingDestination, setPendingDestination] = useState(null)
 
   // Owns the save and the check-in answers together, because only one place
   // can know whether the session has a stored row yet. See sessionPersistence.js.
@@ -245,7 +264,6 @@ export default function App() {
           sessions={history.sessions}
           ledger={history.ledger}
           onSession={() => setScreen('session-setup')}
-          onProtection={() => openProtection('lab')}
           onAnalytics={() => setScreen('analytics')}
         />
       )}
@@ -283,7 +301,11 @@ export default function App() {
           onProtectionStateChange={setProtectionState}
           focusModeEnabled={focusModeEnabled}
           setFocusModeEnabled={setFocusModeEnabled}
-          onBack={() => setScreen(protectionReturnScreen)}
+          onBack={() => {
+            setScreen(pendingDestination ?? protectionReturnScreen)
+            setPendingDestination(null)
+          }}
+          onRegisterLeaveGuard={guard => { protectionLeaveGuardRef.current = guard }}
         />
       )}
       {screen === 'setup' && (
@@ -329,7 +351,6 @@ export default function App() {
       )}
       {screen === 'analytics' && (
         <AnalyticsShell
-          onClose={() => setScreen('lab')}
           onHistoryCleared={handleHistoryCleared}
         />
       )}
@@ -337,10 +358,28 @@ export default function App() {
   )
 
   const navigate = (destination) => {
-    if (destination === 'lab' || destination === 'session-setup' || destination === 'setup' || destination === 'analytics') {
-      setScreen(destination)
+    if (!['lab', 'session-setup', 'setup', 'focus-apps', 'analytics'].includes(destination)) return
+    // A running session owns the window; menu shortcuts must never end it.
+    if (screen === 'session' || destination === screen) return
+    if (screen === 'focus-apps' && protectionLeaveGuardRef.current && !protectionLeaveGuardRef.current()) {
+      setPendingDestination(destination)
+      return
     }
+    if (destination === 'focus-apps') setProtectionReturnScreen(screen)
+    setScreen(destination)
   }
+  navigateRef.current = navigate
+
+  const protectionReadiness = getProtectionReadiness({
+    enabled: focusModeEnabled,
+    setup: getActiveProtectionSetup(protectionState),
+    nativeStatus,
+  })
+  const protectionStatus = protectionReadiness.state === 'off'
+    ? null
+    : protectionReadiness.state === 'ready'
+      ? { tone: 'good', label: 'Protection ready' }
+      : { tone: 'warn', label: 'Protection needs attention' }
 
   return (
     <>
@@ -364,15 +403,16 @@ export default function App() {
           state (scores, streaks, timers live in refs), so hitting it mid-session
           silently destroys the run. There is no reason to reload while tracking,
           and an update can always wait until the session ends. */}
-      <BuildIdentity />
       {screen === 'session'
         ? content
         : (
           <AppShell
-            active={screen === 'focus-apps' ? 'lab' : screen}
+            active={screen}
             onNavigate={navigate}
             onLegal={() => setLegalTab('datenschutz')}
             utility={<AppRefreshControl updateStatus={updateStatus} />}
+            footer={<BuildIdentity />}
+            protectionStatus={protectionStatus}
           >
             {content}
           </AppShell>
