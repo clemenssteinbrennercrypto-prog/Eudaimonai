@@ -452,12 +452,15 @@ export default function FocusAppsScreen({
   const configuredCount = focusApps.length + distractionApps.length
   const modeEnabled = focusModeEnabled ?? localFocusModeEnabled
   const companionStatus = useCompanionStatus({ enabled: modeEnabled, intervalMs: 5000 })
-  const effectiveCompanionStatus = helperInstallState.status === 'installed'
-    ? { ...companionStatus, helperInstalled: true }
-    : companionStatus
   const readiness = useMemo(
-    () => getProtectionReadiness({ enabled: modeEnabled, setup: normalizeProtectionSetup(activeSetup, activeSetup.id), nativeStatus: effectiveCompanionStatus }),
-    [modeEnabled, activeSetup, effectiveCompanionStatus],
+    () => getProtectionReadiness({
+      enabled: modeEnabled,
+      setup: normalizeProtectionSetup(activeSetup, activeSetup.id),
+      nativeStatus: helperInstallState.status === 'installed'
+        ? { ...companionStatus, helperInstalled: true }
+        : companionStatus,
+    }),
+    [modeEnabled, activeSetup, companionStatus, helperInstallState.status],
   )
   const rulesConfigured = strictMode || distractionApps.length > 0
   const protectionReady = readiness.state === 'ready'

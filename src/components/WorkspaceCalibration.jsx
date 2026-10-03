@@ -41,28 +41,33 @@ export default function WorkspaceCalibration({ workspace, onDone, onCancel }) {
   const [error, setError] = useState('')
   const videoRef = useRef(null)
   const faceMeshRef = useRef(null)
+  const statusRef = useRef(status)
   const startedAtRef = useRef(Date.now())
   const samplesRef = useRef([])
   const target = targets[index]
 
   useEffect(() => { samplesRef.current = samples }, [samples])
+  useEffect(() => { statusRef.current = status }, [status])
 
   useEffect(() => {
     let stopped = false
     let stream = null
     let timer = null
     let inFlight = false
+    let video = null
 
     async function start() {
       if (!window.FaceMesh) throw new Error('The local tracking engine is unavailable.')
       stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } })
       if (stopped) return stream.getTracks().forEach(track => track.stop())
-      videoRef.current.srcObject = stream
-      await videoRef.current.play().catch(() => {})
+      video = videoRef.current
+      if (!video) throw new Error('The camera preview is unavailable.')
+      video.srcObject = stream
+      await video.play().catch(() => {})
       const faceMesh = new window.FaceMesh({ locateFile: file => new URL(`mediapipe/${file}`, document.baseURI).href })
       faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 })
       faceMesh.onResults(results => {
-        if (stopped || status === 'done') return
+        if (stopped || statusRef.current === 'done') return
         const landmarks = results.multiFaceLandmarks?.[0]
         if (!landmarks) return
         const analyzed = analyzeFrame(landmarks)
@@ -74,9 +79,9 @@ export default function WorkspaceCalibration({ workspace, onDone, onCancel }) {
       const pump = async () => {
         if (stopped) return
         timer = window.setTimeout(pump, 67)
-        if (inFlight || videoRef.current?.readyState < 2) return
+        if (inFlight || video?.readyState < 2) return
         inFlight = true
-        await faceMesh.send({ image: videoRef.current }).catch(() => {})
+        await faceMesh.send({ image: video }).catch(() => {})
         inFlight = false
       }
       pump()
@@ -87,7 +92,7 @@ export default function WorkspaceCalibration({ workspace, onDone, onCancel }) {
       stopped = true
       if (timer) clearTimeout(timer)
       stream?.getTracks().forEach(track => track.stop())
-      if (videoRef.current) videoRef.current.srcObject = null
+      if (video) video.srcObject = null
       faceMeshRef.current?.close?.()
     }
   }, [])

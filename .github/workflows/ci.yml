@@ -30,8 +30,14 @@ jobs:
       - name: Audit web dependencies
         run: npm audit --audit-level=high
 
+      - name: Lint JavaScript correctness
+        run: npm run lint
+
       - name: Run JavaScript tests
         run: npm test -- --run
+
+      - name: Enforce core coverage floor
+        run: npm run test:coverage
 
       - name: Build web surfaces
         run: npm run build

@@ -105,7 +105,7 @@ function PlanningCard({ planning }) {
  * qualification state instead of a claim.
  */
 export default function Patterns({ sessions }) {
-  const safeSessions = Array.isArray(sessions) ? sessions : []
+  const safeSessions = useMemo(() => Array.isArray(sessions) ? sessions : [], [sessions])
   const calibration = useMemo(() => calibrate(safeSessions), [safeSessions])
   const overallOutcome = useMemo(() => outcomeFit(safeSessions.filter(s => s.goalOutcome)), [safeSessions])
 

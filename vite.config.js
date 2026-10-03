@@ -10,6 +10,20 @@ export default defineConfig({
   // and bundled into the native app (loaded from the app's local origin).
   base: './',
   plugins: [react()],
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      include: ['src/lib/**/*.{js,jsx}'],
+      exclude: ['src/lib/**/*.test.{js,jsx}'],
+      thresholds: {
+        statements: 85,
+        branches: 75,
+        functions: 88,
+        lines: 88,
+      },
+    },
+  },
   build: {
     rollupOptions: {
       input: {
