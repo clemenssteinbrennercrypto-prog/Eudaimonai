@@ -74,4 +74,22 @@ describe('native updater channels', () => {
     expect(workflow).toContain('verify-tauri-updater-signature.mjs')
     expect(workflow).toContain('Eudaimonai-Test.dmg')
   })
+
+  it('keeps pull-request CI secret-free and pins every third-party action', () => {
+    const releaseWorkflow = readText('../../.github/workflows/companion-release.yml')
+    const testWorkflow = readText('../../.github/workflows/companion-test.yml')
+    const qualityWorkflow = readText('../../.github/workflows/ci.yml')
+
+    expect(releaseWorkflow).not.toMatch(/^\s*pull_request:/m)
+    expect(testWorkflow).not.toMatch(/^\s*pull_request:/m)
+    expect(qualityWorkflow).toMatch(/^\s*pull_request:/m)
+    expect(qualityWorkflow).toMatch(/permissions:\s*\n\s*contents:\s*read/)
+    expect(qualityWorkflow).not.toContain('secrets.')
+
+    for (const workflow of [releaseWorkflow, testWorkflow, qualityWorkflow]) {
+      const actionRefs = [...workflow.matchAll(/uses:\s*[^\s@]+@([^\s#]+)/g)].map((match) => match[1])
+      expect(actionRefs.length).toBeGreaterThan(0)
+      expect(actionRefs.every((ref) => /^[0-9a-f]{40}$/.test(ref))).toBe(true)
+    }
+  })
 })

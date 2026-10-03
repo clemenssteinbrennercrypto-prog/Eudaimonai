@@ -30,7 +30,7 @@ jobs:
       publish: ${{ steps.release-meta.outputs.publish }}
       version: ${{ steps.release-meta.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Check preinstalled Node.js
         run: |
@@ -40,11 +40,11 @@ jobs:
       - name: Install web dependencies
         run: npm ci
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable 2026-10-03
         with:
           targets: aarch64-apple-darwin
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: companion/src-tauri
 
@@ -126,7 +126,7 @@ jobs:
 
       - name: Build private signed release candidate
         if: steps.release-meta.outputs.publish != 'true'
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -143,7 +143,7 @@ jobs:
       - name: Build public release draft
         id: tauri-build
         if: steps.release-meta.outputs.publish == 'true'
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -289,7 +289,7 @@ jobs:
 
       - name: Upload private validated release candidate
         if: steps.release-meta.outputs.publish != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: eudaimonai-signed-release-candidate-${{ github.run_number }}
           path: |
