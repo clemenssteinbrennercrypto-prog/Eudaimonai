@@ -240,7 +240,7 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
               title="Focus by session"
               description="Only sessions with at least 10 minutes of reliable measurement are plotted. Earlier measurement methods remain a separate series; excluded sessions stay in history without crowding the chart."
               id="focus-trend-heading"
-              meta={`${plottedSessionCount} plotted · ${excludedSessionCount} excluded`}
+              meta={excludedSessionCount > 0 ? `${plottedSessionCount} shown · ${excludedSessionCount} too short to plot` : `${plottedSessionCount} sessions shown`}
             />
             <DetailsHeadline headline={headline} />
             <FocusTrend key={`trend-${filterKey}`} rows={details.timeline} onSelect={onSelectSession} />
@@ -292,7 +292,7 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
                 )}
                 {phasesReady && (
                   <div>
-                    <h3>Attention phases</h3>
+                    <h3>How your focus moved</h3>
                     <p>{sessionLabel(details.phases.tracedSessions)} with phase data</p>
                     <PhaseDonut key={`phases-${filterKey}`} phases={details.phases} />
                   </div>

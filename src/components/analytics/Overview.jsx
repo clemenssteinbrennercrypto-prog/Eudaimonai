@@ -133,7 +133,7 @@ export default function Overview({ sessions, focusLedger }) {
             sub={`of ${fmtDuration(aggregate.measuredSeconds)} measured`}
           />
           <Readout
-            label="Data coverage"
+            label="Camera saw you"
             value={coveragePct == null ? '—' : `${coveragePct}%`}
             sub={coverage.total > 0 ? `${coverage.measured} of ${coverage.total} sessions` : 'no sessions in range'}
             tone={coveragePct == null ? 'is-idle' : ''}

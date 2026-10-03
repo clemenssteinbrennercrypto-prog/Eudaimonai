@@ -116,7 +116,7 @@ describe('Analytics Details', () => {
     expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(1)
     expect(screen.queryByRole('button', { name: /not measured.*Open session details/ })).toBeNull()
     expect(document.querySelector('.analytics-excluded-axis')).toBeNull()
-    expect(screen.getByText('1 plotted · 1 excluded')).toBeTruthy()
+    expect(screen.getByText('1 shown · 1 too short to plot')).toBeTruthy()
   })
 
   it('connects every eligible point in one measurement series without letting short sessions shape the line', () => {
@@ -131,7 +131,7 @@ describe('Analytics Details', () => {
     expect(document.querySelectorAll('.analytics-focus-point')).toHaveLength(2)
     expect(document.querySelector('.analytics-excluded-point')).toBeNull()
     expect(document.querySelector('.analytics-focus-point.is-reached')).toBeNull()
-    expect(screen.getByText('2 plotted · 1 excluded')).toBeTruthy()
+    expect(screen.getByText('2 shown · 1 too short to plot')).toBeTruthy()
   })
 
   it('keeps close-in-time sessions separately clickable and lets only plotted sessions set the time axis', () => {
@@ -274,7 +274,7 @@ describe('Analytics Details', () => {
     ])
 
     expect(screen.getByLabelText('Exact Deep Focus time').textContent).toContain('Unavailable')
-    expect(screen.getByText('Exact Flow time is missing from 1 session in this selection, so no partial total is shown.')).toBeTruthy()
+    expect(screen.getByText('Deep Focus is missing from 1 session in this selection, so no partial total is shown.')).toBeTruthy()
     expect(screen.queryByText('7m')).toBeNull()
   })
 

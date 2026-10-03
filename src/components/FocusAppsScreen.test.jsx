@@ -223,7 +223,7 @@ describe('FocusAppsScreen readiness', () => {
   it('asks for the website helper before claiming website protection', async () => {
     companion.debug = { helperInstalled: false }
     await renderScreen()
-    expect(screen.getByText('Website helper required')).toBeInTheDocument()
+    expect(screen.getByText('Website blocking needs one more step')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Install helper' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Install helper' }))
@@ -240,7 +240,7 @@ describe('FocusAppsScreen readiness', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove helper' }))
     await waitFor(() => expect(uninstallCompanionHelper).toHaveBeenCalledOnce())
-    await waitFor(() => expect(screen.getByText('Website helper required')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Website blocking needs one more step')).toBeInTheDocument())
   })
 
   it('reports ready once the Companion confirms it can enforce the rules', async () => {

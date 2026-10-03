@@ -72,7 +72,7 @@ export default function PhaseDonut({ phases }) {
           <div className={`analytics-deep-focus${deepFocus.complete ? '' : ' is-unavailable'}`} aria-label="Exact Deep Focus time">
             <span>Deep Focus</span>
             {deepFocus.complete ? <DeepFocusValue seconds={deepFocus.seconds} /> : <strong>Unavailable</strong>}
-            <small>Exact Flow time</small>
+            <small>90 s+ of steady attention</small>
           </div>
           {hovered && (
             <div className="analytics-phase-hover" aria-hidden="true">
@@ -103,7 +103,7 @@ export default function PhaseDonut({ phases }) {
         {deepFocus.complete
           ? `Recorded across ${sessionLabel(deepFocus.trackedSessions)}. This time overlaps the attention phases.`
           : deepFocus.measuredSessions > 0
-            ? `Exact Flow time is missing from ${sessionLabel(missingDeepFocusSessions)} in this selection, so no partial total is shown.`
+            ? `Deep Focus is missing from ${sessionLabel(missingDeepFocusSessions)} in this selection, so no partial total is shown.`
             : 'No qualified session in this selection has exact Flow time.'}
       </p>
     </div>

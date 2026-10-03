@@ -118,12 +118,13 @@ describe('LabDashboard metric labels', () => {
     // The score starts with exact Deep Focus, while the independent clock keeps
     // both sessions instead of making earlier work disappear.
     expect(screen.getByText('41')).toBeInTheDocument()
-    expect(screen.getAllByText('Focus Score').length).toBeGreaterThan(1)
+    expect(screen.getByRole('heading', { name: 'Focus Score' })).toBeInTheDocument()
+    expect(screen.getByText('of 100')).toBeInTheDocument()
     const focusTime = screen.getByText('Focus time').parentElement
     expect(focusTime).toHaveTextContent('2h')
-    expect(focusTime).toHaveTextContent('Active session time · breaks excluded')
+    expect(focusTime).toHaveTextContent('Time in sessions, without breaks')
     expect(focusTime).not.toHaveTextContent('2m')
-    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Not recorded for every session')
+    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Missing for some sessions')
     expect(screen.getByText(/Focus Score uses 1h of 2h 40s Focus Time/)).toBeInTheDocument()
     expect(screen.queryByText('Measured days')).not.toBeInTheDocument()
     expect(screen.getByText('Average attention').parentElement).toHaveTextContent('80/100')
@@ -146,9 +147,9 @@ describe('LabDashboard metric labels', () => {
 
     const metric = screen.getByText('Focus time').parentElement
     expect(metric).toHaveTextContent('2h')
-    expect(metric).toHaveTextContent('Active session time · breaks excluded')
+    expect(metric).toHaveTextContent('Time in sessions, without breaks')
     expect(metric).not.toHaveTextContent('—')
-    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Not recorded for every session')
+    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Missing for some sessions')
   })
 
   it('presents one Focus Score in the historical analytics panel', () => {
@@ -299,7 +300,7 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByRole('button', { name: 'Show next day' })).toHaveAttribute('aria-disabled', 'false')
     expect(view.container.querySelectorAll('.attention-field .is-future')).toHaveLength(0)
     expect(view.container.querySelector('.attention-field .is-strong')).toHaveAttribute('aria-label', 'Later that day · Focus 82')
-    expect(view.container.querySelector('.lab-score > strong')).not.toHaveTextContent('—')
+    expect(view.container.querySelector('.lab-ring-center > strong')).not.toHaveTextContent('—')
 
     fireEvent.click(screen.getByRole('button', { name: 'Show next day' }))
     expect(screen.getByRole('img', { name: 'Attention field for Thursday, Aug 27, 2026' })).toBeInTheDocument()
@@ -338,7 +339,7 @@ describe('LabDashboard metric labels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Monthly' }))
     fireEvent.click(screen.getByRole('button', { name: 'Show previous month' }))
     expect(screen.getByRole('img', { name: 'Attention field for July 2026' })).toBeInTheDocument()
-    expect(view.container.querySelector('.lab-score > strong')).not.toHaveTextContent('—')
+    expect(view.container.querySelector('.lab-ring-center > strong')).not.toHaveTextContent('—')
     expect(view.container.querySelector('.attention-field .is-strong')).toHaveAttribute('aria-label', 'Historical measured work · Focus 82')
     expect(screen.getByText('Focus time').parentElement).toHaveTextContent('10m 20s')
   })
@@ -402,13 +403,13 @@ describe('LabDashboard metric labels', () => {
     })).replaceAll('<!-- -->', '')
 
     expect(html).toContain('Measured work')
-    expect(html).toContain('78/100 attention')
+    expect(html).toContain('Attention 78')
     expect(html).toContain('Average attention')
     expect(html).toContain('Focus time')
     expect(html).toContain('10m')
     expect(html).toContain('Deep Focus')
     expect(html).toContain('4m')
-    expect(html).toContain('Active session time · breaks excluded')
+    expect(html).toContain('Time in sessions, without breaks')
     expect(html).not.toContain('Time credit')
     expect(html).not.toContain('78% efficiency')
     expect(html).toContain('aria-label="Measured work · Focus 53"')
@@ -456,7 +457,7 @@ describe('LabDashboard metric labels', () => {
     const measuredIndex = [...field.querySelectorAll('.attention-bin')].indexOf(measuredBar)
     vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 960 })
     fireEvent.mouseMove(frame, { clientX: measuredIndex * 10 + 5 })
-    expect(screen.getByRole('tooltip')).toHaveTextContent('SessionWrite the chapter13:49–14:00')
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Write the chapter13:49–14:00')
     expect(screen.getByRole('tooltip')).toHaveClass('is-visible')
 
     const emptyIndex = [...field.querySelectorAll('.attention-bin')].findIndex(bin => !bin.getAttribute('aria-label').startsWith('Write the chapter'))

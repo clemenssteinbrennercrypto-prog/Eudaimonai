@@ -156,7 +156,6 @@ export default function AnalyticsShell({ onClose, onHistoryCleared = () => {} })
       <div className="analytics-canvas">
         <div className="analytics-heading">
           <div>
-            <span>Recent work first · detailed evidence when you need it</span>
             <h1>Analytics</h1>
           </div>
           <button onClick={onClose}>← Back</button>
