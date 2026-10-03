@@ -12,7 +12,7 @@
 - **Dismiss cooldown** — After dismissing the focus overlay, `lastAlertTimeRef.current` was not updated, meaning the overlay could immediately re-trigger on the next analysis frame. Now sets `lastAlertTimeRef.current = Date.now()` on dismiss, enforcing the full 60s cooldown.
 
 ### New Features
-- **Welcome message (HomeScreen)** — First-time users (0 sessions) now see a welcoming subtitle: *"Welcome to Eudaimonia. Set up your workspace and start your first focus session."* Shown only when `sessionCount === 0`.
+- **Welcome message (HomeScreen)** — First-time users (0 sessions) see a welcoming Eudaimonai subtitle when `sessionCount === 0`.
 - **Quality badge (EndScreen)** — A small pill badge appears next to the session label based on `focusPct`:
   - ≥85%: **Elite** (gold)
   - ≥70%: **Strong** (green)

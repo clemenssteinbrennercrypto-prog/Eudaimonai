@@ -1,7 +1,7 @@
 [package]
 name = "eudonomia-companion"
 version = "0.1.0"
-description = "Eudonomia menubar companion — activity tracking for the focus tracker"
+description = "Eudaimonai native macOS focus companion"
 edition = "2021"
 default-run = "eudonomia-companion"
 

@@ -1,7 +1,7 @@
 // Copies the MediaPipe FaceMesh runtime out of node_modules into public/, so the
 // app serves the model from its own origin instead of a CDN.
 //
-// Why this matters beyond reliability: Eudaimonia's core promise is that nothing
+// Why this matters beyond reliability: Eudaimonai's core promise is that nothing
 // leaves your machine. Fetching ~16 MB of model from jsdelivr on every session
 // start contradicted that, and made the app unusable offline or behind a
 // firewall / content blocker.
