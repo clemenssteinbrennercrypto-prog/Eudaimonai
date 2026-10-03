@@ -12,6 +12,7 @@ import FocusTrend, { DetailsHeadline } from './details/FocusTrend'
 import PhaseDonut from './details/PhaseDonut'
 import { sessionLabel } from './details/format'
 import SessionDetailView from './sessions/SessionDetailView'
+import DsSelect from '../DsSelect'
 
 const RANGE_OPTIONS = [
   { value: '30', label: '30 days' },
@@ -205,19 +206,22 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
               </button>
             ))}
           </div>
-          <label className={`analytics-pill-select${outcome !== 'all' ? ' is-set' : ''}`}>
-            <span>Outcome</span>
-            <select value={outcome} onChange={event => setOutcome(event.target.value)}>
-              {OUTCOME_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </label>
-          <label className={`analytics-pill-select${workspace !== 'all' ? ' is-set' : ''}`}>
-            <span>Workspace</span>
-            <select value={workspace} onChange={event => setWorkspace(event.target.value)}>
-              <option value="all">All workspaces</option>
-              {workspaces.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-            </select>
-          </label>
+          <DsSelect
+            className={`ds-select-pill${outcome !== 'all' ? ' is-set' : ''}`}
+            label="Outcome"
+            prefix="Outcome"
+            value={outcome}
+            options={OUTCOME_OPTIONS.map(([value, label]) => ({ value, label }))}
+            onChange={setOutcome}
+          />
+          <DsSelect
+            className={`ds-select-pill${workspace !== 'all' ? ' is-set' : ''}`}
+            label="Workspace"
+            prefix="Workspace"
+            value={workspace}
+            options={[{ value: 'all', label: 'All workspaces' }, ...workspaces.map(([id, name]) => ({ value: id, label: name }))]}
+            onChange={setWorkspace}
+          />
           {resetVisible && <button type="button" className="analytics-filter-reset" onClick={() => { setRange('all'); setOutcome('all'); setWorkspace('all') }}>Reset</button>}
           <div className="analytics-filter-count">
             <strong>{details.sessionCount}</strong>
@@ -240,7 +244,7 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
               title="Focus by session"
               description="Only sessions with at least 10 minutes of reliable measurement are plotted. Earlier measurement methods remain a separate series; excluded sessions stay in history without crowding the chart."
               id="focus-trend-heading"
-              meta={`${plottedSessionCount} plotted · ${excludedSessionCount} excluded`}
+              meta={excludedSessionCount > 0 ? `${plottedSessionCount} shown · ${excludedSessionCount} too short to plot` : `${plottedSessionCount} sessions shown`}
             />
             <DetailsHeadline headline={headline} />
             <FocusTrend key={`trend-${filterKey}`} rows={details.timeline} onSelect={onSelectSession} />
@@ -292,7 +296,7 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
                 )}
                 {phasesReady && (
                   <div>
-                    <h3>Attention phases</h3>
+                    <h3>How your focus moved</h3>
                     <p>{sessionLabel(details.phases.tracedSessions)} with phase data</p>
                     <PhaseDonut key={`phases-${filterKey}`} phases={details.phases} />
                   </div>

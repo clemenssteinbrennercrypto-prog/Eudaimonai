@@ -21,7 +21,7 @@ function pointTitle(pt, score, clock = null) {
   return [
     `${clock ? `${clock} · ` : ''}${fmtClock(pt.second || 0)}: ${score}/100 attention · ${band.label}`,
     pt.phase ? `Phase: ${PHASE_LABELS[pt.phase] || pt.phase}` : null,
-    pt.preDrift ? 'Drift risk active' : null,
+    pt.preDrift ? 'Focus slipping' : null,
     activityKind ? `Activity: ${ACTIVITY_KIND_LABELS[activityKind] || activityKind}` : null,
   ].filter(Boolean).join(' | ')
 }

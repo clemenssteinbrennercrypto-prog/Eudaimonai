@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const source = readFileSync(new URL('./SessionScreen.jsx', import.meta.url), 'utf8')
+const indicatorSource = readFileSync(new URL('./SessionIndicators.jsx', import.meta.url), 'utf8')
 
 describe('SessionScreen accumulation wiring', () => {
   it('uses the shared accumulator in both the timer tick and final flush', () => {
@@ -194,7 +195,7 @@ describe('SessionScreen accumulation wiring', () => {
   })
 
   it('requests a screen wake lock while the session status is mounted', () => {
-    expect(source).toContain("navigator.wakeLock.request('screen')")
+    expect(indicatorSource).toContain("navigator.wakeLock.request('screen')")
   })
 
   it('always exposes the live session plan, falling back to the task text', () => {

@@ -11,8 +11,8 @@ const BUCKET_AXES = [
   { kind: 'workspace', resultKey: 'workspace', title: 'Workspace & setup' },
   { kind: 'energy', resultKey: 'energy', title: 'Energy context' },
   { kind: 'drift_recovery', resultKey: 'driftRecovery', title: 'Drift & recovery' },
-  { kind: 'activity_alignment', resultKey: 'activityAlignment', title: 'Activity alignment' },
-  { kind: 'output_evidence', resultKey: 'outputEvidence', title: 'Output evidence' },
+  { kind: 'activity_alignment', resultKey: 'activityAlignment', title: 'Did the work match the plan?' },
+  { kind: 'output_evidence', resultKey: 'outputEvidence', title: 'What you produced' },
 ]
 
 const cardStyle = { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, padding: '16px 18px' }
