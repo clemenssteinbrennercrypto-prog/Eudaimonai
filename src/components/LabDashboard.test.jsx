@@ -19,7 +19,10 @@ class MemoryStorage {
 }
 
 beforeEach(() => {
-  globalThis.localStorage = new MemoryStorage()
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: new MemoryStorage(),
+  })
   vi.useFakeTimers()
   vi.setSystemTime(new Date(2026, 7, 26, 14, 0, 0))
 })

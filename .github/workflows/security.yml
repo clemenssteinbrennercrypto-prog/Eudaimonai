@@ -1,0 +1,52 @@
+name: Dependency Security
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - companion/src-tauri/Cargo.toml
+      - companion/src-tauri/Cargo.lock
+      - .github/workflows/security.yml
+  push:
+    branches:
+      - main
+    paths:
+      - package.json
+      - package-lock.json
+      - companion/src-tauri/Cargo.toml
+      - companion/src-tauri/Cargo.lock
+      - .github/workflows/security.yml
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  checks: write
+  issues: write
+
+concurrency:
+  group: dependency-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  npm-audit:
+    name: npm-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Reject high-severity npm advisories
+        run: npm audit --package-lock-only --audit-level=high
+
+  rust-audit:
+    name: rust-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: companion/src-tauri

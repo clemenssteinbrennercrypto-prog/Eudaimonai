@@ -15,7 +15,12 @@ class MemoryStorage {
 }
 
 describe('dormant model-provider settings', () => {
-  beforeEach(() => { globalThis.localStorage = new MemoryStorage() })
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: new MemoryStorage(),
+    })
+  })
 
   it('migrates an old cloud selection to built-in and removes a legacy browser key', () => {
     localStorage.setItem(CONTRACT_KEY, JSON.stringify({
