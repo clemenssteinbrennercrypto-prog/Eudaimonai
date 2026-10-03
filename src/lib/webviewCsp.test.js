@@ -10,6 +10,10 @@ const config = JSON.parse(
   readFileSync(fileURLToPath(new URL('../../companion/src-tauri/tauri.conf.json', import.meta.url)), 'utf8'),
 )
 const csp = config.app.security.csp
+const mainHtml = readFileSync(
+  fileURLToPath(new URL('../../index.html', import.meta.url)),
+  'utf8',
+)
 
 function directive(name) {
   const found = csp.split(';').map(part => part.trim()).find(part => part.startsWith(`${name} `))
@@ -37,13 +41,14 @@ describe('WebView content security policy', () => {
     expect(script.filter(source => !source.startsWith("'"))).toEqual([])
   })
 
-  // Verified in WKWebView against the bundled 0.4.1633559619 assets: emscripten's
-  // embind builds its error classes with `new Function` while the module
-  // initialises, so without 'unsafe-eval' FaceMesh.initialize() rejects with an
-  // EvalError. That breaks workspace calibration — which is on the first-run
-  // path — and the recorded-frame parity harness. 'wasm-unsafe-eval' does NOT
-  // cover it: it permits WebAssembly compilation only, never string-to-JS.
-  it("keeps 'unsafe-eval', which bundled MediaPipe FaceMesh.js needs to initialise", () => {
-    expect(directive('script-src')).toContain("'unsafe-eval'")
+  it('does not allow dynamic JavaScript or WebAssembly evaluation', () => {
+    expect(directive('script-src')).toEqual(["'self'"])
+    expect(csp).not.toContain("'unsafe-eval'")
+    expect(csp).not.toContain("'wasm-unsafe-eval'")
+  })
+
+  it('does not load the legacy FaceMesh JavaScript engine in the product page', () => {
+    expect(mainHtml).not.toContain('face_mesh.js')
+    expect(mainHtml).not.toContain('window.FaceMesh')
   })
 })

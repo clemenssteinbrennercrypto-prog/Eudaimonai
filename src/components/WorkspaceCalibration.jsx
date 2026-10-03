@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { analyzeFrame } from '../lib/attention'
+import {
+  listenNativeCameraLandmarks,
+  listenNativeCameraStatus,
+  setNativeCameraPreview,
+  startNativeCameraMeasurement,
+  stopNativeCameraMeasurement,
+} from '../lib/nativeCompanion'
 import { normalizeCalibration } from '../lib/workspaceStore'
 import { WORKSPACE_OBJECT_LABELS } from '../lib/workspaceObjects'
 
@@ -39,8 +46,8 @@ export default function WorkspaceCalibration({ workspace, onDone, onCancel }) {
   const [baseline, setBaseline] = useState(null)
   const [status, setStatus] = useState('starting')
   const [error, setError] = useState('')
-  const videoRef = useRef(null)
-  const faceMeshRef = useRef(null)
+  const previewRef = useRef(null)
+  const syncPreviewRef = useRef(() => {})
   const statusRef = useRef(status)
   const startedAtRef = useRef(Date.now())
   const samplesRef = useRef([])
@@ -50,50 +57,83 @@ export default function WorkspaceCalibration({ workspace, onDone, onCancel }) {
   useEffect(() => { statusRef.current = status }, [status])
 
   useEffect(() => {
+    const preview = previewRef.current
+    if (!preview) return undefined
+
     let stopped = false
-    let stream = null
-    let timer = null
-    let inFlight = false
-    let video = null
-
-    async function start() {
-      if (!window.FaceMesh) throw new Error('The local tracking engine is unavailable.')
-      stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } })
-      if (stopped) return stream.getTracks().forEach(track => track.stop())
-      video = videoRef.current
-      if (!video) throw new Error('The camera preview is unavailable.')
-      video.srcObject = stream
-      await video.play().catch(() => {})
-      const faceMesh = new window.FaceMesh({ locateFile: file => new URL(`mediapipe/${file}`, document.baseURI).href })
-      faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 })
-      faceMesh.onResults(results => {
-        if (stopped || statusRef.current === 'done') return
-        const landmarks = results.multiFaceLandmarks?.[0]
-        if (!landmarks) return
-        const analyzed = analyzeFrame(landmarks)
-        const frame = { ...analyzed, pitchSigned: analyzed.pitchDeg - analyzed.pitchUpDeg }
-        setSamples(previous => previous.length >= MIN_SAMPLES ? previous : [...previous, frame])
-      })
-      faceMeshRef.current = faceMesh
-      setStatus('capturing')
-      const pump = async () => {
-        if (stopped) return
-        timer = window.setTimeout(pump, 67)
-        if (inFlight || video?.readyState < 2) return
-        inFlight = true
-        await faceMesh.send({ image: video }).catch(() => {})
-        inFlight = false
-      }
-      pump()
+    const sync = () => {
+      if (stopped || !preview.isConnected) return
+      const rect = preview.getBoundingClientRect()
+      setNativeCameraPreview({
+        right: window.innerWidth - rect.right,
+        bottom: window.innerHeight - rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        visible: rect.width >= 1 && rect.height >= 1,
+        cornerRadius: Math.min(rect.width, rect.height) / 2,
+      }).catch(() => {})
     }
+    syncPreviewRef.current = sync
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(sync) : null
+    observer?.observe(preview)
+    window.addEventListener('resize', sync)
+    sync()
 
-    start().catch(err => setError(err?.message || 'Camera calibration could not start.'))
     return () => {
       stopped = true
-      if (timer) clearTimeout(timer)
-      stream?.getTracks().forEach(track => track.stop())
-      if (video) video.srcObject = null
-      faceMeshRef.current?.close?.()
+      syncPreviewRef.current = () => {}
+      observer?.disconnect()
+      window.removeEventListener('resize', sync)
+      setNativeCameraPreview({
+        right: 0, bottom: 0, width: 0, height: 0, visible: false, cornerRadius: 0,
+      }).catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
+    let stopped = false
+    const unlisteners = []
+
+    const onLandmarks = payload => {
+      if (stopped || statusRef.current === 'done' || payload?.facePresent !== true) return
+      const landmarks = Array.isArray(payload.landmarks) ? payload.landmarks : null
+      if (!landmarks?.length) return
+      const analyzed = analyzeFrame(landmarks)
+      const frame = { ...analyzed, pitchSigned: analyzed.pitchDeg - analyzed.pitchUpDeg }
+      setSamples(previous => previous.length >= MIN_SAMPLES ? previous : [...previous, frame])
+    }
+    const onStatus = camera => {
+      if (stopped || !camera) return
+      if (camera.state === 'running') {
+        setStatus(current => current === 'starting' ? 'capturing' : current)
+        syncPreviewRef.current()
+      } else if (camera.state === 'faulted') {
+        setError(`Camera calibration could not start (${camera.fault || 'camera fault'}).`)
+      }
+    }
+    const start = async () => {
+      const [unlistenLandmarks, unlistenStatus] = await Promise.all([
+        listenNativeCameraLandmarks(onLandmarks),
+        listenNativeCameraStatus(onStatus),
+      ])
+      if (stopped) {
+        unlistenLandmarks?.()
+        unlistenStatus?.()
+        return
+      }
+      unlisteners.push(unlistenLandmarks, unlistenStatus)
+      const camera = await startNativeCameraMeasurement()
+      if (!camera) throw new Error('The native tracking engine is unavailable.')
+      onStatus(camera)
+    }
+
+    start().catch(error => {
+      if (!stopped) setError(error?.message || 'Camera calibration could not start.')
+    })
+    return () => {
+      stopped = true
+      unlisteners.forEach(unlisten => unlisten?.())
+      stopNativeCameraMeasurement().catch(() => {})
     }
   }, [])
 
@@ -167,7 +207,7 @@ export default function WorkspaceCalibration({ workspace, onDone, onCancel }) {
         </div>
       </div>
       <div className="workspace-camera-frame">
-        <video ref={videoRef} muted playsInline />
+        <div ref={previewRef} className="workspace-camera-native" aria-label="Live camera preview" />
         <div className="workspace-camera-reticle"><span /></div>
       </div>
     </div>
