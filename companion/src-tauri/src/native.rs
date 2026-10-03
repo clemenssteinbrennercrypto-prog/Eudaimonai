@@ -313,6 +313,25 @@ pub async fn install_blocking_helper() -> OperationResult {
 }
 
 #[tauri::command]
+pub async fn uninstall_blocking_helper() -> OperationResult {
+    let result = tauri::async_runtime::spawn_blocking(crate::blocking::uninstall_helper).await;
+    match result {
+        Ok(Ok(())) => OperationResult {
+            ok: true,
+            error: None,
+        },
+        Ok(Err(error)) => OperationResult {
+            ok: false,
+            error: Some(error),
+        },
+        Err(error) => OperationResult {
+            ok: false,
+            error: Some(format!("join: {error}")),
+        },
+    }
+}
+
+#[tauri::command]
 pub async fn set_output_watch_folder(
     state: tauri::State<'_, NativeState>,
     path: String,

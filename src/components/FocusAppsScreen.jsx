@@ -7,6 +7,7 @@ import {
   pushCompanionSession,
   startNativeCameraPrototype,
   stopNativeCameraPrototype,
+  uninstallCompanionHelper,
 } from '../lib/nativeCompanion'
 import { getDomainsFromAppPreset } from '../lib/focusAppsConfig'
 import {
@@ -458,7 +459,9 @@ export default function FocusAppsScreen({
       setup: normalizeProtectionSetup(activeSetup, activeSetup.id),
       nativeStatus: helperInstallState.status === 'installed'
         ? { ...companionStatus, helperInstalled: true }
-        : companionStatus,
+        : helperInstallState.status === 'removed'
+          ? { ...companionStatus, helperInstalled: false }
+          : companionStatus,
     }),
     [modeEnabled, activeSetup, companionStatus, helperInstallState.status],
   )
@@ -529,6 +532,19 @@ export default function FocusAppsScreen({
     const result = await installCompanionHelper()
     if (result.ok) {
       setHelperInstallState({ status: 'installed', error: '' })
+      return
+    }
+    setHelperInstallState({
+      status: 'error',
+      error: result.error === 'cancelled' ? 'You cancelled the password prompt.' : result.error,
+    })
+  }
+
+  const handleUninstallWebsiteHelper = async () => {
+    setHelperInstallState({ status: 'uninstalling', error: '' })
+    const result = await uninstallCompanionHelper()
+    if (result.ok) {
+      setHelperInstallState({ status: 'removed', error: '' })
       return
     }
     setHelperInstallState({
@@ -788,6 +804,25 @@ export default function FocusAppsScreen({
                 disabled={helperInstallState.status === 'installing'}
               >
                 {helperInstallState.status === 'installing' ? 'Waiting for password…' : 'Install helper'}
+              </button>
+            </section>
+          )}
+
+          {(helperInstallState.status === 'installed'
+            || (companionStatus.helperInstalled && helperInstallState.status !== 'removed')) && (
+            <section className="protection-helper-setup" aria-labelledby="website-helper-remove-heading">
+              <div>
+                <h2 id="website-helper-remove-heading">Website helper installed</h2>
+                <p>Remove the root-owned helper and its passwordless sudo rule. Any active Eudaimonai hosts block is cleared first.</p>
+                {helperInstallState.error && <span role="alert">{helperInstallState.error}</span>}
+              </div>
+              <button
+                type="button"
+                className="is-danger"
+                onClick={handleUninstallWebsiteHelper}
+                disabled={helperInstallState.status === 'uninstalling'}
+              >
+                {helperInstallState.status === 'uninstalling' ? 'Waiting for password…' : 'Remove helper'}
               </button>
             </section>
           )}

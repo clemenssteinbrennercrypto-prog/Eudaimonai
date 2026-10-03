@@ -14,7 +14,9 @@
 //     cleanup, and an expiry watchdog) so a crash can never leave sites blocked
 //     forever — see activity.rs / main.rs.
 
+use std::fs::OpenOptions;
 use std::io::Write;
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::process::Command;
 
 const HOSTS_PATH: &str = "/etc/hosts";
@@ -32,6 +34,19 @@ const HELPER_SRC: &str = include_str!("../../helper/eudonomia-hosts");
 
 /// True if the helper is installed AND callable without a password.
 pub fn helper_available() -> bool {
+    let Ok(metadata) = std::fs::symlink_metadata(HELPER_PATH) else {
+        return false;
+    };
+    if !metadata.file_type().is_file()
+        || metadata.uid() != 0
+        || metadata.gid() != 0
+        || metadata.mode() & 0o022 != 0
+    {
+        return false;
+    }
+    if !matches!(std::fs::read_to_string(HELPER_PATH), Ok(content) if content == HELPER_SRC) {
+        return false;
+    }
     Command::new("sudo")
         .args(["-n", HELPER_PATH, "status"])
         .output()
@@ -39,35 +54,63 @@ pub fn helper_available() -> bool {
         .unwrap_or(false)
 }
 
+fn valid_account_name(user: &str) -> bool {
+    !user.is_empty()
+        && user.len() <= 255
+        && user
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+}
+
+fn write_private_stage(path: &std::path::Path, content: &[u8]) -> Result<(), String> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(path)
+        .map_err(|e| format!("create private stage: {e}"))?;
+    file.write_all(content)
+        .map_err(|e| format!("write private stage: {e}"))
+}
+
 /// One-time install of the helper script + a narrowly-scoped NOPASSWD sudoers
 /// rule. Shows exactly one admin password dialog. The privileged shell only
 /// references fixed, user-private staged paths and validates the sudoers file
 /// with `visudo -c` before installing it, so a bad rule can never break sudo.
 pub fn install_helper() -> Result<(), String> {
-    let user = std::env::var("USER").unwrap_or_default();
-    if user.is_empty() {
-        return Err("no USER in environment".into());
+    let user_output = Command::new("id")
+        .arg("-un")
+        .output()
+        .map_err(|e| format!("resolve account: {e}"))?;
+    let user = String::from_utf8_lossy(&user_output.stdout)
+        .trim()
+        .to_string();
+    if !user_output.status.success() || !valid_account_name(&user) {
+        return Err("could not resolve a safe local account name".into());
     }
 
     // Stage in the user-private temp dir (mode 700) so no other user can swap
     // the files between staging and the privileged copy.
     let dir = std::env::temp_dir();
-    let helper_stage = dir.join("eudonomia-hosts.helper");
-    let sudoers_stage = dir.join("eudonomia.sudoers");
-    std::fs::write(&helper_stage, HELPER_SRC).map_err(|e| format!("stage helper: {e}"))?;
-    std::fs::write(
+    let nonce = std::process::id();
+    let helper_stage = dir.join(format!("eudaimonai-hosts-{nonce}.helper"));
+    let sudoers_stage = dir.join(format!("eudaimonai-{nonce}.sudoers"));
+    write_private_stage(&helper_stage, HELPER_SRC.as_bytes())?;
+    if let Err(error) = write_private_stage(
         &sudoers_stage,
-        format!("{user} ALL=(root) NOPASSWD: {HELPER_PATH}\n"),
-    )
-    .map_err(|e| format!("stage sudoers: {e}"))?;
+        format!("{user} ALL=(root) NOPASSWD: {HELPER_PATH}\n").as_bytes(),
+    ) {
+        let _ = std::fs::remove_file(&helper_stage);
+        return Err(error);
+    }
 
     let h = helper_stage.to_string_lossy().replace(['"', '\''], "");
     let s = sudoers_stage.to_string_lossy().replace(['"', '\''], "");
     let shell = format!(
-        "mkdir -p /Library/Eudonomia && cp '{h}' {HELPER_PATH} && \
-         chown root:wheel /Library/Eudonomia {HELPER_PATH} && \
-         chmod 755 /Library/Eudonomia && chmod 755 {HELPER_PATH} && \
-         visudo -cf '{s}' && install -m 440 -o root -g wheel '{s}' {SUDOERS_PATH}"
+        "visudo -cf '{s}' && mkdir -p /Library/Eudonomia && \
+         chown root:wheel /Library/Eudonomia && chmod 755 /Library/Eudonomia && \
+         install -m 755 -o root -g wheel '{h}' {HELPER_PATH} && \
+         install -m 440 -o root -g wheel '{s}' {SUDOERS_PATH}"
     );
     let apple = format!(
         r#"do shell script "{}" with administrator privileges"#,
@@ -81,6 +124,36 @@ pub fn install_helper() -> Result<(), String> {
         .map_err(|e| format!("osascript: {e}"))?;
     let _ = std::fs::remove_file(&helper_stage);
     let _ = std::fs::remove_file(&sudoers_stage);
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        let err = String::from_utf8_lossy(&output.stderr);
+        if err.contains("-128") {
+            Err("cancelled".into())
+        } else {
+            Err(err.trim().to_string())
+        }
+    }
+}
+
+/// Clear our hosts block and remove the root helper plus its sudoers grant.
+/// The removal is explicit and idempotent; unrelated files are never touched.
+pub fn uninstall_helper() -> Result<(), String> {
+    clear_block()?;
+
+    let shell = format!(
+        "rm -f {SUDOERS_PATH} {HELPER_PATH} && (rmdir /Library/Eudonomia 2>/dev/null || true)"
+    );
+    let apple = format!(
+        r#"do shell script "{}" with administrator privileges"#,
+        shell.replace('\\', "\\\\").replace('"', "\\\"")
+    );
+    let output = Command::new("osascript")
+        .arg("-e")
+        .arg(&apple)
+        .output()
+        .map_err(|e| format!("osascript: {e}"))?;
 
     if output.status.success() {
         Ok(())
@@ -218,7 +291,10 @@ fn write_hosts_via_admin(new_content: &str) -> Result<(), String> {
     let tmp_str = tmp.to_string_lossy().replace('"', "");
 
     let shell = format!(
-        "cp '{tmp_str}' {HOSTS_PATH} && dscacheutil -flushcache; killall -HUP mDNSResponder"
+        "install -m 644 -o root -g wheel '{tmp_str}' {HOSTS_PATH}.eudaimonai-new && \
+         mv -f {HOSTS_PATH}.eudaimonai-new {HOSTS_PATH} && \
+         (dscacheutil -flushcache 2>/dev/null || true) && \
+         (killall -HUP mDNSResponder 2>/dev/null || true)"
     );
     let apple = format!(
         r#"do shell script "{}" with administrator privileges"#,
@@ -334,6 +410,14 @@ mod tests {
         assert_eq!(normalize_host("localhost"), None); // no dot
         assert_eq!(normalize_host(""), None);
         assert_eq!(normalize_host("Instagram"), None); // app name, not a domain
+    }
+
+    #[test]
+    fn account_names_cannot_inject_sudoers_content() {
+        assert!(valid_account_name("clemens.stein_brenner-1"));
+        assert!(!valid_account_name("clemens ALL=(ALL) NOPASSWD: ALL"));
+        assert!(!valid_account_name("clemens\nroot"));
+        assert!(!valid_account_name(""));
     }
 
     #[test]

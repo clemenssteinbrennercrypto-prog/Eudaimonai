@@ -22,6 +22,7 @@
 #   eudonomia-hosts status      # prints "blocked" or "clean", no privilege change
 
 set -eu
+umask 077
 
 HOSTS=/etc/hosts
 START='# EUDONOMIA_START — focus session block (auto-managed, safe to delete)'
@@ -47,6 +48,17 @@ flush_dns() {
     killall -HUP mDNSResponder 2>/dev/null || true
 }
 
+replace_hosts() {
+    content="$1"
+    target=$(mktemp /etc/eudaimonai-hosts.XXXXXX)
+    trap 'rm -f "${target:-}" "${content:-}"' EXIT HUP INT TERM
+    cp -p "$HOSTS" "$target"
+    cat "$content" > "$target"
+    chown root:wheel "$target"
+    mv -f "$target" "$HOSTS"
+    target=''
+}
+
 cmd="${1:-}"
 case "$cmd" in
     status)
@@ -60,7 +72,7 @@ case "$cmd" in
     unblock)
         tmp=$(mktemp)
         strip_block > "$tmp"
-        cat "$tmp" > "$HOSTS"
+        replace_hosts "$tmp"
         rm -f "$tmp"
         flush_dns
         exit 0
@@ -90,7 +102,7 @@ case "$cmd" in
             done
             [ "$printed" -eq 1 ] && echo "$END"
         } >> "$tmp"
-        cat "$tmp" > "$HOSTS"
+        replace_hosts "$tmp"
         rm -f "$tmp"
         flush_dns
         exit 0
