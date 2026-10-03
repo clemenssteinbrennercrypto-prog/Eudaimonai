@@ -49,59 +49,41 @@ function SegmentedControl({ items, value, onChange, label }) {
 // attention out of 100, and Deep Focus as a share of measured time. Each arc
 // is a measured fraction and nothing else; an unknown value draws no arc, so
 // a gap can never pass for a value.
-const RING_RADII = [55, 46, 37]
-// White, polished silver and gunmetal, far enough apart to tell at a glance.
-// High-contrast light bands plus a gloss line on the outer edge and a shade
-// line on the inner edge make each thin ring read as a metal tube, the same
-// way the app icon is lit.
+const RING_RADII = [55, 47, 39]
+// Clean, flat 2D strokes in three clearly different metals: white, silver
+// and dark silver. No gloss, shading or shadow on the rings (Clemens: the
+// tube look was too 3D); the difference between the tones does the work.
 const SILVER_TONES = [
-  ['time', [[0, '#FFFFFF'], [0.25, '#E2E6EC'], [0.45, '#FFFFFF'], [0.7, '#CDD2DA'], [1, '#F7F8FA']]],
-  ['attention', [[0, '#EEF0F4'], [0.2, '#8A919E'], [0.4, '#E4E7EC'], [0.6, '#6B7280'], [0.8, '#CDD1D8'], [1, '#7C8390']]],
-  ['deep', [[0, '#8F96A3'], [0.2, '#3F4550'], [0.4, '#7E8592'], [0.6, '#323741'], [0.8, '#6C7380'], [1, '#3A3F49']]],
+  ['time', '#FFFFFF'],
+  ['attention', '#B4BBC6'],
+  ['deep', '#6B7280'],
 ]
 
 function ScoreRings({ score, caption, rings }) {
   return (
     <div className={`lab-ring${score == null ? ' is-empty' : ''}`}>
       <svg viewBox="0 0 128 128" aria-hidden="true">
-        {/* Brushed-metal sheen: each silver tone runs from a lighter to a
-            deeper shade along the arc. userSpaceOnUse keeps the light
-            direction fixed regardless of how far an arc reaches. */}
-        <defs>
-          {SILVER_TONES.map(([key, stops]) => (
-            <linearGradient key={key} id={`lab-ring-${key}-sheen`} gradientUnits="userSpaceOnUse" x1="14" y1="10" x2="114" y2="118">
-              {stops.map(([offset, color]) => <stop key={offset} offset={offset} stopColor={color} />)}
-            </linearGradient>
-          ))}
-        </defs>
         {rings.map(({ key, fraction }, index) => {
           const radius = RING_RADII[index]
           const circumference = 2 * Math.PI * radius
           return (
             <g key={key} className={`lab-ring-${key}`}>
               <circle className="lab-ring-track" cx="64" cy="64" r={radius} />
-              {fraction != null && fraction > 0 && [
-                ['lab-ring-arc', radius],
-                ['lab-ring-gloss', radius + 1.6],
-                ['lab-ring-shade', radius - 1.9],
-              ].map(([layer, layerRadius]) => {
-                const layerCircumference = 2 * Math.PI * layerRadius
-                return (
-                  <circle
-                    key={layer}
-                    className={layer}
-                    cx="64"
-                    cy="64"
-                    r={layerRadius}
-                    style={{
-                      strokeDasharray: layerCircumference,
-                      '--ring-offset': layerCircumference * (1 - Math.min(1, fraction)),
-                      '--ring-circumference': layerCircumference,
-                      animationDelay: `${index * 80}ms`,
-                    }}
-                  />
-                )
-              })}
+              {fraction != null && fraction > 0 && (
+                <circle
+                  className="lab-ring-arc"
+                  cx="64"
+                  cy="64"
+                  r={radius}
+                  style={{
+                    stroke: SILVER_TONES[index][1],
+                    strokeDasharray: circumference,
+                    '--ring-offset': circumference * (1 - Math.min(1, fraction)),
+                    '--ring-circumference': circumference,
+                    animationDelay: `${index * 80}ms`,
+                  }}
+                />
+              )}
             </g>
           )
         })}
