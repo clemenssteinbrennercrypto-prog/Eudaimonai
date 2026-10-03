@@ -67,6 +67,15 @@ Wenn Sie einen Projektordner für die Fortschrittsmessung auswählen, werden aus
 
 Es werden dabei keine Sitzungs-, Kamera- oder Aktivitätsdaten übertragen. Rechtsgrundlage ist unser berechtigtes Interesse an sicheren und aktuellen Installationen (Art. 6 Abs. 1 lit. f DSGVO).`,
   },
+  // TODO(legal): Clemens bitte prüfen lassen, ob Vercel und GitHub mit dem
+  // tatsächlichen Hosting- bzw. Download-Setup übereinstimmen, und den
+  // Drittlandtransfer (USA) konkret benennen (z. B. Data Privacy Framework).
+  {
+    heading: 'Diese Website',
+    body: `Diese Website wird über den Hosting-Dienst Vercel Inc. (USA) ausgeliefert. Beim Aufruf verarbeitet Vercel technisch notwendige Verbindungsdaten wie IP-Adresse, Zeitpunkt, aufgerufene Seite und Browser-Kennung, um die Seite auszuliefern und vor Missbrauch zu schützen. Die App-Datei selbst wird beim Download von GitHub (USA) bereitgestellt, das dabei ebenfalls Ihre IP-Adresse und übliche Verbindungsdaten erhält.
+
+Die Website selbst erfasst keine Sitzungs-, Kamera- oder Aktivitätsdaten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und funktionsfähigen Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO).`,
+  },
   {
     heading: 'Cookies',
     body: `Es werden keine Cookies gesetzt und kein Analyse- oder Tracking-Dienst eingebunden. Der verwendete localStorage dient ausschließlich der von Ihnen angeforderten Funktion und ist damit nicht einwilligungsbedürftig.`,
