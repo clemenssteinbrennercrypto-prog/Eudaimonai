@@ -50,3 +50,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: companion/src-tauri
+          # Tauri retains GTK/GLib packages in Cargo.lock for Linux builds. The
+          # shipped product is arm64 macOS-only, where this crate is not built.
+          # Removal criteria and evidence: docs/security-advisory-exceptions.md
+          ignore: RUSTSEC-2024-0429

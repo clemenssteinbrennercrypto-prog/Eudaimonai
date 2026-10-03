@@ -23,3 +23,9 @@ fix is available.
 - Model credentials are stored in macOS Keychain and used by the native layer.
 - Website blocking uses a narrowly scoped root-owned helper. Reports involving
   that helper, the updater, code signing, or release workflows are high priority.
+
+## Audited exceptions
+
+Target-specific dependency findings are never silently suppressed. Any accepted
+exception must record its target evidence, scope, owner, and removal condition in
+[`docs/security-advisory-exceptions.md`](docs/security-advisory-exceptions.md).
