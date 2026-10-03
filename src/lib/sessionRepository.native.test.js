@@ -78,6 +78,28 @@ describe('interface parity with the local adapter', () => {
   it('identifies itself as the native adapter', () => {
     expect(repo.kind).toBe('native')
   })
+
+  it('restores only new ids and sends one atomic native batch', async () => {
+    const existing = sessionData({ id: 'keep', timestamp: 1, task: 'Existing' })
+    const restored = sessionData({ id: 'restored', timestamp: 2, task: 'Restored' })
+    window.__TAURI__.core.invoke = fakeInvoke({
+      db_load_all: () => [existing],
+      db_restore_archive: ({ items }) => ({ importedCount: items.length, skippedDuplicateCount: 0, verified: true }),
+    })
+    repo = createNativeSessionRepository()
+
+    const result = await repo.restoreArchive({ schemaVersion: 1, sessions: [existing, restored] })
+
+    expect(result).toMatchObject({ importedCount: 1, skippedDuplicateCount: 1, verified: true })
+    expect(sent('db_restore_archive').items).toHaveLength(1)
+    expect(sent('db_restore_archive').items[0].session.id).toBe('restored')
+    expect(sent('db_restore_archive').ledger.schemaVersion).toBe(1)
+  })
+
+  it('refuses an invalid archive before invoking Rust', async () => {
+    await expect(repo.restoreArchive({ schemaVersion: 2, sessions: [] })).rejects.toThrow('Unsupported backup schema')
+    expect(called('db_restore_archive')).toBe(false)
+  })
 })
 
 describe('saving', () => {

@@ -38,7 +38,7 @@ describe('the repository interface', () => {
   const REQUIRED_METHODS = [
     'loadAll', 'listSessionSummaries', 'getSession', 'saveSession',
     'updateSession', 'deleteSession', 'clearAll', 'loadFocusLedger',
-    'backfillFocusLedger', 'exportArchive', 'migrateLegacyIfNeeded',
+    'backfillFocusLedger', 'exportArchive', 'restoreArchive', 'migrateLegacyIfNeeded',
   ]
 
   it('exposes every required method', () => {
@@ -52,6 +52,7 @@ describe('the repository interface', () => {
       loadAll: [], listSessionSummaries: [{}], getSession: ['nope'],
       updateSession: ['nope', {}], deleteSession: ['nope'], clearAll: [],
       loadFocusLedger: [], backfillFocusLedger: [], exportArchive: [],
+      restoreArchive: [{ schemaVersion: 1, sessions: [] }],
       migrateLegacyIfNeeded: [],
     }
     for (const [method, args] of Object.entries(calls)) {
@@ -195,6 +196,29 @@ describe('export', () => {
     await repo.saveSession(sessionData({ timeline }))
     const archive = await repo.exportArchive()
     expect(archive.sessions[0].timeline).toEqual(timeline)
+  })
+})
+
+describe('restore', () => {
+  it('merges new sessions and keeps existing ids untouched', async () => {
+    const existing = await repo.saveSession(sessionData({ id: 'keep', task: 'Existing' }))
+    const outcome = await repo.restoreArchive({
+      schemaVersion: 1,
+      sessions: [
+        { ...existing, task: 'Must not overwrite' },
+        sessionData({ id: 'restored', timestamp: Date.now() - 1000, task: 'Restored' }),
+      ],
+    })
+
+    expect(outcome).toMatchObject({ importedCount: 1, skippedDuplicateCount: 1, verified: true })
+    expect((await repo.getSession('keep')).task).toBe('Existing')
+    expect((await repo.getSession('restored')).task).toBe('Restored')
+  })
+
+  it('rejects an invalid archive without changing history', async () => {
+    await repo.saveSession(sessionData({ id: 'keep' }))
+    await expect(repo.restoreArchive({ schemaVersion: 2, sessions: [] })).rejects.toThrow('Unsupported backup schema')
+    expect(await repo.loadAll()).toHaveLength(1)
   })
 })
 

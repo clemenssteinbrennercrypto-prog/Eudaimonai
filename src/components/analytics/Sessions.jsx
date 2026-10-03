@@ -6,6 +6,7 @@ import ConfirmDialog from '../ConfirmDialog'
 import SessionDetailView from './sessions/SessionDetailView'
 import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt, sessionWallSeconds } from '../../lib/sessionTiming'
 import { loadFocusScoreSchedule } from '../../lib/focusScoreSchedule'
+import { readArchiveSettings } from '../../lib/sessionArchive'
 
 const PAGE_SIZE = 10
 const DATE_FILTERS = [['all', 'All time'], ['week', 'This week'], ['month', 'This month']]
@@ -86,7 +87,14 @@ function exportCSV(sessions) {
 // Unlike the CSV, the full archive is always the complete, lossless history —
 // full records, timelines, and the ledger — regardless of the active filters.
 export function buildFullArchive(sessions, focusLedger, exportedAt = new Date().toISOString()) {
-  return { schemaVersion: 1, exportedAt, sessions, focusLedger, focusScoreSchedule: loadFocusScoreSchedule() }
+  return {
+    schemaVersion: 1,
+    exportedAt,
+    sessions,
+    focusLedger,
+    focusScoreSchedule: loadFocusScoreSchedule(),
+    appSettings: readArchiveSettings(),
+  }
 }
 
 function exportFullArchive(sessions, focusLedger) {
@@ -156,7 +164,7 @@ function SessionRow({ session, onSelect, onDelete, deleteDisabled }) {
  * overview in place (SessionDetailView) — a dedicated route isn't needed
  * since "back" is just clearing the selection.
  */
-export default function Sessions({ sessions, focusLedger, selectedSessionId, onSelectSession, onDeleteSession, onClearAll, onUpdateSession, compact = false }) {
+export default function Sessions({ sessions, focusLedger, selectedSessionId, onSelectSession, onDeleteSession, onClearAll, onUpdateSession, onRestoreArchive, compact = false }) {
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('all')
   const [outcomeFilter, setOutcomeFilter] = useState('all')
@@ -167,7 +175,52 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [pendingAction, setPendingAction] = useState(null)
   const [actionError, setActionError] = useState(null)
+  const [restoreError, setRestoreError] = useState(null)
+  const [restoreMessage, setRestoreMessage] = useState(null)
   const mutationPendingRef = useRef(false)
+  const archiveInputRef = useRef(null)
+
+  const restoreArchive = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || mutationPendingRef.current || !onRestoreArchive) return
+    mutationPendingRef.current = true
+    setPendingAction({ kind: 'restore' })
+    setActionError(null)
+    setRestoreError(null)
+    setRestoreMessage(null)
+    try {
+      const archive = JSON.parse(await file.text())
+      const result = await onRestoreArchive(archive)
+      const summary = `${result.importedCount} session${result.importedCount === 1 ? '' : 's'} restored. ${result.skippedDuplicateCount} existing duplicate${result.skippedDuplicateCount === 1 ? '' : 's'} kept unchanged.`
+      setRestoreMessage(result.settingsWarning ? `${summary} Workday settings could not be restored: ${result.settingsWarning}` : summary)
+    } catch (error) {
+      setRestoreError(`Nothing was restored. ${String(error?.message || error)}`)
+    } finally {
+      mutationPendingRef.current = false
+      setPendingAction(null)
+    }
+  }
+
+  const restoreControl = (
+    <>
+      <input
+        ref={archiveInputRef}
+        type="file"
+        accept="application/json,.json"
+        hidden
+        onChange={restoreArchive}
+      />
+      <button
+        type="button"
+        className="analytics-ghost-button"
+        disabled={Boolean(pendingAction) || !onRestoreArchive}
+        onClick={() => archiveInputRef.current?.click()}
+      >
+        {pendingAction?.kind === 'restore' ? 'Restoring…' : 'Restore full archive (JSON)'}
+      </button>
+    </>
+  )
 
   const requestDelete = (id) => {
     if (mutationPendingRef.current) return
@@ -267,11 +320,20 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
   }
 
   if (sessions.length === 0) {
-    return <p className="analytics-sessions-empty">No sessions yet.</p>
+    return (
+      <div className="analytics-sessions-empty">
+        <p>No sessions yet.</p>
+        {restoreControl}
+        {restoreError && <p role="alert">{restoreError}</p>}
+        {restoreMessage && <p role="status">{restoreMessage}</p>}
+      </div>
+    )
   }
 
   return (
     <div className="analytics-sessions">
+      {restoreError && <div role="alert" className="session-save-error">{restoreError}</div>}
+      {restoreMessage && <div role="status" className="session-save-success">{restoreMessage}</div>}
       {!compact && (
         <div className="analytics-filter-pills">
           {DATE_FILTERS.map(([val, label]) => (
@@ -342,6 +404,7 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
           <div>
             <button type="button" className="analytics-ghost-button" onClick={() => exportCSV(filtered)}>Export CSV</button>
             <button type="button" className="analytics-ghost-button" onClick={() => exportFullArchive(sessions, focusLedger)}>Export full archive (JSON)</button>
+            {restoreControl}
             <button type="button" className="analytics-ghost-button is-danger" disabled={Boolean(pendingAction)} onClick={() => { setActionError(null); setConfirmClear(true) }}>Clear all history</button>
           </div>
         </details>
@@ -349,6 +412,7 @@ export default function Sessions({ sessions, focusLedger, selectedSessionId, onS
         <div className="analytics-data-actions">
           <button type="button" className="analytics-ghost-button" onClick={() => exportCSV(filtered)}>Export CSV</button>
           <button type="button" className="analytics-ghost-button" onClick={() => exportFullArchive(sessions, focusLedger)}>Export full archive (JSON)</button>
+          {restoreControl}
           <button type="button" className="analytics-ghost-button is-danger" disabled={Boolean(pendingAction)} onClick={() => { setActionError(null); setConfirmClear(true) }}>Clear all history</button>
         </div>
       )}

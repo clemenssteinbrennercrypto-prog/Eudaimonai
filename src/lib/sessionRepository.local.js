@@ -19,8 +19,9 @@ import {
   backfillFocusLedgerFromSessions,
 } from './storage'
 import { filterSessions, paginate } from './sessionQuery'
-import { loadFocusScoreSchedule } from './focusScoreSchedule'
+import { loadFocusScoreSchedule, saveFocusScoreSchedule } from './focusScoreSchedule'
 import { analyzeSession } from './sessionAnalysis'
+import { readArchiveSettings, restoreArchiveSettings, validateSessionArchive } from './sessionArchive'
 
 export const ARCHIVE_SCHEMA_VERSION = 1
 
@@ -82,6 +83,32 @@ export function createLocalSessionRepository() {
         sessions: loadSessions(),
         focusLedger: loadFocusLedger(),
         focusScoreSchedule: loadFocusScoreSchedule(),
+        appSettings: readArchiveSettings(),
+      }
+    },
+
+    async restoreArchive(archive) {
+      const validated = validateSessionArchive(archive)
+      const existing = loadSessions()
+      const existingIds = new Set(existing.map(session => session?.id).filter(Boolean))
+      const additions = validated.sessions.filter(session => !existingIds.has(session.id))
+      if (existing.length + additions.length > 100) {
+        throw new Error('This browser-only build cannot safely restore more than 100 sessions. Use the native app instead.')
+      }
+      for (const session of additions) {
+        saveSessionSync({ ...session, analysisSnapshot: analyzeSession(session) })
+      }
+      backfillFocusLedgerFromSessions()
+      let settingsWarning = null
+      try {
+        if (validated.focusScoreSchedule) saveFocusScoreSchedule(validated.focusScoreSchedule)
+        restoreArchiveSettings(validated.appSettings)
+      } catch (error) { settingsWarning = String(error?.message || error) }
+      return {
+        importedCount: additions.length,
+        skippedDuplicateCount: validated.sessions.length - additions.length,
+        verified: true,
+        settingsWarning,
       }
     },
 

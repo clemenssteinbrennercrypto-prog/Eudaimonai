@@ -154,6 +154,7 @@ export default function AnalyticsStory({
   onDeleteSession,
   onClearAll,
   onUpdateSession,
+  onRestoreArchive,
 }) {
   const story = useMemo(() => buildAnalyticsStory(sessions), [sessions])
 
@@ -178,6 +179,7 @@ export default function AnalyticsStory({
           onDeleteSession={onDeleteSession}
           onClearAll={onClearAll}
           onUpdateSession={onUpdateSession}
+          onRestoreArchive={onRestoreArchive}
         />
       </section>
     </div>

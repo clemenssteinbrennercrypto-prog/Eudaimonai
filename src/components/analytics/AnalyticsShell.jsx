@@ -143,6 +143,13 @@ export default function AnalyticsShell({ onClose, onHistoryCleared = () => {} })
     await refresh()
   }
 
+  const handleRestoreArchive = async (archive) => {
+    const result = await sessionRepository.restoreArchive(archive)
+    await refresh()
+    setMutationError(null)
+    return result
+  }
+
   return (
     <div className="analytics-shell">
       {mutationError && <div role="alert" className="session-save-error">{mutationError}</div>}
@@ -201,6 +208,7 @@ export default function AnalyticsShell({ onClose, onHistoryCleared = () => {} })
                 onDeleteSession={handleDeleteSession}
                 onClearAll={handleClearAll}
                 onUpdateSession={handleUpdateSession}
+                onRestoreArchive={handleRestoreArchive}
               />
             )}
             {view === 'data' && (
