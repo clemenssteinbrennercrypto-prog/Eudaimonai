@@ -10,7 +10,7 @@ tauri-build = { version = "2", features = [] }
 
 [target.'cfg(target_os = "macos")'.build-dependencies]
 mediapipe = "0.1.0"
-sha2 = "0.10"
+sha2 = "0.11"
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
