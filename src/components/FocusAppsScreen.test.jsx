@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import FocusAppsScreen from './FocusAppsScreen'
 import { PROTECTION_SETUPS_KEY, loadProtectionSetups } from '../lib/storage'
 import { normalizeProtectionState } from '../lib/protectionSetups'
-import { installCompanionHelper, pushCompanionSession } from '../lib/nativeCompanion'
+import { installCompanionHelper, pushCompanionSession, uninstallCompanionHelper } from '../lib/nativeCompanion'
 
 const companion = vi.hoisted(() => ({ debug: null }))
 
@@ -14,6 +14,7 @@ vi.mock('../lib/nativeCompanion', () => ({
   fetchCompanionDebug: vi.fn(async () => companion.debug),
   fetchNativeCameraStatus: vi.fn(async () => null),
   installCompanionHelper: vi.fn(async () => ({ ok: true })),
+  uninstallCompanionHelper: vi.fn(async () => ({ ok: true })),
   listenNativeCameraLandmarks: vi.fn(async () => () => {}),
   listenNativeCameraStatus: vi.fn(async () => () => {}),
   pushCompanionSession: vi.fn(async () => true),
@@ -231,6 +232,15 @@ describe('FocusAppsScreen readiness', () => {
 
     fireEvent.click(setupButton('Writing'))
     expect(screen.getByText('Ready for focus')).toBeInTheDocument()
+  })
+
+  it('removes the privileged helper explicitly and returns website protection to setup-required', async () => {
+    companion.debug = { helperInstalled: true }
+    await renderScreen()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove helper' }))
+    await waitFor(() => expect(uninstallCompanionHelper).toHaveBeenCalledOnce())
+    await waitFor(() => expect(screen.getByText('Website helper required')).toBeInTheDocument())
   })
 
   it('reports ready once the Companion confirms it can enforce the rules', async () => {

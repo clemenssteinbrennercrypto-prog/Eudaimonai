@@ -259,6 +259,7 @@ fn main() {
             native::get_companion_session,
             native::set_companion_session,
             native::install_blocking_helper,
+            native::uninstall_blocking_helper,
             native::set_output_watch_folder,
             native::get_output_delta,
             credentials::set_cloud_api_key,

@@ -12,6 +12,8 @@ import {
   setNativeCameraPreview,
   startNativeCameraPrototype,
   stopNativeCameraPrototype,
+  installCompanionHelper,
+  uninstallCompanionHelper,
   setCloudApiKey,
   deleteCloudApiKey,
 } from './nativeCompanion'
@@ -45,6 +47,18 @@ describe('fetchCompanionDebug', () => {
     globalThis.window = { __TAURI__: { core: { invoke } } }
 
     await expect(fetchCompanionDebug()).resolves.toBeNull()
+  })
+})
+
+describe('privileged helper boundary', () => {
+  it('installs and removes only through native commands', async () => {
+    const invoke = vi.fn().mockResolvedValue({ ok: true, error: null })
+    globalThis.window = { __TAURI__: { core: { invoke } } }
+
+    await expect(installCompanionHelper()).resolves.toEqual({ ok: true, error: null })
+    await expect(uninstallCompanionHelper()).resolves.toEqual({ ok: true, error: null })
+    expect(invoke).toHaveBeenNthCalledWith(1, 'install_blocking_helper')
+    expect(invoke).toHaveBeenNthCalledWith(2, 'uninstall_blocking_helper')
   })
 })
 

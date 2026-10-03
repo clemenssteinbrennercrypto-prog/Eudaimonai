@@ -176,6 +176,15 @@ export async function installCompanionHelper() {
   }
 }
 
+export async function uninstallCompanionHelper() {
+  try {
+    return await invokeNative('uninstall_blocking_helper')
+      || { ok: false, error: 'Native runtime unavailable' }
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) }
+  }
+}
+
 export async function setOutputWatchFolder(path) {
   try {
     return await invokeNative('set_output_watch_folder', { path: path || '' })
