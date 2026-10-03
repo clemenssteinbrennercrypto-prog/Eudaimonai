@@ -76,6 +76,15 @@ or workflow run you expected.
 The old browser extension source remains archived in `extension/`, but it is not
 built, wired into the app, or a supported product path.
 
+## Compatibility identifiers
+
+The public product name is **Eudaimonai**. A small set of internal identifiers
+still uses the historical `eudonomia` or `eudaimonia` spelling so existing
+installs keep their data, updater continuity, permissions, Dock pins, and focus
+rules. These identifiers are documented in
+[`docs/compatibility-identifiers.md`](docs/compatibility-identifiers.md) and
+must not be renamed as a cosmetic cleanup.
+
 ## Website Deployment (Vercel)
 
 1. Go to [vercel.com](https://vercel.com) → **New Project**
