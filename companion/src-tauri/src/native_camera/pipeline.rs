@@ -54,6 +54,24 @@ pub(super) struct RgbFrame {
     pub pixels: Vec<u8>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(super) struct FrameQuality {
+    pub mean_luma: f32,
+    pub dark_fraction: f32,
+    pub bright_fraction: f32,
+}
+
+#[derive(Debug)]
+pub(super) struct FrameObservation {
+    pub landmarks: Option<Vec<Landmark>>,
+    /// Strongest face evidence produced by either the detector or landmarker.
+    /// This deliberately includes sub-threshold evidence so the UI can
+    /// distinguish an obscured face from a confidently empty frame without
+    /// weakening the pinned model's 0.5 acceptance threshold.
+    pub face_confidence: f32,
+    pub quality: FrameQuality,
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct Landmark {
@@ -141,13 +159,20 @@ impl NativeFacePipeline {
         Ok(())
     }
 
-    pub fn process(&mut self, frame: &RgbFrame) -> Result<Option<Vec<Landmark>>, String> {
+    pub fn process(&mut self, frame: &RgbFrame) -> Result<FrameObservation, String> {
         frame.validate()?;
-        let roi = match self.previous_roi {
-            Some(roi) => roi,
+        let quality = frame_quality(frame);
+        let (roi, detector_confidence) = match self.previous_roi {
+            Some(roi) => (roi, 0.0),
             None => match self.detect_roi(frame)? {
-                Some(roi) => roi,
-                None => return Ok(None),
+                (Some(roi), confidence) => (roi, confidence),
+                (None, confidence) => {
+                    return Ok(FrameObservation {
+                        landmarks: None,
+                        face_confidence: confidence,
+                        quality,
+                    })
+                }
             },
         };
 
@@ -155,27 +180,28 @@ impl NativeFacePipeline {
         // documented ImageToTensor default is BORDER_REPLICATE. This matters
         // when a tracked face ROI crosses an image edge: zero-filling changes
         // the model input and can produce confident but incompatible geometry.
-        let tensor = image_to_tensor(
-            frame,
-            roi,
-            LANDMARK_SIZE,
-            0.0,
-            1.0,
-            BorderMode::Replicate,
-        );
+        let tensor = image_to_tensor(frame, roi, LANDMARK_SIZE, 0.0, 1.0, BorderMode::Replicate);
         let outputs = self.landmarker.invoke_f32(&tensor)?;
         let face_score = sigmoid(outputs[6][0]);
         if face_score < FACE_CONFIDENCE_THRESHOLD {
             self.previous_roi = None;
-            return Ok(None);
+            return Ok(FrameObservation {
+                landmarks: None,
+                face_confidence: detector_confidence.max(face_score),
+                quality,
+            });
         }
 
         let landmarks = refine_and_project_landmarks(&outputs, roi)?;
         self.previous_roi = roi_from_landmarks(&landmarks, frame.width, frame.height);
-        Ok(Some(landmarks))
+        Ok(FrameObservation {
+            landmarks: Some(landmarks),
+            face_confidence: detector_confidence.max(face_score),
+            quality,
+        })
     }
 
-    fn detect_roi(&mut self, frame: &RgbFrame) -> Result<Option<Roi>, String> {
+    fn detect_roi(&mut self, frame: &RgbFrame) -> Result<(Option<Roi>, f32), String> {
         let full_image_roi = square_long_roi(frame.width, frame.height);
         // Unlike the landmark graph, the detector explicitly requests
         // BORDER_ZERO for its aspect-ratio letterbox.
@@ -188,10 +214,21 @@ impl NativeFacePipeline {
             BorderMode::Zero,
         );
         let outputs = self.detector.invoke_f32(&tensor)?;
+        if outputs.len() != 2 || outputs[1].len() != 896 {
+            return Err("legacy face detector returned unexpected tensor shapes".into());
+        }
+        let best_confidence = outputs[1]
+            .iter()
+            .copied()
+            .map(|score| sigmoid(score.clamp(-100.0, 100.0)))
+            .fold(0.0_f32, f32::max);
         let detections = decode_detections(&outputs, full_image_roi)?;
-        Ok(weighted_nms(detections)
-            .first()
-            .map(|detection| roi_from_detection(detection, frame.width, frame.height)))
+        Ok((
+            weighted_nms(detections)
+                .first()
+                .map(|detection| roi_from_detection(detection, frame.width, frame.height)),
+            best_confidence,
+        ))
     }
 }
 
@@ -212,6 +249,34 @@ impl RgbFrame {
             ));
         }
         Ok(())
+    }
+}
+
+fn frame_quality(frame: &RgbFrame) -> FrameQuality {
+    // Sampling every fourth pixel keeps this metadata cheap at 640x480 while
+    // covering the whole frame. Only three aggregate numbers leave Rust; live
+    // pixels remain in the native process.
+    let mut samples = 0_u32;
+    let mut luma_sum = 0.0_f32;
+    let mut dark = 0_u32;
+    let mut bright = 0_u32;
+    for pixel in frame.pixels.chunks_exact(3).step_by(4) {
+        let luma = (0.2126 * pixel[0] as f32 + 0.7152 * pixel[1] as f32 + 0.0722 * pixel[2] as f32)
+            / 255.0;
+        samples += 1;
+        luma_sum += luma;
+        if luma <= 0.08 {
+            dark += 1;
+        }
+        if luma >= 0.92 {
+            bright += 1;
+        }
+    }
+    let count = samples.max(1) as f32;
+    FrameQuality {
+        mean_luma: luma_sum / count,
+        dark_fraction: dark as f32 / count,
+        bright_fraction: bright as f32 / count,
     }
 }
 
@@ -613,6 +678,32 @@ fn distance(left: Landmark, right: Landmark) -> f32 {
 mod tests {
     use super::*;
 
+    fn solid_frame(value: u8) -> RgbFrame {
+        RgbFrame {
+            width: 4,
+            height: 4,
+            pixels: vec![value; 4 * 4 * 3],
+        }
+    }
+
+    #[test]
+    fn frame_quality_reports_only_aggregate_exposure_evidence() {
+        let dark = frame_quality(&solid_frame(0));
+        assert_eq!(dark.mean_luma, 0.0);
+        assert_eq!(dark.dark_fraction, 1.0);
+        assert_eq!(dark.bright_fraction, 0.0);
+
+        let neutral = frame_quality(&solid_frame(128));
+        assert!((neutral.mean_luma - (128.0 / 255.0)).abs() < 1e-6);
+        assert_eq!(neutral.dark_fraction, 0.0);
+        assert_eq!(neutral.bright_fraction, 0.0);
+
+        let bright = frame_quality(&solid_frame(255));
+        assert_eq!(bright.mean_luma, 1.0);
+        assert_eq!(bright.dark_fraction, 0.0);
+        assert_eq!(bright.bright_fraction, 1.0);
+    }
+
     #[test]
     fn detector_anchor_layout_matches_the_legacy_graph() {
         let anchors = detector_anchors();
@@ -629,14 +720,7 @@ mod tests {
             height: 1,
             pixels: vec![255, 0, 0, 0, 0, 255],
         };
-        let tensor = image_to_tensor(
-            &frame,
-            square_long_roi(2, 1),
-            2,
-            0.0,
-            1.0,
-            BorderMode::Zero,
-        );
+        let tensor = image_to_tensor(&frame, square_long_roi(2, 1), 2, 0.0, 1.0, BorderMode::Zero);
         assert_eq!(tensor.len(), 12);
         // Both rows straddle the image boundary equally. Red remains on the
         // left and blue on the right; no mirror is introduced by preprocessing.

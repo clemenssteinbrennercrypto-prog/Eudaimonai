@@ -170,9 +170,19 @@ describe('SessionScreen accumulation wiring', () => {
 
   it('feeds validated native landmarks into the unchanged scoring callback', () => {
     expect(source).toContain('nativeLandmarksForScoring(payload)')
+    expect(source).toContain('nativeFrameQualityForScoring(payload)')
     expect(source).toContain('{ multiFaceLandmarks: landmarks.length ? [landmarks] : [] },')
     expect(source).toContain('payload.capturedAtMs')
     expect(source).toContain('attentionMeasurementSource: cameraMeasurement.id')
+  })
+
+  it('withholds every measurement accumulator while camera visibility is untrustworthy', () => {
+    expect(source).toContain('measurementTrustworthyRef.current = !measurementUncertain')
+    expect(source).toContain('!cameraFaultRef.current && measurementTrustworthyRef.current')
+    const trustGuard = source.indexOf('if (!measurementTrustworthyRef.current) {')
+    const accumulation = source.indexOf('accumulateMeasurement({ sampleSeconds, now, elapsedSecs })', trustGuard)
+    expect(trustGuard).toBeGreaterThan(-1)
+    expect(source.indexOf('return', trustGuard)).toBeLessThan(accumulation)
   })
 
   it('shows the exact Deep Focus timer throughout the measured session', () => {

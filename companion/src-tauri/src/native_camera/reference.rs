@@ -131,9 +131,10 @@ fn run_reference_harness_inner(
                 }
             }
         }
-        let landmarks = pipeline
+        let observation = pipeline
             .process(&frame)
             .map_err(|error| format!("analyze {}: {error}", path.display()))?;
+        let landmarks = observation.landmarks;
         if landmarks.is_some() {
             frames_with_face += 1;
         }
