@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // SF Symbols-style line glyphs for the sidebar (16px grid, 1.5px stroke).
 const ICONS = {
@@ -48,6 +48,18 @@ function Glyph({ id }) {
 // and the toolbar drag the window, as a native title bar would.
 export default function AppShell({ active, onNavigate, onLegal, utility, footer, protectionStatus, children }) {
   const [collapsed, setCollapsed] = useState(readCollapsed)
+  // Whether the collapsed rail is temporarily showing the full sidebar.
+  // Driven from JS, not CSS :hover/:has: WebKit (the macOS app's engine) did
+  // not reliably re-evaluate those selectors on the items, leaving a mix of
+  // rail and full rows while the pointer moved over the sidebar.
+  const [peek, setPeek] = useState(false)
+  const peekTimer = useRef(null)
+  const schedulePeek = (next, delay) => {
+    window.clearTimeout(peekTimer.current)
+    peekTimer.current = window.setTimeout(() => setPeek(next), delay)
+  }
+  useEffect(() => () => window.clearTimeout(peekTimer.current), [])
+  useEffect(() => { if (!collapsed) setPeek(false) }, [collapsed])
   const toggleSidebar = () => setCollapsed(current => {
     const next = !current
     try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next)) } catch { /* view preference only */ }
@@ -90,8 +102,19 @@ export default function AppShell({ active, onNavigate, onLegal, utility, footer,
   }, [onNavigate])
 
   return (
-    <div className={`app-shell${collapsed ? ' is-sidebar-collapsed' : ''}`}>
-      <aside className="app-sidebar" aria-label="Eudaimonai">
+    <div className={`app-shell${collapsed ? ' is-sidebar-collapsed' : ''}${collapsed && peek ? ' is-sidebar-peek' : ''}`}>
+      <aside
+        className="app-sidebar"
+        aria-label="Eudaimonai"
+        onMouseEnter={() => collapsed && schedulePeek(true, 160)}
+        onMouseLeave={() => collapsed && schedulePeek(false, 120)}
+        onFocus={event => {
+          if (collapsed && event.target.matches?.(':focus-visible')) schedulePeek(true, 0)
+        }}
+        onBlur={event => {
+          if (collapsed && !event.currentTarget.contains(event.relatedTarget)) schedulePeek(false, 0)
+        }}
+      >
         <div className="app-sidebar-titlebar" data-tauri-drag-region>
           <button
             type="button"

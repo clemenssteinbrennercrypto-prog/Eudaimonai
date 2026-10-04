@@ -4475,35 +4475,33 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 
 .app-shell.is-sidebar-collapsed { --ds-sidebar-w: 76px; }
 .app-shell.is-sidebar-collapsed .app-sidebar { overflow: hidden; }
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item span,
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-brand span,
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item em,
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-meta,
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-refresh-button span:last-child { opacity: 0; pointer-events: none; }
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-toggle { opacity: 0; }
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-brand span,
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-item em,
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-meta,
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-refresh-button span:last-child { opacity: 0; pointer-events: none; }
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-toggle { opacity: 0; }
 /* Rail: each item is a centred square, so the selection is never clipped,
    and the Protection dot becomes a badge on the icon's corner. */
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item {
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-item {
   width: 40px;
   margin-inline: auto;
   justify-content: center;
   padding: 0;
 }
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-status {
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-status {
   position: absolute;
   top: 6px;
   left: 23px;
   margin: 0;
   box-shadow: 0 0 0 2px var(--ds-bg);
 }
-.app-shell.is-sidebar-collapsed .app-sidebar:hover,
-.app-shell.is-sidebar-collapsed .app-sidebar:has(:focus-visible) {
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar {
   width: 220px;
   box-shadow: 18px 0 40px rgba(0, 0, 0, 0.45);
-  transition-delay: 160ms;
 }
-.app-shell.is-sidebar-collapsed .app-sidebar:hover .app-sidebar-item span,
-.app-shell.is-sidebar-collapsed .app-sidebar:hover .app-sidebar-brand span { transition-delay: 200ms; }
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar-brand span { transition-delay: 60ms; }
 
 @media (prefers-reduced-motion: reduce) {
   .app-sidebar,
@@ -4752,8 +4750,8 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 /* The Protection status dot: small, vertically centred on the row. */
 .app-sidebar-status { width: 6px; height: 6px; flex: none; }
 /* In the rail the hidden label leaves the layout, so the icon is centred. */
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item span,
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item em {
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-item em {
   position: absolute;
   width: 0;
   overflow: hidden;
