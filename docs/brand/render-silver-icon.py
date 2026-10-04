@@ -1,13 +1,14 @@
-"""Renders the Eudaimonai app icon: a silver ring with a silver core on night
-blue (#080B1C), chosen by Clemens on 4 Oct 2026 ("B · feines Relief").
-
-The silver is lit, not painted: each shape gets per-pixel normals and reflects
-a bright studio environment, which is what makes it read as polished metal.
-The relief is squashed (k = 0.55) so it looks machined rather than inflated.
-Also renders the flat variant for 16-32 px uses.
+"""Renders the Eudaimonai app icon: a flat silver ring with a silver core on
+night blue (#080B1C). Chosen by Clemens on 4 Oct 2026 ("B · Flach Silber")
+over the lit relief version, white on ultramarine, an ultramarine mark and a
+glass version: it matches the flat score rings in the Lab and stays crisp at
+16 px. The silver is solid platinum with one soft diagonal sheen; no relief,
+no shadow on the mark.
 
     python3 docs/brand/render-silver-icon.py
-writes eudaimonai-icon-1024.png and eudaimonai-icon-flat-1024.png next to it.
+writes, next to this file:
+  eudaimonai-icon-1024.png        full-bleed (website, iOS touch icon)
+  eudaimonai-icon-macos-1024.png  on Apple's icon grid (app bundle, Dock)
 """
 import numpy as np
 from PIL import Image, ImageFilter
@@ -84,24 +85,12 @@ def save(name, img, alpha):
     Image.fromarray(rgba).resize((1024, 1024), Image.LANCZOS).save(f'{OUT}/{name}.png')
 
 
-def flatten(nx, ny, nz, k):
-    nx, ny = nx * k, ny * k
-    return nx, ny, np.sqrt(np.clip(1 - nx ** 2 - ny ** 2, 0, 1))
-
+_, _, _, ring = torus(0, 0, 0.52, 0.085)
+_, _, _, core = sphere(0, 0, 0.20)
+mark = np.maximum(ring, core)
 img, A = canvas()
-nx, ny, nz, m = torus(0, 0, 0.52, 0.085)
-sx, sy, sz, sm = sphere(0, 0, 0.20)
-img = shadow(img, np.maximum(m, sm), 0.02, 18, 0.35)
-nx, ny, nz = flatten(nx, ny, nz, 0.55); sx, sy, sz = flatten(sx, sy, sz, 0.55)
-rgb, _ = shade(nx, ny, nz, m); img = comp(img, rgb, m)
-s2, _ = shade(sx, sy, sz, sm)
-save('eudaimonai-icon-1024', comp(img, s2, sm), A)
-
-img, A = canvas()
-ang = np.arctan2(Y, X)
-v = 0.66 + 0.30 * (0.5 + 0.5 * np.cos(2 * ang + 0.9)) ** 1.4
-v = v / (1 + 0.15 * v)
-save('eudaimonai-icon-flat-1024', comp(img, np.stack([v * .95, v * .97, v], -1), np.maximum(m, sm)), A)
+sheen = 0.80 + 0.12 * np.clip(-(X + Y) * 0.6, -1, 1)
+save('eudaimonai-icon-1024', comp(img, np.stack([sheen * .94, sheen * .96, sheen], -1), mark), A)
 
 # macOS app icon grid (Big Sur and later): the artwork sits at 824 px inside a
 # transparent 1024 px canvas with a soft drop shadow, so it matches the size of

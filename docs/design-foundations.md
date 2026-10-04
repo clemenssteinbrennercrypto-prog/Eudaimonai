@@ -344,11 +344,15 @@ Quiet signatures, chosen 3 Oct 2026:
 
 ## 5b. App icon
 
-A silver ring with a silver core on night blue `#080B1C`, rendered as lit
-metal with a shallow, machined relief (chosen 4 Oct 2026 over a fully 3D and
-a flat version). `docs/brand/render-silver-icon.py` reproduces it and a flat
-variant for 16–32 px uses (favicon, small marks). Don't redraw it as flat
-SVG gradients: that read as grey, which is why it was redone.
+A flat silver ring with a silver core on night blue `#080B1C` ("B · Flach
+Silber", chosen 4 Oct 2026 over a lit relief version, white on ultramarine,
+an ultramarine mark and a glass version). Solid platinum with one soft
+diagonal sheen, no relief: it matches the flat score rings and stays crisp at
+16 px. One mark everywhere: app bundle and Dock (on Apple's icon grid),
+website favicon, iOS touch icon and the sidebar logo.
+`docs/brand/render-silver-icon.py` renders both the full-bleed and the
+grid version; every size is generated from those. The menu-bar extra stays
+a monochrome template image of the same ring and core.
 
 ## 6. Website
 
