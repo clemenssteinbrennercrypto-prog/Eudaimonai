@@ -401,6 +401,12 @@ export default function SessionScreen({
   const nativePreviewRef = useRef(null)
   const nativePreviewHostRef = useRef(null)
   const syncNativePreviewRef = useRef(() => {})
+  // A size change is animated by Core Animation, not by CSS: the placeholder
+  // jumps to its new size and the native layer is asked once to animate
+  // there. Until this time, the next geometry sent carries animate: true.
+  const previewAnimateUntilRef = useRef(0)
+  const lastPreviewBoundsRef = useRef('')
+  const [camResizing, setCamResizing] = useState(false)
   const sessionEndedRef = useRef(false)
   const endConfirmRef = useRef(false)
   const startTimeRef    = useRef(Date.now())
@@ -2042,15 +2048,25 @@ export default function SessionScreen({
       if (stopped || !preview.isConnected) return
       const rect = preview.getBoundingClientRect()
       const style = window.getComputedStyle(preview)
-      const cornerRadius = Number.parseFloat(style.borderTopLeftRadius) || 0
-      setNativeCameraPreview({
+      // Pixel radii only: a percentage would reach Core Animation as a bare
+      // number (50 for "50%") and overshoot a 32 px circle.
+      const cornerRadius = Math.min(Number.parseFloat(style.borderTopLeftRadius) || 0, rect.width / 2, rect.height / 2)
+      const bounds = {
         right: window.innerWidth - rect.right,
         bottom: window.innerHeight - rect.bottom,
         width: rect.width,
         height: rect.height,
         visible: Number.parseFloat(style.opacity) > 0.01 && rect.width >= 1 && rect.height >= 1,
         cornerRadius,
-      }).catch(() => {})
+      }
+      // The two ResizeObserver targets report the same geometry; sending it
+      // twice would restart the native animation from its end point.
+      const key = JSON.stringify(bounds)
+      if (key === lastPreviewBoundsRef.current) return
+      lastPreviewBoundsRef.current = key
+      const animate = performance.now() < previewAnimateUntilRef.current
+      previewAnimateUntilRef.current = 0
+      setNativeCameraPreview({ ...bounds, animate }).catch(() => {})
     }
     syncNativePreviewRef.current = sync
 
@@ -2109,7 +2125,7 @@ export default function SessionScreen({
       if (cancelled || generation !== cameraGenerationRef.current || !status) return
       const fault = nativeCameraFaultFor(status)
       if (fault) interruptCamera(fault)
-      else if (status.state === 'running') syncNativePreviewRef.current()
+      else if (status.state === 'running') { lastPreviewBoundsRef.current = ''; syncNativePreviewRef.current() }
     }
 
     const start = async () => {
@@ -2744,17 +2760,29 @@ export default function SessionScreen({
             ref={nativePreviewRef}
             className="webcam-feed"
             aria-label="Live camera preview"
-            onClick={() => !camHidden && setCamSize(s => s === 'full' ? 'mini' : 'full')}
+            onClick={() => {
+              if (camHidden) return
+              previewAnimateUntilRef.current = performance.now() + 400
+              setCamResizing(true)
+              window.setTimeout(() => setCamResizing(false), 280)
+              setCamSize(size => size === 'full' ? 'mini' : 'full')
+            }}
             style={{
+              // No CSS size transition: the native layer animates itself, and
+              // a WebView transition would only stream intermediate frames it
+              // trails behind. The placeholder stays transparent so nothing
+              // drawn by the WebView shows around the moving layer; its ring
+              // returns once the layer has settled.
               opacity: camHidden ? 0 : 1,
               width: camHidden ? 0 : camSize === 'mini' ? 32 : 160,
               height: camHidden ? 0 : camSize === 'mini' ? 32 : 120,
-              borderRadius: camSize === 'mini' ? '50%' : 8,
+              borderRadius: camSize === 'mini' ? 16 : 10,
               marginBottom: camHidden ? 0 : undefined,
-              transition: 'opacity 0.25s ease, width 0.25s ease, height 0.25s ease, border-radius 0.25s ease',
+              boxShadow: camResizing || camHidden ? '0 0 0 1px transparent' : '0 0 0 1px var(--ds-silver-line, var(--line-strong))',
+              transition: 'box-shadow 160ms ease',
               display: 'block',
               cursor: camHidden ? 'default' : 'pointer',
-              background: 'rgba(7,11,26,0.92)',
+              background: 'transparent',
             }}
           />
           {!camHidden && camSize === 'full' && !isCalibrating && gazePos && (
