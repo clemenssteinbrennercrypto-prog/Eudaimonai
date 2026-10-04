@@ -218,6 +218,11 @@ not a lighter translucent blue), content fills the rest of the window.
   primary action of a screen (Start session, Save workspace, Done).
 - **Accessibility:** "Increase contrast" strengthens hairlines and secondary
   text; "Reduce transparency" makes sidebar, toolbars and panels solid.
+- **Hiding the sidebar:** the toggle in the sidebar, ⌃⌘S or Go > Toggle
+  Sidebar collapses it to a 76 px icon rail (wide enough for the traffic
+  lights). Hovering the rail opens the full sidebar as an overlay after a
+  160 ms pause, without moving the content; keyboard focus opens it too.
+  The choice is remembered per device (`eudaimonai_sidebar_collapsed`).
 - **Narrow windows** (< 760 px) keep an icon-only sidebar.
 - **Menu-bar extra:** a monochrome template image (`icons/tray-icon.png`),
   tinted by macOS. The app icon sits on Apple's grid (824 px body in a
@@ -225,11 +230,20 @@ not a lighter translucent blue), content fills the rest of the window.
 
 ### Attention colours
 
-Good attention is silver, only a problem is coloured: Deep Focus white
-(`--ds-attn-deep`), high attention silver (`--ds-attn-high`), focused dark
-silver (`--ds-attn-focused`), low attention amber (`--ds-attn-low`). Used by
-the Lab field, the live ring, session curves, timelines and history rows.
-Outcome colours (Done / Partial / Missed) and status colours stay separate.
+Chosen by Clemens on 4 Oct 2026 ("S2") after comparing silver, ultramarine,
+violet, gold, warm and green options side by side: **green when attention is
+good** (`--ds-attn-high`/`--ds-attn-deep` `#2FE3A8`), **darker green for
+focused** (`--ds-attn-focused` `#178A63`), **yellow only when it is low**
+(`--ds-attn-low` `#F5D547`). Grey means "not measured" and nothing else.
+Validated with the dataviz palette checker on `#080B1C`: adjacent pairs are
+distinct for normal vision and colour-vision deficiencies (lightness carries
+green vs yellow). Legends and tooltips always name the band, so colour is
+never the only cue.
+
+Silver is the brand material (score rings, app icon, large numbers), not a
+data colour: an all-silver chart read as grey, i.e. as missing data.
+Yellow is data; amber (`--ds-warn`) is app status (e.g. Protection needs
+attention). Outcome colours (Done / Partial / Missed) stay separate.
 
 ### Durations
 

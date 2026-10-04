@@ -111,13 +111,17 @@ button:focus-visible {
   --ds-accent-text:    #8C9DFF;  /* accent as text; #2C46FF is ~3:1 on dark */
   --ds-focus-ring:     rgba(140, 157, 255, 0.7);
 
-  /* Attention bands: good attention is silver, only a problem is coloured.
-     One scale for the Lab field, the live ring, session curves and
-     timelines. Outcome and status colours (good/warn/bad) are separate. */
-  --ds-attn-deep:    #FFFFFF;
-  --ds-attn-high:    #CDD2DB;
-  --ds-attn-focused: #858C99;
-  --ds-attn-low:     #FFB340;
+  /* Attention bands (chosen by Clemens on 4 Oct 2026, "S2"): green when
+     attention is good, a darker green for focused, yellow only when it is
+     low. Silver stays the brand material (score rings, icon, numbers); grey
+     means "not measured" only. Validated with the dataviz palette checker
+     on #080B1C: every adjacent pair is distinct for normal vision and the
+     common colour-vision deficiencies. Yellow is data, amber (--ds-warn) is
+     app status; keep them apart. */
+  --ds-attn-deep:    #2FE3A8;
+  --ds-attn-high:    #2FE3A8;
+  --ds-attn-focused: #178A63;
+  --ds-attn-low:     #F5D547;
   --ds-attn-none:    rgba(236, 238, 246, 0.24);
 
   --ds-good: #2FE3A8;
@@ -3791,10 +3795,10 @@ html {
   stroke-linecap: round;
   transition: stroke-dashoffset 700ms var(--ds-ease), stroke 450ms var(--ds-ease);
 }
-/* Silver while attention is good, so the session ring matches the Lab rings;
-   colour only appears when it carries a warning (amber, red).             */
-.live-ring.is-good { --live-tone: #DDE2EB; }
-.live-ring.is-good.is-flow { --live-tone: #FFFFFF; }
+/* The live ring speaks the attention scale: green when attention is good,
+   darker green for focused, yellow when it is low.                        */
+.live-ring.is-good { --live-tone: var(--ds-attn-high); }
+.live-ring.is-good.is-flow { --live-tone: var(--ds-attn-deep); }
 .live-ring.is-warn { --live-tone: var(--ds-attn-focused); }
 .live-ring.is-bad { --live-tone: var(--ds-attn-low); }
 .live-ring.is-calibrating { --live-tone: var(--ds-label-3); }
@@ -4408,8 +4412,8 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .protection-switch[aria-checked="true"] { border: 0; background: var(--ds-accent); box-shadow: none; }
 .protection-switch[aria-checked="true"] span { background: #fff; }
 
-/* Analytics rows and rings speak the attention scale: silver when good,
-   amber only for low attention. No glowing stripe, no hover lift. */
+/* Analytics rows and rings speak the attention scale (green, darker green,
+   yellow). No glowing stripe, no hover lift. */
 .analytics-session-row.is-good { --row-accent: var(--ds-attn-high); }
 .analytics-session-row.is-warn { --row-accent: var(--ds-attn-focused); }
 .analytics-session-row.is-bad { --row-accent: var(--ds-attn-low); }
@@ -4432,10 +4436,67 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
    strip at the top for the traffic lights. */
 .session-root { padding-top: 28px; }
 
-/* Attention trend in the silver scale: a silver line and points, the best
-   session marked in white instead of green (no infinite pulse either). */
+/* Attention trend in the attention scale; the best session is marked
+   without an infinite pulse. */
 .analytics-series-line { stroke: var(--ds-attn-high); }
 .analytics-point-halo { fill: var(--ds-attn-high); }
 .analytics-focus-point-mark { fill: var(--ds-attn-high); }
 .analytics-best-pulse { stroke: var(--ds-attn-deep); animation: none !important; opacity: 0.7; }
 .analytics-main-plot .analytics-best-mark text { fill: var(--ds-attn-deep); }
+
+/* Collapsible sidebar: ⌃⌘S or the toggle keeps a 76 px icon rail (wide
+   enough for the traffic lights). Hovering the rail opens the full sidebar
+   as an overlay after a short pause, without moving the content. */
+.app-sidebar-titlebar { position: relative; }
+.app-sidebar-toggle {
+  position: absolute;
+  top: 14px;
+  right: var(--ds-space-2);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-label-3);
+  transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease), opacity var(--ds-dur-base) var(--ds-ease);
+}
+.app-sidebar-toggle:hover { background: var(--ds-fill); color: var(--ds-label); }
+
+.app-sidebar,
+.app-main { transition: width var(--ds-dur-base) var(--ds-ease), margin-left var(--ds-dur-base) var(--ds-ease), box-shadow var(--ds-dur-base) var(--ds-ease); }
+.app-sidebar-item span,
+.app-sidebar-brand span,
+.app-sidebar-item em,
+.app-sidebar-meta,
+.app-sidebar .app-refresh-button span:last-child { transition: opacity var(--ds-dur-fast) var(--ds-ease); white-space: nowrap; }
+
+.app-shell.is-sidebar-collapsed { --ds-sidebar-w: 76px; }
+.app-shell.is-sidebar-collapsed .app-sidebar { overflow: hidden; }
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-brand span,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item em,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-meta,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-refresh-button span:last-child { opacity: 0; pointer-events: none; }
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-toggle { opacity: 0; }
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-status { position: absolute; top: 6px; left: 34px; }
+.app-shell.is-sidebar-collapsed .app-sidebar:hover,
+.app-shell.is-sidebar-collapsed .app-sidebar:has(:focus-visible) {
+  width: 220px;
+  box-shadow: 18px 0 40px rgba(0, 0, 0, 0.45);
+  transition-delay: 160ms;
+}
+.app-shell.is-sidebar-collapsed .app-sidebar:hover .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed .app-sidebar:hover .app-sidebar-brand span { transition-delay: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .app-main,
+  .app-sidebar-toggle,
+  .app-sidebar-item span,
+  .app-sidebar-brand span,
+  .app-sidebar-item em,
+  .app-sidebar-meta { transition: none !important; }
+}
