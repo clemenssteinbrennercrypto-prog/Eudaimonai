@@ -10,11 +10,15 @@ use objc2_av_foundation::{
 };
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_foundation::NSString;
-use objc2_quartz_core::{CALayer, CATransaction};
+use objc2_quartz_core::{CALayer, CAMediaTimingFunction, CATransaction};
 use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 
 const PREVIEW_LAYER_NAME: &str = "at.eudonomia.native-camera-preview";
+/// Length of a mini/full size change. Core Animation runs it on the render
+/// server, so the layer moves in step with the display instead of trailing
+/// the WebView through one IPC round trip per frame.
+const RESIZE_DURATION_SECONDS: f64 = 0.26;
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +29,10 @@ pub struct NativeCameraPreviewBounds {
     height: f64,
     visible: bool,
     corner_radius: f64,
+    /// Animate to these bounds instead of jumping. Sent once per user size
+    /// change; every other update (window resize, reattach) still jumps.
+    #[serde(default)]
+    animate: bool,
 }
 
 impl NativeCameraPreviewBounds {
@@ -105,7 +113,15 @@ pub(super) fn update(app: &AppHandle, bounds: NativeCameraPreviewBounds) -> Resu
             };
 
             CATransaction::begin();
-            CATransaction::setDisableActions(true);
+            if bounds.animate && bounds.is_drawable() && !preview.isHidden() {
+                CATransaction::setAnimationDuration(RESIZE_DURATION_SECONDS);
+                // Same curve as the app's sidebar: accelerates and settles evenly.
+                CATransaction::setAnimationTimingFunction(Some(
+                    &CAMediaTimingFunction::functionWithControlPoints(0.4, 0.0, 0.2, 1.0),
+                ));
+            } else {
+                CATransaction::setDisableActions(true);
+            }
             if bounds.is_drawable() {
                 // The placeholder is fixed to the bottom-right corner. Anchor
                 // the native layer to those shared edges too, avoiding every
@@ -167,6 +183,7 @@ mod tests {
             height: 120.0,
             visible: true,
             corner_radius: 8.0,
+            animate: false,
         }
         .is_drawable());
         let bounds = NativeCameraPreviewBounds {
@@ -176,6 +193,7 @@ mod tests {
             height: 120.0,
             visible: true,
             corner_radius: 8.0,
+            animate: false,
         };
         let root = CGRect::new(CGPoint::ZERO, CGSize::new(1_000.0, 830.0));
         assert_eq!(bounds.layer_origin(false, root), CGPoint::new(812.0, 80.0));
@@ -187,6 +205,7 @@ mod tests {
             height: 120.0,
             visible: true,
             corner_radius: 8.0,
+            animate: false,
         }
         .is_drawable());
         assert!(!NativeCameraPreviewBounds {
@@ -196,7 +215,17 @@ mod tests {
             height: 120.0,
             visible: false,
             corner_radius: 8.0,
+            animate: false,
         }
         .is_drawable());
+    }
+
+    #[test]
+    fn older_callers_without_animate_still_jump() {
+        let bounds: NativeCameraPreviewBounds = serde_json::from_str(
+            r#"{"right":28,"bottom":80,"width":160,"height":120,"visible":true,"cornerRadius":8}"#,
+        )
+        .expect("bounds without animate deserialize");
+        assert!(!bounds.animate);
     }
 }
