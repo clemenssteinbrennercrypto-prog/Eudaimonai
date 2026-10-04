@@ -1,6 +1,19 @@
 import { formatMinutes } from '../lib/durationFormat'
 import { FOCUS_SCORE } from '../lib/focusScore'
 
+// The method in plain words. Analytics shows it in a disclosure, the Lab in
+// a popover next to the score, so both read from this one text.
+export function FocusScoreMethod() {
+  return (
+    <>
+      <p>Measured Focus Time is the volume. Average Attention scales that time from no credit at {FOCUS_SCORE.qualityFloor} to full credit at {FOCUS_SCORE.qualityCeiling}. Exact Deep Focus minutes receive a {Math.round(FOCUS_SCORE.deepFocusBonus * 100)}% continuity bonus before the same quality factor is applied.</p>
+      <p>More work at the same quality always raises the score. The curve starts gently so very short sessions earn little, then applies diminishing returns: within one weekday, {formatMinutes(FOCUS_SCORE.referenceMinutesPerWorkday)} effective minutes scores 50, four effective hours score about 81 and eight score about 91. A week or month adds its raw measurements before calculating one score instead of averaging daily scores.</p>
+      <p>The score is accumulated focused work, not an attention percentage or a claim about output quality. Focus Time, Deep Focus and Average Attention remain visible separately so the result can be explained.</p>
+      <p>At least {formatMinutes(5)} of measured time in a session is required. Breaks and camera gaps earn nothing. Sessions are assigned to their start date, and older sessions without exact Deep Focus are never guessed.</p>
+    </>
+  )
+}
+
 export function focusScoreLabel(period) {
   if (period.score == null) return 'Not measured'
   return 'Focus Score'
@@ -61,10 +74,7 @@ export default function FocusScoreExplanation({ period, time = null, warningsOnl
       )}
       {!warningsOnly && <details>
         <summary>How this score works</summary>
-        <p>Measured Focus Time is the volume. Average Attention scales that time from no credit at {FOCUS_SCORE.qualityFloor} to full credit at {FOCUS_SCORE.qualityCeiling}. Exact Deep Focus minutes receive a {Math.round(FOCUS_SCORE.deepFocusBonus * 100)}% continuity bonus before the same quality factor is applied.</p>
-        <p>More work at the same quality always raises the score. The curve starts gently so very short sessions earn little, then applies diminishing returns: within one weekday, {formatMinutes(FOCUS_SCORE.referenceMinutesPerWorkday)} effective minutes scores 50, four effective hours score about 81 and eight score about 91. A week or month adds its raw measurements before calculating one score instead of averaging daily scores.</p>
-        <p>The score is accumulated focused work, not an attention percentage or a claim about output quality. Focus Time, Deep Focus and Average Attention remain visible separately so the result can be explained.</p>
-        <p>At least {formatMinutes(5)} of measured time in a session is required. Breaks and camera gaps earn nothing. Sessions are assigned to their start date, and older sessions without exact Deep Focus are never guessed.</p>
+        <FocusScoreMethod />
       </details>}
     </div>
   )

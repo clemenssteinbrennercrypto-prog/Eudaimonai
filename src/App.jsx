@@ -246,13 +246,18 @@ export default function App() {
   if (flow === 'onboarding') {
     return (
       <>
-        <AppRefreshControl updateStatus={updateStatus} />
-        <BuildIdentity />
         <Onboarding onComplete={() => {
           setFlow('app')
           if (!getActiveWorkspace(loadWorkspaceState())) setScreen('setup')
           else setScreen('lab')
         }} />
+        {/* Kept during onboarding so a stuck first launch can still update,
+            but after the onboarding in tab order and drawn above it: the first
+            Tab used to land on this button while it sat hidden underneath. */}
+        <div className="onboarding-chrome">
+          <AppRefreshControl updateStatus={updateStatus} />
+          <BuildIdentity />
+        </div>
       </>
     )
   }

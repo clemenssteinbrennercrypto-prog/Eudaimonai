@@ -35,7 +35,7 @@ describe('EndScreen focus measurement', () => {
       trackingFaulted: true,
     })
     expect(html).toContain('attention not measured')
-    expect(html).toContain('deep focus available for new sessions')
+    expect(html).toContain('deep focus not measured')
   })
 
   it('keeps valid partial measurement when the session ends with a camera fault', () => {

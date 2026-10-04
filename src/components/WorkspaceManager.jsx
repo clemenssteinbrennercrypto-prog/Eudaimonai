@@ -25,6 +25,18 @@ import {
 
 const Workspace3DScene = lazy(() => import('./Workspace3DScene'))
 const PALETTE_OBJECT_TYPES = [...WORKSPACE_OBJECT_TYPES].sort((a, b) => Number(b.id === 'camera') - Number(a.id === 'camera'))
+
+// Names for the placed-object list: the device, numbered when several share
+// a type ("Monitor 1", "Monitor 2").
+function placedObjectLabels(objects) {
+  const base = objects.map(item => item.type === 'camera' ? 'Tracking camera' : WORKSPACE_OBJECT_TYPES.find(type => type.id === item.type)?.label || item.type)
+  const seen = {}
+  return new Map(objects.map((item, index) => {
+    const total = base.filter(label => label === base[index]).length
+    seen[base[index]] = (seen[base[index]] || 0) + 1
+    return [item.id, total > 1 ? `${base[index]} ${seen[base[index]]}` : base[index]]
+  }))
+}
 const HEIGHT_ADJUSTABLE_TYPES = new Set(['monitor', 'laptop', 'camera'])
 const ROTATABLE_TYPES = new Set(['monitor', 'laptop', 'ipad', 'phone', 'keyboard', 'paper', 'notebook', 'book'])
 
@@ -113,6 +125,7 @@ function Editor({ initial, onSave, onCancel }) {
   const hasCamera = draft.objects.some(object => object.type === 'camera')
   const calibrated = Object.keys(draft.calibration?.targets || {}).length
   const selectedType = WORKSPACE_OBJECT_TYPES.find(type => type.id === selected?.type)
+  const placedLabels = placedObjectLabels(draft.objects)
   const selectedSizePresets = selected ? sizePresetsForType(selected.type) : []
   const selectedCustomConfig = selected ? customScreenConfig(selected.type) : null
   const cameraTargets = cameraMountTargets(draft.objects)
@@ -206,11 +219,15 @@ function Editor({ initial, onSave, onCancel }) {
 
   return <main className="workspace-editor">
     <header className="workspace-editor-header">
-      <div><span>Workspace editor</span><input value={draft.name} maxLength={50} onChange={event => setDraft(current => ({ ...current, name: event.target.value }))}/></div>
+      <div><span>Workspace editor</span><input aria-label="Workspace name" value={draft.name} maxLength={50} onChange={event => setDraft(current => ({ ...current, name: event.target.value }))}/></div>
       <div className="workspace-actions"><button className="secondary" onClick={onCancel}>Cancel</button><button onClick={() => { if (!hasPrimary || !hasCamera) return setError('Add one primary screen and a camera before saving.'); onSave(draft) }}>Save workspace</button></div>
     </header>
     <div className="workspace-editor-body">
-      <aside className="workspace-palette"><h3>Objects</h3>{PALETTE_OBJECT_TYPES.map(type => <button key={type.id} className={type.id === 'camera' ? 'is-camera' : ''} onClick={() => addObject(type.id)}><span aria-hidden="true">{deviceGlyph(type.id)}</span>{type.id === 'camera' ? 'Tracking camera' : type.label}</button>)}</aside>
+      <aside className="workspace-palette"><h3>Objects</h3>{PALETTE_OBJECT_TYPES.map(type => <button key={type.id} className={type.id === 'camera' ? 'is-camera' : ''} onClick={() => addObject(type.id)}><span aria-hidden="true">{deviceGlyph(type.id)}</span>{type.id === 'camera' ? 'Tracking camera' : type.label}</button>)}
+        {/* The 3D stage only takes the pointer; this list selects the same
+            objects from the keyboard and names what is already placed. */}
+        {draft.objects.length > 0 && <><h3 id="workspace-placed-title">In this workspace</h3><ul className="workspace-object-list" aria-labelledby="workspace-placed-title">{draft.objects.map(item => <li key={item.id}><button type="button" aria-label={`Select ${placedLabels.get(item.id)}`} aria-pressed={item.id === selectedId} className={item.id === selectedId ? 'is-active' : ''} onClick={() => setSelectedId(item.id)}><span aria-hidden="true">{deviceGlyph(item.type)}</span>{placedLabels.get(item.id)}</button></li>)}</ul></>}
+      </aside>
       <section className="workspace-stage">
         <div className="workspace-view-tabs">{['iso', 'top', 'front'].map(item => <button key={item} className={view === item ? 'is-active' : ''} onClick={() => setView(item)}>{item === 'iso' ? 'Isometric' : item === 'top' ? 'Top' : 'Front'}</button>)}</div>
         <Suspense fallback={<div className="workspace-3d-loading">Preparing 3D workspace…</div>}>

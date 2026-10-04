@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadFocusAppsConfig } from '../lib/storage'
 import { emptyFocusLedger, getFocusPeriodWindow } from '../lib/focusMetric'
 import { buildDashboardData } from '../lib/dashboardData'
 import { useCompanionStatus } from '../lib/useCompanionStatus'
 import { useCurrentTime } from '../lib/useCurrentTime'
-import FocusScoreExplanation, { focusScoreLabel } from './FocusScoreExplanation'
+import FocusScoreExplanation, { FocusScoreMethod, focusScoreLabel } from './FocusScoreExplanation'
 import { formatDurationCompact } from '../lib/durationFormat'
 import { FOCUS_SCORE } from '../lib/focusScore'
 
@@ -204,6 +204,44 @@ function AttentionField({ bins, range, title }) {
   )
 }
 
+// A small (i) beside the score label opens the method as a popover, the way
+// macOS puts help beside a control, so the hero stays free of running text.
+function ScoreInfo() {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef(null)
+  useEffect(() => {
+    if (!open) return undefined
+    const onPointerDown = event => { if (!rootRef.current?.contains(event.target)) setOpen(false) }
+    const onKeyDown = event => { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+  return (
+    <div ref={rootRef} className="lab-score-info">
+      <button
+        type="button"
+        className="lab-score-info-button"
+        aria-expanded={open}
+        aria-controls="lab-score-method"
+        aria-label="How the Focus Score works"
+        title="How the Focus Score works"
+        onClick={() => setOpen(current => !current)}
+      >
+        <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" /><path d="M8 7.25v4M8 4.9v.1" /></svg>
+      </button>
+      {open && (
+        <div id="lab-score-method" className="lab-score-method" role="dialog" aria-label="How the Focus Score works">
+          <FocusScoreMethod />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function LabDashboard({ focusModeEnabled, sessions = [], ledger = null, quickStart = null, onAnalytics }) {
   const [periodSelection, setPeriodSelection] = useState({ range: 'day', periodStart: null })
   const nativeStatus = useCompanionStatus()
@@ -276,7 +314,10 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
       {quickStart}
 
       <section className="lab-panel lab-hero" aria-labelledby="lab-title">
-        <h2 id="lab-title">Focus Score</h2>
+        <div className="lab-hero-head">
+          <h2 id="lab-title">Focus Score</h2>
+          <ScoreInfo />
+        </div>
         <ScoreRings score={period.score} caption={period.score == null ? focusScoreLabel(period) : 'of 100'} rings={rings} />
         <div className="lab-metric-row">
           <Metric

@@ -143,7 +143,7 @@ const CAMERA_FAULT_COPY = {
   },
   library: {
     title: 'Face tracking couldn’t load',
-    hint: 'The bundled tracking engine could not be loaded from this app. Reload once; if it persists, reinstall or rebuild the app bundle.',
+    hint: 'The bundled tracking engine could not be loaded from this app. Reload once; if it persists, reinstall Eudaimonai.',
   },
   stalled: {
     title: 'The camera stopped sending video',
@@ -151,7 +151,7 @@ const CAMERA_FAULT_COPY = {
   },
   no_frames: {
     title: 'Face tracking didn’t start',
-    hint: 'The camera was allowed, but the local tracking engine never began analysing. Try again; if it persists, reinstall or rebuild the app bundle.',
+    hint: 'The camera was allowed, but the local tracking engine never began analysing. Try again; if it persists, reinstall Eudaimonai.',
   },
 }
 const ACTIVITY_DISTRACTION_HOLD_MS = 10_000

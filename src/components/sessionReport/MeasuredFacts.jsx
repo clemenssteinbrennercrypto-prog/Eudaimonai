@@ -67,7 +67,7 @@ export default function MeasuredFacts({ session, analysis }) {
           >
             {measurement.deepFocusSeconds == null ? '--' : fmtDuration(measurement.deepFocusSeconds)}
           </span>
-          <span className="stat-label">{measurement.deepFocusSeconds == null ? 'deep focus available for new sessions' : 'deep focus'}</span>
+          <span className="stat-label">{measurement.deepFocusSeconds == null ? 'deep focus not measured' : 'deep focus'}</span>
           {/* Name the current measurement method without exposing its internal
               schema generation. Historical methods still remain separate. */}
           {measurement.measurementSource === 'native_mediapipe_v2' && (
