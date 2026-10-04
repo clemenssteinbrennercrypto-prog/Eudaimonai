@@ -57,15 +57,22 @@ function deviceModel(type) {
     display.rotation.x = -.14
     group.add(display)
   } else if (type === 'camera') {
-    const rim = mesh(new THREE.CylinderGeometry(.105, .105, .045, 32), COLORS.panel)
+    // A recognisable webcam: rounded silver body, dark lens with a bright
+    // ring, and a faint cone showing where it looks (towards the user).
+    const body = box(.34, .16, .12, COLORS.panel)
+    const rim = mesh(new THREE.CylinderGeometry(.07, .07, .03, 32), COLORS.white, { z: .065 })
     rim.rotation.x = Math.PI / 2
-    const lens = mesh(new THREE.CylinderGeometry(.065, .065, .052, 32), COLORS.bright, { z: .012 })
-    lens.rotation.x = Math.PI / 2
-    lens.material.emissive = new THREE.Color(0x3a4256)
-    lens.material.emissiveIntensity = .4
-    const glass = mesh(new THREE.CylinderGeometry(.028, .028, .058, 24), COLORS.ink, { z: .02 })
+    rim.material.emissive = new THREE.Color(0x8a93a6)
+    rim.material.emissiveIntensity = .5
+    const glass = mesh(new THREE.CylinderGeometry(.045, .045, .036, 24), COLORS.ink, { z: .07 })
     glass.rotation.x = Math.PI / 2
-    group.add(rim, lens, glass)
+    const coneMaterial = new THREE.MeshBasicMaterial({ color: COLORS.white, transparent: true, opacity: .045, depthWrite: false, side: THREE.DoubleSide })
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(.42, 2.2, 32, 1, true), coneMaterial)
+    cone.rotation.x = -Math.PI / 2
+    cone.position.z = .07 + 1.1
+    cone.raycast = () => {}
+    cone.userData.decorative = true
+    group.add(body, rim, glass, cone)
   } else if (type === 'phone' || type === 'ipad') {
     const w = type === 'ipad' ? .66 : .32, d = type === 'ipad' ? .86 : .62
     group.add(box(w, .055, d, COLORS.panel, { y: .04 }))
@@ -89,7 +96,7 @@ function deviceModel(type) {
     if (type === 'notebook') group.add(box(.05, .07, .88, COLORS.panel, { x: -.31, y: .06 }))
   }
   group.traverse(child => {
-    if (!child.isMesh) return
+    if (!child.isMesh || child.userData.decorative) return
     child.userData.isWorkspaceMesh = true
     child.material.userData.baseEmissive = child.material.emissive?.getHex?.() || 0
     child.material.userData.baseEmissiveIntensity = child.material.emissiveIntensity || 0
@@ -121,7 +128,7 @@ function mountedCameraPose(object, objects) {
     y: targetPosition.y + 1.08 * targetHeight + (mount.style === 'top' ? .12 : 0),
     z: targetPosition.z - localX * Math.sin(rotation) + localZ * Math.cos(rotation),
     rotation,
-    scale: mount.style === 'top' ? .6 : .28,
+    scale: mount.style === 'top' ? .85 : .65,
   }
 }
 

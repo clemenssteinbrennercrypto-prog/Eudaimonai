@@ -4,6 +4,7 @@ import LandingPage from './components/LandingPage'
 import Onboarding from './components/Onboarding'
 import SessionIntentScreen from './components/SessionIntentScreen'
 import LabDashboard from './components/LabDashboard'
+import LabQuickStart from './components/LabQuickStart'
 import AppShell from './components/AppShell'
 import { AppRefreshControl, BuildIdentity } from './components/AppChrome'
 import WorkspaceManager from './components/WorkspaceManager'
@@ -263,7 +264,23 @@ export default function App() {
           focusModeEnabled={focusModeEnabled}
           sessions={history.sessions}
           ledger={history.ledger}
-          onSession={() => setScreen('session-setup')}
+          quickStart={(
+            <LabQuickStart
+              defaultDuration={duration}
+              protection={getProtectionReadiness({ enabled: focusModeEnabled, setup: getActiveProtectionSetup(protectionState), nativeStatus })}
+              onEditProtection={() => openProtection('lab')}
+              onOpenPlanner={() => setScreen('session-setup')}
+              onStart={({ task: quickTask, duration: quickDuration }) => {
+                // A quick session is a fresh brief: no leftover plan or tags
+                // from an earlier planning screen.
+                setTask(quickTask)
+                setGoal('')
+                setTags([])
+                setDuration(quickDuration)
+                handleStart()
+              }}
+            />
+          )}
           onAnalytics={() => setScreen('analytics')}
         />
       )}
