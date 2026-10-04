@@ -4012,6 +4012,29 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .workspace-properties h3 { color: var(--ds-label-3); font: 600 12px var(--ds-font); }
 .workspace-palette > button { min-height: 36px; border-radius: var(--ds-radius-md); color: var(--ds-label-2); font: 500 13px var(--ds-font); }
 .workspace-palette > button span { display: grid; place-items: center; width: 22px; font-size: 0; color: var(--ds-label-2); }
+#workspace-placed-title { margin-top: var(--ds-space-5); padding-top: var(--ds-space-4); border-top: 1px solid var(--ds-hairline); }
+.workspace-object-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.workspace-object-list button {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  box-shadow: none;
+  color: var(--ds-label-2);
+  font: 500 12px var(--ds-font);
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.workspace-object-list button span { display: grid; place-items: center; width: 18px; flex: none; font-size: 0; color: var(--ds-label-3); }
+.workspace-object-list button:hover { background: var(--ds-fill); color: var(--ds-label); filter: none; }
+.workspace-object-list button.is-active { background: var(--ds-fill-strong); color: var(--ds-label); }
 .workspace-palette > button span .ds-icon { width: 16px; height: 16px; }
 .workspace-palette > button:hover:not(:disabled) { background: var(--ds-fill-strong); color: var(--ds-label); }
 .workspace-palette > button.is-camera {
@@ -4675,6 +4698,59 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .ds-button-primary.lab-quick-go { height: 38px; min-height: 38px; font-size: 14px; }
 .lab-quick-start { margin-bottom: 0; }
 
+.lab-hero-head {
+  grid-column: 1 / -1;
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+}
+.lab-hero-head h2 {
+  margin: 0;
+  color: var(--ds-label-2);
+  font: 600 11px/1.2 var(--ds-font);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+/* The hero is its own stacking context (glass blur), so it sits above the
+   panels below it while the popover is open. */
+.lab-hero:has(.lab-score-method) { position: relative; z-index: 5; }
+.lab-score-info { position: relative; display: flex; }
+.lab-score-info-button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ds-label-3);
+  cursor: pointer;
+}
+.lab-score-info-button:hover,
+.lab-score-info-button[aria-expanded="true"] { color: var(--ds-label); background: var(--ds-fill); }
+.lab-score-info-button .ds-icon { width: 14px; height: 14px; }
+.lab-score-method {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -8px;
+  z-index: 40;
+  width: min(440px, 70vw);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: linear-gradient(var(--ds-material-popover), var(--ds-material-popover)), #0B1030;
+  -webkit-backdrop-filter: var(--ds-blur);
+  backdrop-filter: var(--ds-blur);
+  box-shadow: 0 0 0 1px var(--ds-silver-line) inset, var(--ds-shadow-float);
+  color: var(--ds-label-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.lab-score-method p { margin: var(--ds-space-2) 0; }
+.lab-score-method p:first-child { margin-top: 0; }
+.lab-score-method p:last-child { margin-bottom: 0; }
+
 @media (max-width: 1180px) {
   .lab-metric strong { font-size: 34px; }
   .lab-hero { gap: var(--ds-space-2) var(--ds-space-6); padding: var(--ds-space-6); }
@@ -4794,3 +4870,12 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .lab-segments { padding: 2px; }
 .lab-segments-thumb { top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--seg-count)); box-shadow: none; }
 .lab-segments button { height: 28px; }
+
+/* Onboarding: Reload and build identity sit above the full-screen intro. */
+.onboarding-chrome .app-refresh-control,
+.onboarding-chrome .app-build-identity { z-index: 320; }
+/* Workspace editor next to the sidebar: the 3D stage gives way instead of
+   pushing the properties column off the window (it demanded 400 px, which
+   overflowed between ~850 and ~1000 px window width). */
+.workspace-editor-body { grid-template-columns: 170px minmax(0, 1fr) 210px; }
+.workspace-stage { min-width: 0; }

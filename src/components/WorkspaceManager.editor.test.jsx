@@ -78,4 +78,17 @@ describe('WorkspaceManager editor', () => {
     expect(screen.queryByText('Vertical position')).toBeNull()
     expect(screen.getByText('The lens follows this display when it moves or rotates.')).toBeTruthy()
   })
+
+  it('names the workspace field and selects placed objects from the keyboard list', () => {
+    render(<WorkspaceManager state={state} onChange={() => ({ ok: true })} onContinue={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('textbox', { name: 'Workspace name' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Tracking camera' }))
+    const placed = screen.getByRole('button', { name: /^Select Tracking camera/ })
+    expect(placed).toHaveAttribute('aria-pressed', 'true')
+    const other = screen.getAllByRole('button', { name: /^Select / }).find(button => button !== placed)
+    fireEvent.click(other)
+    expect(other).toHaveAttribute('aria-pressed', 'true')
+    expect(placed).toHaveAttribute('aria-pressed', 'false')
+  })
 })
