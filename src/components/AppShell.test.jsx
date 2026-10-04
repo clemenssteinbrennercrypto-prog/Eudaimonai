@@ -51,3 +51,27 @@ describe('collapsible sidebar', () => {
     expect(screen.getByRole('button', { name: 'Hide sidebar' })).toBeInTheDocument()
   })
 })
+
+describe('collapsed sidebar peek', () => {
+  it('opens the full sidebar after hovering the rail and closes it on leave', async () => {
+    const { render, fireEvent, cleanup, act } = await import('@testing-library/react')
+    cleanup()
+    vi.useFakeTimers()
+    const store = new Map([['eudaimonai_sidebar_collapsed', 'true']])
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: { getItem: key => store.get(key) ?? null, setItem: (key, value) => store.set(key, String(value)), removeItem: key => store.delete(key) },
+    })
+    const view = render(React.createElement(AppShell, { active: 'lab', onNavigate: vi.fn(), children: null }))
+    const shell = view.container.querySelector('.app-shell')
+    const aside = view.container.querySelector('.app-sidebar')
+    fireEvent.mouseEnter(aside)
+    expect(shell).not.toHaveClass('is-sidebar-peek')
+    act(() => { vi.advanceTimersByTime(200) })
+    expect(shell).toHaveClass('is-sidebar-peek')
+    fireEvent.mouseLeave(aside)
+    act(() => { vi.advanceTimersByTime(200) })
+    expect(shell).not.toHaveClass('is-sidebar-peek')
+    vi.useRealTimers()
+  })
+})
