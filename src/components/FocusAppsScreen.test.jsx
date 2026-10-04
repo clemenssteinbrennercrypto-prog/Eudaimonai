@@ -50,8 +50,10 @@ const library = () => normalizeProtectionState({
 async function renderScreen(props = {}) {
   const onProtectionStateChange = vi.fn()
   const onBack = vi.fn()
+  const guard = { current: null }
   const result = render(React.createElement(FocusAppsScreen, {
     onBack,
+    onRegisterLeaveGuard: fn => { guard.current = fn },
     focusModeEnabled: true,
     setFocusModeEnabled: () => {},
     protectionState: library(),
@@ -59,7 +61,9 @@ async function renderScreen(props = {}) {
     ...props,
   }))
   await act(async () => {})
-  return { ...result, onProtectionStateChange, onBack }
+  // What App does when the sidebar navigates away: ask the guard, leave if allowed.
+  const leave = () => act(() => { if (guard.current?.()) onBack() })
+  return { ...result, onProtectionStateChange, onBack, leave }
 }
 
 const saveStatus = () => screen.getByText(/^(All changes saved|Unsaved changes|Name every setup before saving)$/)
@@ -93,14 +97,14 @@ describe('FocusAppsScreen setup library', () => {
   })
 
   it('browses another setup without a dirty state or switching the session setup', async () => {
-    const { onBack } = await renderScreen()
+    const { onBack, leave } = await renderScreen()
 
     fireEvent.click(setupButton('Writing'))
     expect(screen.getByRole('textbox', { name: 'Setup name' })).toHaveValue('Writing')
     expect(saveStatus()).toHaveTextContent('All changes saved')
     expect(screen.getByRole('button', { name: 'Use for sessions' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    leave()
     expect(onBack).toHaveBeenCalledTimes(1)
   })
 
@@ -130,7 +134,7 @@ describe('FocusAppsScreen setup library', () => {
   })
 
   it('blocks saving a blank setup name instead of renaming it', async () => {
-    const { onBack } = await renderScreen()
+    const { onBack, leave } = await renderScreen()
     const nameInput = screen.getByRole('textbox', { name: 'Setup name' })
 
     fireEvent.change(nameInput, { target: { value: '   ' } })
@@ -139,7 +143,7 @@ describe('FocusAppsScreen setup library', () => {
     expect(saveStatus()).toHaveTextContent('Name every setup before saving')
     expect(screen.getByRole('button', { name: 'Save setup' })).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    leave()
     fireEvent.click(screen.getByRole('button', { name: 'Save & leave' }))
     expect(onBack).not.toHaveBeenCalled()
     expect(localStorage.getItem(PROTECTION_SETUPS_KEY)).toBeNull()
@@ -150,20 +154,20 @@ describe('FocusAppsScreen setup library', () => {
       activeSetupId: 'default',
       setups: [{ id: 'default', name: 'Deep Work', distractionApps: ['YouTube'] }, { id: 'new', name: 'Focus setup 1' }],
     })
-    const { onBack } = await renderScreen({ protectionState: saved })
+    const { onBack, leave } = await renderScreen({ protectionState: saved })
 
     fireEvent.click(setupButton('Focus setup 1'))
     fireEvent.change(screen.getByRole('textbox', { name: 'Setup name' }), { target: { value: '' } })
     expect(screen.getByRole('alert')).toHaveTextContent('Give this setup a name.')
     expect(saveStatus()).toHaveTextContent('Name every setup before saving')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    leave()
     expect(onBack).not.toHaveBeenCalled()
     expect(screen.getByText('Unsaved changes', { selector: '.protection-leave-actions span' })).toBeInTheDocument()
   })
 
   it('blocks saving a duplicate name and points back to the offending setup', async () => {
-    const { onBack } = await renderScreen()
+    const { onBack, leave } = await renderScreen()
 
     fireEvent.click(setupButton('Writing'))
     fireEvent.change(screen.getByRole('textbox', { name: 'Setup name' }), { target: { value: 'deep work' } })
@@ -171,7 +175,7 @@ describe('FocusAppsScreen setup library', () => {
     expect(screen.getByRole('button', { name: 'Save setup' })).toBeDisabled()
 
     fireEvent.click(setupButton('Deep Work'))
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    leave()
     fireEvent.click(screen.getByRole('button', { name: 'Save & leave' }))
     expect(onBack).not.toHaveBeenCalled()
     expect(screen.getByRole('textbox', { name: 'Setup name' })).toHaveValue('Deep Work')

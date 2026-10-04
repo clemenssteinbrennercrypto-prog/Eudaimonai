@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { buildAnalyticsStory, buildOverviewSnapshot } from '../../lib/analyticsModel'
 import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
+import { formatDurationCompact } from '../../lib/durationFormat'
 import { useCountUp } from './chart/hooks'
 import Sessions from './Sessions'
 
@@ -67,7 +68,7 @@ const OVERVIEW_RANGE_OPTIONS = [
 
 function CountedDuration({ seconds }) {
   const animated = useCountUp(seconds)
-  return <>{seconds > 0 ? fmtDuration(Math.round(animated)) : '0m'}</>
+  return <>{seconds > 0 ? formatDurationCompact(Math.round(animated)) : '0m'}</>
 }
 
 function CountedNumber({ value }) {

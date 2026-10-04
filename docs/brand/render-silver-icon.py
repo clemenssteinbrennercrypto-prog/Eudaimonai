@@ -102,3 +102,17 @@ ang = np.arctan2(Y, X)
 v = 0.66 + 0.30 * (0.5 + 0.5 * np.cos(2 * ang + 0.9)) ** 1.4
 v = v / (1 + 0.15 * v)
 save('eudaimonai-icon-flat-1024', comp(img, np.stack([v * .95, v * .97, v], -1), np.maximum(m, sm)), A)
+
+# macOS app icon grid (Big Sur and later): the artwork sits at 824 px inside a
+# transparent 1024 px canvas with a soft drop shadow, so it matches the size of
+# neighbouring Dock icons. iOS and the website use the full-bleed version.
+full = Image.open(f'{OUT}/eudaimonai-icon-1024.png').convert('RGBA')
+body = full.resize((824, 824), Image.LANCZOS)
+canvas_ = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
+shadow_ = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
+alpha = body.getchannel('A').point(lambda a: int(a * 0.32))
+shadow_.paste(Image.new('RGBA', (824, 824), (0, 0, 0, 255)), (100, 112), alpha)
+shadow_ = shadow_.filter(ImageFilter.GaussianBlur(14))
+canvas_.alpha_composite(shadow_)
+canvas_.alpha_composite(body, (100, 100))
+canvas_.save(f'{OUT}/eudaimonai-icon-macos-1024.png')

@@ -343,7 +343,7 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByRole('img', { name: 'Attention field for July 2026' })).toBeInTheDocument()
     expect(view.container.querySelector('.lab-ring-center > strong')).not.toHaveTextContent('—')
     expect(view.container.querySelector('.attention-field .is-strong')).toHaveAttribute('aria-label', 'Historical measured work · Focus 82')
-    expect(screen.getByText('Focus time').parentElement).toHaveTextContent('10m 20s')
+    expect(screen.getByText('Focus time').parentElement).toHaveTextContent('10m')
   })
 
   it('labels a DST fallback day by local wall-clock quarters', () => {

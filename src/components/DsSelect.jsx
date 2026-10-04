@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 // pop-up button: the current value with a chevron, a glass menu with a check
 // on the selected item, arrow keys, Home/End, Enter/Space to pick, Escape
 // or a click outside to close.
-export default function DsSelect({ value, options, onChange, label, prefix, className = '', describedBy }) {
+export default function DsSelect({ value, options, onChange, label, prefix, placeholder = '—', className = '', describedBy }) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const rootRef = useRef(null)
@@ -74,7 +74,7 @@ export default function DsSelect({ value, options, onChange, label, prefix, clas
         onKeyDown={onKeyDown}
       >
         {prefix && <span className="ds-select-prefix">{prefix}</span>}
-        <span className="ds-select-value">{selected?.label ?? '—'}</span>
+        <span className={`ds-select-value${selected ? '' : ' is-placeholder'}`}>{selected?.label ?? placeholder}</span>
         <svg className="ds-icon ds-select-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5" /></svg>
       </button>
       {open && (

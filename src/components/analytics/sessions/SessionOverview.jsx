@@ -6,11 +6,11 @@ import { fmtDuration } from '../../../lib/sessionAnalysisPresentation'
 import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt } from '../../../lib/sessionTiming'
 
 const TIME_COLORS = {
-  deep: 'var(--good)',
-  high: 'rgba(47, 227, 168, 0.66)',
-  focused: 'var(--warn)',
-  low: 'var(--bad)',
-  unmeasured: 'var(--text-muted)',
+  deep: 'var(--ds-attn-deep)',
+  high: 'var(--ds-attn-high)',
+  focused: 'var(--ds-attn-focused)',
+  low: 'var(--ds-attn-low)',
+  unmeasured: 'var(--ds-attn-none)',
   break: 'var(--line-strong)',
 }
 

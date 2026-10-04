@@ -3,20 +3,23 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 const COLORS = {
-  ink: 0x070b1a,
-  surface: 0x0a1028,
-  panel: 0x151f4b,
+  // Night blue and silver, like the rest of the app. Ultramarine is kept
+  // for the selection highlight only, so the selected device stands out.
+  ink: 0x05070f,
+  surface: 0x0a0e22,
+  panel: 0xa3aab6,
+  screen: 0x0b1030,
   ultra: 0x2c46ff,
-  bright: 0x7a98ff,
-  pale: 0xb8c5f2,
-  desk: 0x1c2552,
-  edge: 0x405bc7,
-  white: 0xe8edff,
-  danger: 0xf05d75,
+  bright: 0xcdd2db,
+  pale: 0xd3d8e1,
+  desk: 0x0c1022,
+  edge: 0x1c2338,
+  white: 0xe6e9ef,
 }
 
 function material(color, roughness = .48, metalness = .22) {
-  return new THREE.MeshStandardMaterial({ color, roughness, metalness })
+  const metal = color === COLORS.panel || color === COLORS.pale
+  return new THREE.MeshStandardMaterial({ color, roughness: metal ? .32 : roughness, metalness: metal ? .65 : metalness })
 }
 
 function mesh(geometry, color, { y = 0, x = 0, z = 0, rotationX = 0, cast = true } = {}) {
@@ -35,9 +38,9 @@ function box(w, h, d, color, options) {
 function screenPanel(width = 1.25, height = .72) {
   const group = new THREE.Group()
   const shell = box(width, height, .09, COLORS.panel, { y: .75 })
-  const glass = box(width * .91, height * .84, .018, COLORS.ultra, { y: .75, z: .055 })
-  glass.material.emissive = new THREE.Color(0x172c92)
-  glass.material.emissiveIntensity = .7
+  const glass = box(width * .91, height * .84, .018, COLORS.screen, { y: .75, z: .055 })
+  glass.material.emissive = new THREE.Color(0x1a2560)
+  glass.material.emissiveIntensity = .35
   group.add(shell, glass)
   return group
 }
@@ -58,17 +61,17 @@ function deviceModel(type) {
     rim.rotation.x = Math.PI / 2
     const lens = mesh(new THREE.CylinderGeometry(.065, .065, .052, 32), COLORS.bright, { z: .012 })
     lens.rotation.x = Math.PI / 2
-    lens.material.emissive = new THREE.Color(COLORS.ultra)
-    lens.material.emissiveIntensity = .85
+    lens.material.emissive = new THREE.Color(0x3a4256)
+    lens.material.emissiveIntensity = .4
     const glass = mesh(new THREE.CylinderGeometry(.028, .028, .058, 24), COLORS.ink, { z: .02 })
     glass.rotation.x = Math.PI / 2
     group.add(rim, lens, glass)
   } else if (type === 'phone' || type === 'ipad') {
     const w = type === 'ipad' ? .66 : .32, d = type === 'ipad' ? .86 : .62
     group.add(box(w, .055, d, COLORS.panel, { y: .04 }))
-    const glass = box(w * .88, .012, d * .9, type === 'phone' ? COLORS.danger : COLORS.ultra, { y: .076 })
-    glass.material.emissive = new THREE.Color(type === 'phone' ? 0x711d36 : 0x172c92)
-    glass.material.emissiveIntensity = .45
+    const glass = box(w * .88, .012, d * .9, COLORS.screen, { y: .076 })
+    glass.material.emissive = new THREE.Color(0x1a2560)
+    glass.material.emissiveIntensity = .3
     group.add(glass)
   } else if (type === 'keyboard') {
     group.add(box(1.05, .08, .38, COLORS.panel, { y: .05 }))
@@ -80,7 +83,7 @@ function deviceModel(type) {
     mouse.scale.set(.72, .55, 1.1)
     group.add(mouse)
   } else {
-    const colors = { paper: 0xe8edff, notebook: COLORS.bright, book: 0xd5a951 }
+    const colors = { paper: COLORS.white, notebook: 0x5c6370, book: 0x858c99 }
     const height = type === 'book' ? .12 : .045
     group.add(box(.7, height, .88, colors[type] || COLORS.pale, { y: height / 2 }))
     if (type === 'notebook') group.add(box(.05, .07, .88, COLORS.panel, { x: -.31, y: .06 }))
@@ -162,33 +165,33 @@ export default function Workspace3DScene({ objects, selectedId, view, onSelect, 
     controls.maxPolarAngle = Math.PI * .48
     controls.target.set(0, .35, 0)
 
-    scene.add(new THREE.HemisphereLight(0x9bb0ff, 0x080b18, 2.1))
-    const key = new THREE.DirectionalLight(0xb8c8ff, 4.2)
+    scene.add(new THREE.HemisphereLight(0xdfe5f5, 0x080b18, 2.0))
+    const key = new THREE.DirectionalLight(0xf2f4fa, 3.8)
     key.position.set(-4, 8, 5)
     key.castShadow = true
     key.shadow.mapSize.set(2048, 2048)
     key.shadow.camera.left = -7; key.shadow.camera.right = 7; key.shadow.camera.top = 7; key.shadow.camera.bottom = -7
     scene.add(key)
-    const rim = new THREE.PointLight(COLORS.ultra, 32, 14, 2)
+    const rim = new THREE.PointLight(0x9aa3b5, 18, 14, 2)
     rim.position.set(4, 3, -3)
     scene.add(rim)
 
     const desk = box(7.3, .22, 4.7, COLORS.desk, { y: -.18 })
-    desk.material.roughness = .34
-    desk.material.metalness = .12
+    desk.material.roughness = .6
+    desk.material.metalness = .05
     scene.add(desk)
     // The glowing edge is a slightly larger slab tucked just under the desk
     // top, so only its rim shows. At y -.055 it sat above the top (-.07) and
     // painted the whole surface bright emissive blue.
     const deskEdge = box(7.38, .045, 4.78, COLORS.edge, { y: -.1 })
-    deskEdge.material.emissive = new THREE.Color(0x102265)
-    deskEdge.material.emissiveIntensity = .6
+    deskEdge.material.emissive = new THREE.Color(0x0c1230)
+    deskEdge.material.emissiveIntensity = .3
     scene.add(deskEdge)
     for (const x of [-3.15, 3.15]) for (const z of [-1.85, 1.85]) scene.add(box(.18, 2.3, .18, COLORS.surface, { x, y: -1.4, z }))
     const userMarker = new THREE.Group()
-    const userRing = mesh(new THREE.RingGeometry(.42, .5, 48), COLORS.ultra, { y: -.03, rotationX: -Math.PI / 2, cast: false })
-    userRing.material.emissive = new THREE.Color(COLORS.ultra)
-    userRing.material.emissiveIntensity = 1.4
+    const userRing = mesh(new THREE.RingGeometry(.42, .5, 48), COLORS.pale, { y: -.03, rotationX: -Math.PI / 2, cast: false })
+    userRing.material.emissive = new THREE.Color(0x5c6370)
+    userRing.material.emissiveIntensity = .6
     const userHead = mesh(new THREE.SphereGeometry(.17, 24, 18), COLORS.bright, { y: .55 })
     const userShoulders = mesh(new THREE.SphereGeometry(.38, 24, 18), COLORS.panel, { y: .17 })
     userShoulders.scale.set(1.25, .55, .7)
@@ -325,8 +328,8 @@ export default function Workspace3DScene({ objects, selectedId, view, onSelect, 
         child.userData.draggable = !mountPose
         if (!child.isMesh || !child.material?.emissive) return
         if (object.id === selectedId) {
-          child.material.emissive.setHex(child.material.userData.baseEmissive || 0x172c92)
-          child.material.emissiveIntensity = Math.max(child.material.userData.baseEmissiveIntensity || 0, .55)
+          child.material.emissive.setHex(COLORS.ultra)
+          child.material.emissiveIntensity = .55
         } else {
           child.material.emissive.setHex(child.material.userData.baseEmissive || 0)
           child.material.emissiveIntensity = child.material.userData.baseEmissiveIntensity || 0

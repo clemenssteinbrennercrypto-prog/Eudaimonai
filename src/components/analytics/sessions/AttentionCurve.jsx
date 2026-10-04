@@ -96,12 +96,12 @@ export default function AttentionCurve({ session }) {
   // Hard colour stops at the app's real thresholds: the line changes colour
   // exactly where the scoring changes band, not at a decorative midpoint.
   const stops = [
-    ['0%', 'var(--good)'],
-    [`${((y(GOOD_STREAK_SCORE) - MARGIN.top) / (plotBottom - MARGIN.top)) * 100}%`, 'var(--good)'],
-    [`${((y(GOOD_STREAK_SCORE) - MARGIN.top) / (plotBottom - MARGIN.top)) * 100}%`, 'var(--warn)'],
-    [`${((y(FOCUSED_SCORE) - MARGIN.top) / (plotBottom - MARGIN.top)) * 100}%`, 'var(--warn)'],
-    [`${((y(FOCUSED_SCORE) - MARGIN.top) / (plotBottom - MARGIN.top)) * 100}%`, 'var(--bad)'],
-    ['100%', 'var(--bad)'],
+    ['0%', 'var(--ds-attn-high)'],
+    [`${((y(GOOD_STREAK_SCORE) - MARGIN.top) / (plotBottom - MARGIN.top)) * 100}%`, 'var(--ds-attn-high)'],
+    [`${((y(GOOD_STREAK_SCORE) - MARGIN.top) / (plotBottom - MARGIN.top)) * 100}%`, 'var(--ds-attn-focused)'],
+    [`${((y(FOCUSED_SCORE) - MARGIN.top) / (plotBottom - MARGIN.top)) * 100}%`, 'var(--ds-attn-focused)'],
+    [`${((y(FOCUSED_SCORE) - MARGIN.top) / (plotBottom - MARGIN.top)) * 100}%`, 'var(--ds-attn-low)'],
+    ['100%', 'var(--ds-attn-low)'],
   ]
 
   return (

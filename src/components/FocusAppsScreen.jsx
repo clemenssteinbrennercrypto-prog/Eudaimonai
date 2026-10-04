@@ -116,7 +116,7 @@ function AppSection({ title, subtitle, apps, setApps, presets, inputValue, setIn
           }}
           placeholder="Type app or website"
         />
-        <button type="button" className="ds-button-primary" onClick={() => addApp()}>
+        <button type="button" className="ds-button-secondary" onClick={() => addApp()}>
           Add
         </button>
       </div>
@@ -130,9 +130,9 @@ function AppSection({ title, subtitle, apps, setApps, presets, inputValue, setIn
             onRemove={() => setApps(prev => prev.filter(item => item !== app))}
           />
         ))}
-        {apps.length === 0 && (
+        {apps.length === 0 && availablePresets.length === 0 && (
           <div className="protection-empty-list">
-            Nothing here yet. Add a preset or type your own.
+            Nothing here yet. Type an app or website above.
           </div>
         )}
       </div>
@@ -328,6 +328,7 @@ function NativeCameraDiagnostics() {
 
 export default function FocusAppsScreen({
   onBack,
+  onRegisterLeaveGuard,
   focusModeEnabled,
   setFocusModeEnabled,
   protectionState: suppliedProtectionState,
@@ -478,13 +479,18 @@ export default function FocusAppsScreen({
     [savedProtectionState, protectionState],
   )
 
-  const handleBack = () => {
-    if (hasUnsavedChanges && !confirmingBack) {
-      setConfirmingBack(true)
-      return
-    }
-    onBack()
+  // The sidebar replaces the Back button. Navigating away asks this guard;
+  // with unsaved changes it shows Save & leave / Discard and blocks the move.
+  const leaveGuard = useRef(() => true)
+  leaveGuard.current = () => {
+    if (!hasUnsavedChanges) return true
+    setConfirmingBack(true)
+    return false
   }
+  useEffect(() => {
+    onRegisterLeaveGuard?.(() => leaveGuard.current())
+    return () => onRegisterLeaveGuard?.(null)
+  }, [onRegisterLeaveGuard])
 
   const handleSaveAndBack = () => {
     if (handleSave()) onBack()
@@ -585,9 +591,8 @@ export default function FocusAppsScreen({
 
   return (
     <main className="protection-page">
-      <header className="protection-heading">
+      <header className="protection-heading" data-tauri-drag-region>
         <div>
-          <span>Digital environment</span>
           <h1>Protection</h1>
           <p>Decide what stays available when your focus session begins.</p>
         </div>
@@ -597,9 +602,7 @@ export default function FocusAppsScreen({
             <button type="button" className="is-primary" onClick={handleSaveAndBack}>Save &amp; leave</button>
             <button type="button" onClick={onBack}>Discard</button>
           </div>
-        ) : (
-          <button type="button" className="protection-back" onClick={handleBack}>Back</button>
-        )}
+        ) : null}
       </header>
 
       <div className="protection-layout">
@@ -672,7 +675,7 @@ export default function FocusAppsScreen({
             <div>
               <span>{{
                 off: 'Protection is off',
-                empty: 'Protection not configured',
+                empty: 'On, but nothing is blocked yet',
                 checking: 'Checking the Companion',
                 disconnected: 'Companion not connected',
                 permission: 'Automation permission required',

@@ -111,6 +111,15 @@ button:focus-visible {
   --ds-accent-text:    #8C9DFF;  /* accent as text; #2C46FF is ~3:1 on dark */
   --ds-focus-ring:     rgba(140, 157, 255, 0.7);
 
+  /* Attention bands: good attention is silver, only a problem is coloured.
+     One scale for the Lab field, the live ring, session curves and
+     timelines. Outcome and status colours (good/warn/bad) are separate. */
+  --ds-attn-deep:    #FFFFFF;
+  --ds-attn-high:    #CDD2DB;
+  --ds-attn-focused: #858C99;
+  --ds-attn-low:     #FFB340;
+  --ds-attn-none:    rgba(236, 238, 246, 0.24);
+
   --ds-good: #2FE3A8;
   --ds-warn: #FFB340;
   --ds-bad:  #FF4D6A;
@@ -1574,7 +1583,6 @@ body {
 }
 .session-recent-setups > button:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
 .session-recent-setups > button:hover strong { color: var(--accent); }
-.session-recent-index { grid-row: 1 / 4; color: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .session-recent-setups strong { font-size: 14px; font-weight: 650; transition: color .16s ease; }
 .session-recent-setups p { margin: 6px 0 10px; color: var(--text-muted); font-size: 12px; line-height: 1.4; }
 .session-recent-setups button div { display: flex; gap: 6px; }
@@ -2716,9 +2724,9 @@ html {
 .session-overview-stats small { display: block; color: var(--text-muted); font: 500 12px var(--font); }
 .session-overview-stats strong { display: block; margin: 10px 0 6px; overflow: hidden; color: var(--text); font: 650 28px/1.05 var(--font); letter-spacing: -0.035em; text-overflow: ellipsis; white-space: nowrap; }
 .session-overview-stats small { font-size: 11px; }
-.session-overview-stats > .is-good strong { color: var(--good); }
-.session-overview-stats > .is-warn strong { color: var(--warn); }
-.session-overview-stats > .is-bad strong { color: var(--bad); }
+.session-overview-stats > .is-good strong { color: var(--ds-attn-high); }
+.session-overview-stats > .is-warn strong { color: var(--ds-attn-focused); }
+.session-overview-stats > .is-bad strong { color: var(--ds-attn-low); }
 .session-overview-stats > .is-muted strong { color: var(--text-muted); }
 .session-overview-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
 .session-overview-section-heading h3 { margin: 2px 0 0; color: var(--text); font-size: 18px; font-weight: 620; letter-spacing: -0.02em; }
@@ -2735,8 +2743,8 @@ html {
 /* Session attention curve */
 .session-curve { margin-top: 18px; }
 .session-curve-threshold line { stroke-width: 1; stroke-dasharray: 3 5; opacity: 0.45; }
-.session-curve-threshold.is-high line { stroke: var(--good); }
-.session-curve-threshold.is-focused line { stroke: var(--warn); }
+.session-curve-threshold.is-high line { stroke: var(--ds-attn-high); }
+.session-curve-threshold.is-focused line { stroke: var(--ds-attn-focused); }
 .session-curve-pause rect { fill: rgba(148, 163, 184, 0.08); stroke: rgba(148, 163, 184, 0.22); stroke-dasharray: 3 4; }
 .analytics-main-plot .session-curve-pause text { fill: var(--text-muted); font: 600 11px var(--font); }
 .session-curve-area { pointer-events: none; }
@@ -2753,9 +2761,9 @@ html {
 .session-curve-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 12px; color: var(--text-secondary); font: 500 11px var(--font); }
 .session-curve-legend span { display: flex; align-items: center; gap: 7px; }
 .session-curve-legend i { width: 14px; height: 3px; border-radius: 2px; }
-.session-curve-legend .is-good { background: var(--good); }
-.session-curve-legend .is-warn { background: var(--warn); }
-.session-curve-legend .is-bad { background: var(--bad); }
+.session-curve-legend .is-good { background: var(--ds-attn-high); }
+.session-curve-legend .is-warn { background: var(--ds-attn-focused); }
+.session-curve-legend .is-bad { background: var(--ds-attn-low); }
 .session-curve-legend em { margin-left: auto; color: var(--text-muted); font-style: normal; }
 
 @media (max-width: 900px) {
@@ -3108,123 +3116,6 @@ html {
   outline-offset: 2px;
 }
 
-/* Window bar */
-.app-shell {
-  min-height: 100vh;
-  background: var(--ds-bg);
-  color: var(--ds-label);
-  font-family: var(--ds-font);
-}
-
-.app-shell-header {
-  position: sticky;
-  top: 0;
-  z-index: 230;
-  min-height: 52px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--ds-space-6);
-  padding: 0 var(--ds-space-6);
-  border-bottom: 1px solid var(--ds-hairline);
-  background: var(--ds-material-bar);
-  -webkit-backdrop-filter: var(--ds-blur);
-  backdrop-filter: var(--ds-blur);
-}
-
-.app-shell-brand {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--ds-label);
-  font: 650 15px/1 var(--ds-font);
-  cursor: pointer;
-}
-
-.app-shell-nav {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--ds-space-1);
-}
-
-.app-shell-nav-item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ds-space-2);
-  height: 28px;
-  padding: 0 var(--ds-space-3);
-  border: 0;
-  border-radius: var(--ds-radius-md);
-  background: transparent;
-  color: var(--ds-label-2);
-  font: 500 13px/1 var(--ds-font);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
-}
-.app-shell-nav-item:hover:not(:disabled) { background: var(--ds-fill); color: var(--ds-label); }
-.app-shell-nav-item.is-active { background: var(--ds-fill-strong); color: var(--ds-label); }
-.app-shell-nav-item:disabled { color: var(--ds-label-4); cursor: default; }
-
-.app-shell-soon {
-  padding: 2px 6px;
-  border-radius: var(--ds-radius-sm);
-  background: var(--ds-fill);
-  color: var(--ds-label-3);
-  font: 500 11px/1.3 var(--ds-font);
-}
-
-.app-shell-utilities {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--ds-space-2);
-  min-width: 0;
-}
-
-.app-shell-clock {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--ds-space-2);
-  padding-right: var(--ds-space-2);
-  color: var(--ds-label-2);
-  font: 400 12px/1 var(--ds-font);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.app-shell-clock b { color: var(--ds-label); font-weight: 500; }
-
-.app-shell .app-refresh-control {
-  position: static;
-  z-index: auto;
-  min-height: 28px;
-  max-width: none;
-  padding: 0;
-  border: 0;
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-fill);
-  box-shadow: none;
-}
-.app-shell .app-refresh-control:hover { background: var(--ds-fill-strong); box-shadow: none; }
-.app-shell .app-refresh-button,
-.app-shell .app-update-button {
-  min-height: 28px;
-  padding: 0 var(--ds-space-3);
-  border-radius: var(--ds-radius-md);
-  background: transparent;
-  color: var(--ds-label);
-  font: 500 12px/1 var(--ds-font);
-  letter-spacing: 0;
-  text-transform: none;
-}
-.app-shell .app-refresh-button:hover { background: transparent; color: var(--ds-label); }
-.app-shell .app-refresh-status { display: none; }
-.app-shell .app-update-button { border-left: 1px solid var(--ds-hairline); color: var(--ds-accent-text); }
-
-.app-shell-body { min-height: calc(100vh - 52px); }
-
 /* Lab */
 .lab-dashboard {
   width: min(1200px, 100%);
@@ -3342,7 +3233,7 @@ html {
   align-items: center;
   gap: var(--ds-space-4) var(--ds-space-8);
 }
-.lab-hero h1 {
+.lab-hero > h2 {
   grid-column: 1 / -1;
   justify-self: start;
   margin: 0;
@@ -3453,9 +3344,9 @@ html {
   transition: opacity var(--ds-dur-fast) var(--ds-ease);
 }
 .attention-field.has-hover .attention-bin:not(.is-hovered) { opacity: 0.5; }
-.attention-bin.is-strong { background: var(--ds-good); }
-.attention-bin.is-focused { background: var(--ds-warn); }
-.attention-bin.is-drift { background: var(--ds-bad); }
+.attention-bin.is-strong { background: var(--ds-attn-high); }
+.attention-bin.is-focused { background: var(--ds-attn-focused); }
+.attention-bin.is-drift { background: var(--ds-attn-low); }
 .attention-bin.is-paused { height: 16%; background: repeating-linear-gradient(135deg, rgba(232, 236, 255, 0.32) 0 2px, transparent 2px 5px); }
 .attention-bin.is-no-signal { height: 24%; background: rgba(236, 238, 246, 0.28); }
 .attention-bin.is-inactive { height: 8%; background: var(--ds-fill); }
@@ -3501,9 +3392,9 @@ html {
 .attention-legend { display: flex; flex-wrap: wrap; gap: var(--ds-space-2) var(--ds-space-5); margin-top: var(--ds-space-3); }
 .attention-legend span { display: inline-flex; align-items: center; gap: var(--ds-space-2); color: var(--ds-label-2); font-size: 12px; }
 .attention-legend span::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ds-fill-strong); }
-.attention-legend .is-strong::before { background: var(--ds-good); }
-.attention-legend .is-focused::before { background: var(--ds-warn); }
-.attention-legend .is-drift::before { background: var(--ds-bad); }
+.attention-legend .is-strong::before { background: var(--ds-attn-high); }
+.attention-legend .is-focused::before { background: var(--ds-attn-focused); }
+.attention-legend .is-drift::before { background: var(--ds-attn-low); }
 .attention-legend .is-paused::before { background: repeating-linear-gradient(135deg, rgba(232, 236, 255, 0.55) 0 2px, transparent 2px 4px); }
 .attention-legend .is-no-signal::before { background: rgba(236, 238, 246, 0.36); }
 
@@ -3595,8 +3486,6 @@ html {
 @keyframes dsRingFill { from { stroke-dashoffset: var(--ring-circumference); } to { stroke-dashoffset: var(--ring-offset); } }
 
 @media (max-width: 1100px) {
-  .app-shell-header { gap: var(--ds-space-3); padding: 0 var(--ds-space-4); }
-  .app-shell-nav { justify-content: flex-start; overflow-x: auto; }
 }
 
 @media (max-width: 900px) {
@@ -3605,18 +3494,12 @@ html {
 }
 
 @media (max-width: 820px) {
-  .app-shell-header { grid-template-columns: auto 1fr; padding: var(--ds-space-2) var(--ds-space-4) 0; }
-  .app-shell-utilities { justify-self: end; }
-  .app-shell-nav { grid-column: 1 / -1; grid-row: 2; padding-bottom: var(--ds-space-2); }
-  .app-shell-body { min-height: calc(100vh - 92px); }
   .lab-dashboard { padding: var(--ds-space-6) var(--ds-space-4); }
   .lab-toolbar { grid-template-columns: 1fr auto; }
   .lab-period-navigation { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
 }
 
 @media (max-width: 560px) {
-  .app-shell-clock { display: none; }
-  .app-shell-soon { display: none; }
   .lab-dashboard { padding: var(--ds-space-4) var(--ds-space-4) var(--ds-space-16); }
   .lab-period-navigation { grid-template-columns: 28px minmax(0, 1fr) 28px; width: 100%; }
   .lab-metric strong { font-size: 26px; }
@@ -3632,7 +3515,7 @@ html {
   .attention-bin,
   .lab-ring-arc { animation: none !important; }
   .ds-button-primary,
-  .app-shell-nav-item,
+  .app-sidebar-item,
   .lab-segments button,
   .lab-segments-thumb,
   .lab-period-navigation button,
@@ -3775,7 +3658,6 @@ html {
   cursor: pointer;
   transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease), transform var(--ds-dur-fast) var(--ds-ease);
 }
-.session-intent-options button { text-transform: capitalize; }
 .session-intent-tags button:hover,
 .session-intent-options button:hover,
 .analytics-filter-pill:hover,
@@ -3874,9 +3756,9 @@ html {
 .protection-strength button.is-active strong { color: var(--ds-accent-text); }
 
 /* Keyboard focus, everywhere inside the app. */
-.app-shell-body button:focus-visible,
-.app-shell-body select:focus-visible,
-.app-shell-body summary:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+.app-main button:focus-visible,
+.app-main select:focus-visible,
+.app-main summary:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
   .ds-button-primary:active,
@@ -3913,8 +3795,8 @@ html {
    colour only appears when it carries a warning (amber, red).             */
 .live-ring.is-good { --live-tone: #DDE2EB; }
 .live-ring.is-good.is-flow { --live-tone: #FFFFFF; }
-.live-ring.is-warn { --live-tone: var(--ds-warn); }
-.live-ring.is-bad { --live-tone: var(--ds-bad); }
+.live-ring.is-warn { --live-tone: var(--ds-attn-focused); }
+.live-ring.is-bad { --live-tone: var(--ds-attn-low); }
 .live-ring.is-calibrating { --live-tone: var(--ds-label-3); }
 .live-ring-center {
   position: absolute;
@@ -3974,7 +3856,6 @@ html {
 .lab-metric strong small { -webkit-text-fill-color: var(--ds-label-3); }
 
 .lab-metric { box-shadow: 0 0 0 1px var(--ds-silver-line) inset; }
-.app-shell-nav-item.is-active { box-shadow: 0 0 0 1px var(--ds-silver-line) inset; }
 .ds-chip,
 .ds-chip-add,
 .session-intent-tags button:not(.is-selected),
@@ -4150,3 +4031,411 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .session-select-control.ds-select .ds-select-button { color: var(--ds-label); }
 .session-recent-setups button div span { padding: 3px 9px; border: 0; border-radius: var(--ds-radius-full); background: var(--ds-fill); box-shadow: 0 0 0 1px var(--ds-silver-line) inset; color: var(--ds-label-2); }
 .session-recent-setups > button { border-color: var(--ds-silver-line); border-radius: var(--ds-radius-md); }
+
+/* ── macOS window structure (design review, 4 Oct 2026) ────────────────────
+   A source-list window: a translucent sidebar under the traffic lights,
+   content filling the rest, one toolbar row per screen. Controls follow Mac
+   sizes (28–32 px, 13 px text), selection is quiet (a lighter fill, not
+   blue), and ultramarine is left for the one primary action per screen.  */
+:root {
+  --ds-sidebar-w: 220px;
+  --ds-titlebar-h: 52px;
+  --ds-control-h: 30px;
+  --ds-chip-h: 28px;
+  --ds-input-h: 34px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--ds-bg);
+  color: var(--ds-label);
+  font-family: var(--ds-font);
+}
+
+/* Mac apps use the arrow everywhere except real hyperlinks. */
+.app-shell button,
+.app-shell summary,
+.app-shell select,
+.app-shell [role='option'],
+.app-shell label { cursor: default; }
+
+.app-sidebar {
+  position: fixed;
+  z-index: 240;
+  inset: 0 auto 0 0;
+  width: var(--ds-sidebar-w);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-2);
+  padding: 0 var(--ds-space-3) var(--ds-space-3);
+  border-right: 1px solid var(--ds-silver-line);
+  /* Same deep night blue as the window (Clemens: the lighter, bluer
+     translucent sidebar stood apart from the rest). */
+  background: var(--ds-bg);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.app-sidebar-titlebar { height: var(--ds-titlebar-h); flex: none; margin: 0 calc(-1 * var(--ds-space-3)); }
+.app-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  padding: 0 var(--ds-space-2) var(--ds-space-3);
+  color: var(--ds-label);
+  font: 650 14px/1 var(--ds-font);
+}
+.app-sidebar-brand img { border-radius: 5px; }
+.app-sidebar-nav { display: grid; gap: 2px; }
+.app-sidebar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  width: 100%;
+  height: 30px;
+  padding: 0 var(--ds-space-2);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ds-label-2);
+  font: 500 13px/1 var(--ds-font);
+  text-align: left;
+  transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+}
+.app-sidebar-item .ds-icon { color: var(--ds-label-3); }
+.app-sidebar-item:hover:not(:disabled) { background: var(--ds-fill); color: var(--ds-label); }
+.app-sidebar-item.is-active { background: var(--ds-fill-strong); color: var(--ds-label); }
+.app-sidebar-item.is-active .ds-icon { color: var(--ds-label); }
+.app-sidebar-item:disabled { color: var(--ds-label-4); }
+.app-sidebar-item:disabled .ds-icon { color: var(--ds-label-4); }
+.app-sidebar-item em { margin-left: auto; padding: 2px 6px; border-radius: 5px; background: var(--ds-fill); color: var(--ds-label-3); font: 500 11px/1.2 var(--ds-font); font-style: normal; }
+.app-sidebar-status { width: 7px; height: 7px; margin-left: auto; border-radius: 50%; }
+.app-sidebar-status.is-good { background: var(--ds-good); }
+.app-sidebar-status.is-warn { background: var(--ds-warn); }
+.app-sidebar-footer { margin-top: auto; display: grid; gap: var(--ds-space-2); }
+.app-sidebar-meta { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-2); padding: 0 var(--ds-space-2); }
+.app-sidebar-link { padding: 0; border: 0; background: none; color: var(--ds-label-3); font: 500 11px var(--ds-font); }
+.app-sidebar-link:hover { color: var(--ds-label); }
+.app-sidebar .app-build-identity {
+  position: static;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ds-label-4);
+  font: 500 11px/1.2 var(--ds-font);
+  font-variant-numeric: tabular-nums;
+}
+.app-sidebar .app-refresh-control {
+  position: static;
+  z-index: auto;
+  width: 100%;
+  max-width: none;
+  min-height: var(--ds-control-h);
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+}
+.app-sidebar .app-refresh-button,
+.app-sidebar .app-update-button {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: var(--ds-control-h);
+  padding: 0 var(--ds-space-2);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ds-label-2);
+  font: 500 13px/1 var(--ds-font);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.app-sidebar .app-refresh-button:hover { background: var(--ds-fill); color: var(--ds-label); }
+.app-sidebar .app-refresh-status { display: none; }
+.app-sidebar .app-update-button { color: var(--ds-accent-text); }
+
+.app-main { min-width: 0; min-height: 100vh; margin-left: var(--ds-sidebar-w); }
+.app-main-titlebar { height: 0; }
+
+/* One toolbar row per screen: title left, actions right, sticky in the
+   window material, draggable like a native title bar. */
+.ds-toolbar,
+.analytics-heading,
+.protection-heading,
+.session-intent-heading,
+.workspace-library > header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-4);
+  min-height: var(--ds-titlebar-h);
+  margin: 0 calc(-1 * var(--ds-space-8)) var(--ds-space-6);
+  padding: var(--ds-space-2) var(--ds-space-8);
+  border-bottom: 1px solid var(--ds-silver-line);
+  background: var(--ds-material-bar);
+  -webkit-backdrop-filter: var(--ds-blur);
+  backdrop-filter: var(--ds-blur);
+}
+.ds-toolbar h1,
+.analytics-heading h1,
+.protection-heading h1,
+.session-intent-heading h1,
+.workspace-library > header h1 {
+  margin: 0;
+  color: var(--ds-label);
+  font: 700 17px/1.2 var(--ds-font);
+  letter-spacing: -0.01em;
+}
+.protection-heading p,
+.session-intent-heading p,
+.workspace-library > header p { display: none; }
+.protection-heading > div,
+.workspace-library > header > div { display: flex; align-items: baseline; gap: var(--ds-space-3); }
+.ds-toolbar-actions { display: flex; align-items: center; gap: var(--ds-space-3); margin-left: auto; }
+
+/* Screens fill the window instead of floating in a centred column. */
+.lab-dashboard,
+.analytics-canvas,
+.protection-page,
+.session-intent,
+.workspace-library {
+  width: auto;
+  max-width: 1440px;
+  margin: 0;
+  padding: 0 var(--ds-space-8) var(--ds-space-16);
+}
+.lab-toolbar { display: flex; grid-template-columns: none; }
+.lab-toolbar .lab-period-navigation { margin-inline: auto; }
+.lab-toolbar .ds-toolbar-actions { margin-left: 0; }
+.lab-recent { width: 100%; }
+.analytics-heading .analytics-view-switch { margin: 0 0 0 auto; }
+
+/* Mac control sizes */
+.ds-button-primary,
+.ds-button-secondary {
+  min-height: var(--ds-control-h);
+  height: auto;
+  padding: 0 var(--ds-space-4);
+  font: 600 13px/1 var(--ds-font);
+}
+.ds-button-secondary {
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-glass-inset);
+  box-shadow: 0 0 0 1px var(--ds-silver-edge) inset;
+  color: var(--ds-label);
+  transition: background var(--ds-dur-fast) var(--ds-ease), transform var(--ds-dur-fast) var(--ds-ease);
+}
+.ds-button-secondary:hover { background: var(--ds-fill-strong); }
+.ds-button-secondary:active { transform: scale(0.97); }
+.protection-back,
+.protection-add-setup,
+.protection-editor-actions button,
+.protection-blocking-test > button,
+.protection-save-row > button,
+.session-workspace-selector > button,
+.session-protection-actions button,
+.analytics-detail-back,
+.analytics-ghost-button,
+.workspace-actions .secondary,
+.workspace-card-actions button,
+.workspace-card-actions button:first-child,
+.workspace-library > header button,
+.workspace-library > footer button,
+.restart-btn { min-height: var(--ds-control-h); padding: 0 var(--ds-space-4); font-size: 13px; }
+.session-intent-tags button,
+.session-intent-options button,
+.analytics-filter-pill,
+.ds-chip-add,
+.ds-chip { min-height: var(--ds-chip-h); }
+.text-input,
+.session-intent-field > input,
+.session-custom-tag input { min-height: var(--ds-input-h); font-size: 13px; }
+.protection-add-row .ds-button-primary,
+.protection-add-row .ds-button-secondary { min-height: var(--ds-input-h); }
+.ds-select-button { min-height: var(--ds-control-h); }
+.lab-segments button { height: 26px; }
+
+/* Quiet selection: a lighter fill and white text, like NSSegmentedControl.
+   Ultramarine is reserved for the primary action. */
+.lab-segments-thumb,
+.analytics-view-thumb,
+.analytics-range-thumb {
+  background: var(--ds-fill-strong);
+  box-shadow: 0 0 0 1px var(--ds-silver-line) inset;
+}
+.analytics-details-index button.is-active,
+.analytics-filter-pill.is-active,
+.session-intent-tags button.is-selected,
+.session-intent-options button.is-selected,
+.workspace-view-tabs button.is-active {
+  background: var(--ds-fill-strong);
+  box-shadow: 0 0 0 1px var(--ds-silver-edge) inset;
+  color: var(--ds-label);
+}
+.analytics-details-index button.is-active::before { background: var(--ds-label); box-shadow: none; }
+.ds-select-pill.is-set .ds-select-button { background: var(--ds-fill-strong); }
+.workspace-quality button,
+.workspace-calibration button.secondary {
+  background: var(--ds-glass-inset);
+  box-shadow: 0 0 0 1px var(--ds-silver-edge) inset;
+  color: var(--ds-label);
+}
+.protection-session-badge {
+  border-color: var(--ds-silver-line) !important;
+  background: var(--ds-fill) !important;
+  color: var(--ds-label-2) !important;
+}
+.protection-empty-guide { border-left-color: var(--ds-silver-edge); background: var(--ds-glass-inset); }
+.protection-empty-guide span { color: var(--ds-label); }
+
+/* The one primary action on Session: visible and solid once it can start. */
+.session-intent-start:not(:disabled) {
+  border: 0;
+  background: var(--ds-accent);
+  color: #fff;
+  box-shadow: none;
+}
+.session-intent-start:not(:disabled):hover { background: var(--ds-accent-hover); transform: none; box-shadow: none; }
+.session-intent-start:not(:disabled) * { color: #fff; }
+
+/* Analytics: the meta badge becomes a footnote, the filter bar recedes. */
+.analytics-section-heading > b,
+.analytics-details-heading b {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ds-label-3);
+  font: 500 12px var(--ds-font);
+}
+.analytics-toolbar {
+  top: var(--ds-titlebar-h);
+  border-color: var(--ds-silver-line);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-material-bar);
+  box-shadow: none;
+}
+
+/* macOS accessibility settings */
+@media (prefers-contrast: more) {
+  :root {
+    --ds-hairline: rgba(200, 210, 255, 0.3);
+    --ds-hairline-strong: rgba(220, 228, 255, 0.5);
+    --ds-silver-line: rgba(232, 236, 250, 0.45);
+    --ds-silver-edge: rgba(240, 244, 255, 0.6);
+    --ds-label-2: #DDE2F2;
+    --ds-label-3: #B6BDD8;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .app-sidebar,
+  .ds-toolbar,
+  .analytics-heading,
+  .protection-heading,
+  .session-intent-heading,
+  .workspace-library > header,
+  .analytics-toolbar,
+  .ds-select-menu,
+  .lab-panel {
+    background: var(--ds-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Narrow windows: the sidebar keeps its icons only. */
+@media (max-width: 760px) {
+  :root { --ds-sidebar-w: 60px; }
+  .app-sidebar-brand span,
+  .app-sidebar-item span,
+  .app-sidebar-item em,
+  .app-sidebar-meta,
+  .app-sidebar .app-refresh-button span:last-child { display: none; }
+  .app-sidebar-item { justify-content: center; }
+  .app-sidebar-status { position: absolute; top: 6px; right: 6px; }
+  .lab-dashboard,
+  .analytics-canvas,
+  .protection-page,
+  .session-intent,
+  .workspace-library { padding: 0 var(--ds-space-4) var(--ds-space-12); }
+  .ds-toolbar,
+  .analytics-heading,
+  .protection-heading,
+  .session-intent-heading,
+  .workspace-library > header { margin-inline: calc(-1 * var(--ds-space-4)); padding-inline: var(--ds-space-4); flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar-item,
+  .ds-button-secondary { transition: none; }
+  .ds-button-secondary:active { transform: none; }
+}
+
+/* Session: name and duration first, optional context folded away. */
+.session-more { border-top: 1px solid var(--ds-hairline); padding-top: var(--ds-space-4); }
+.session-more > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  width: fit-content;
+  color: var(--ds-label-2);
+  font: 600 13px var(--ds-font);
+  list-style: none;
+}
+.session-more > summary::-webkit-details-marker { display: none; }
+.session-more > summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--ds-dur-fast) var(--ds-ease);
+}
+.session-more[open] > summary::before { transform: rotate(45deg); }
+.session-more[open] > summary { margin-bottom: var(--ds-space-5); }
+.session-more > .session-intent-field + .session-intent-field,
+.session-more > .session-energy { margin-top: var(--ds-space-5); }
+.ds-select-value.is-placeholder { color: var(--ds-label-3); }
+@media (prefers-reduced-motion: reduce) { .session-more > summary::before { transition: none; } }
+
+/* Protection switch in the accent colour, like NSSwitch. */
+.protection-switch { border: 0; background: var(--ds-fill-strong); box-shadow: 0 0 0 1px var(--ds-silver-line) inset; }
+.protection-switch span { background: var(--ds-label); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+.protection-switch[aria-checked="true"] { border: 0; background: var(--ds-accent); box-shadow: none; }
+.protection-switch[aria-checked="true"] span { background: #fff; }
+
+/* Analytics rows and rings speak the attention scale: silver when good,
+   amber only for low attention. No glowing stripe, no hover lift. */
+.analytics-session-row.is-good { --row-accent: var(--ds-attn-high); }
+.analytics-session-row.is-warn { --row-accent: var(--ds-attn-focused); }
+.analytics-session-row.is-bad { --row-accent: var(--ds-attn-low); }
+.analytics-session-row::before { box-shadow: none; }
+.analytics-session-row:hover { transform: none; }
+.analytics-attention-ring-value { stroke: var(--ds-attn-high); filter: none; }
+
+/* Recent setups: no index column any more, title above its tags. */
+.session-recent-setups > button { grid-template-columns: minmax(0, 1fr); }
+.session-recent-setups > button:hover { border-color: var(--ds-silver-edge); }
+.session-recent-setups > button:hover strong { color: var(--ds-label); }
+.session-recent-setups button div { flex-wrap: wrap; }
+
+/* Protection level: the chosen option is marked quietly, not in blue. */
+.protection-strength button { border-color: var(--ds-hairline); border-radius: var(--ds-radius-md); background: var(--ds-glass-inset); }
+.protection-strength button.is-active { border-color: var(--ds-silver-edge); background: var(--ds-fill-strong); }
+.protection-strength button.is-active strong { color: var(--ds-label); }
+
+/* The live session has no sidebar; with the overlay title bar it keeps a
+   strip at the top for the traffic lights. */
+.session-root { padding-top: 28px; }
+
+/* Attention trend in the silver scale: a silver line and points, the best
+   session marked in white instead of green (no infinite pulse either). */
+.analytics-series-line { stroke: var(--ds-attn-high); }
+.analytics-point-halo { fill: var(--ds-attn-high); }
+.analytics-focus-point-mark { fill: var(--ds-attn-high); }
+.analytics-best-pulse { stroke: var(--ds-attn-deep); animation: none !important; opacity: 0.7; }
+.analytics-main-plot .analytics-best-mark text { fill: var(--ds-attn-deep); }

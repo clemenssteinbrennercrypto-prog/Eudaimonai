@@ -66,7 +66,7 @@ export async function clearHistoryAndRefresh({ clearAll, refresh, onHistoryClear
  * session history, Details for the underlying distributions. Owns the one
  * shared load of sessions + the focus ledger and every history mutation.
  */
-export default function AnalyticsShell({ onClose, onHistoryCleared = () => {} }) {
+export default function AnalyticsShell({ onHistoryCleared = () => {} }) {
   const [view, setView] = useState('story')
   const [sessions, setSessions] = useState([])
   const [focusLedger, setFocusLedger] = useState(() => emptyFocusLedger())
@@ -154,26 +154,22 @@ export default function AnalyticsShell({ onClose, onHistoryCleared = () => {} })
     <div className="analytics-shell">
       {mutationError && <div role="alert" className="session-save-error">{mutationError}</div>}
       <div className="analytics-canvas">
-        <div className="analytics-heading">
-          <div>
-            <h1>Analytics</h1>
+        <div className="analytics-heading" data-tauri-drag-region>
+          <h1>Analytics</h1>
+          <div className="analytics-view-switch" aria-label="Analytics view" style={{ '--view-index': Math.max(0, VIEWS.findIndex(tab => tab.id === view)) }}>
+            <span className="analytics-view-thumb" aria-hidden="true" />
+            {VIEWS.map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => { setView(tab.id); setSelectedSessionId(null); setMutationError(null) }}
+                aria-current={view === tab.id ? 'page' : undefined}
+                className={view === tab.id ? 'is-active' : ''}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <button onClick={onClose}>← Back</button>
-        </div>
-
-        <div className="analytics-view-switch" aria-label="Analytics view" style={{ '--view-index': Math.max(0, VIEWS.findIndex(tab => tab.id === view)) }}>
-          <span className="analytics-view-thumb" aria-hidden="true" />
-          {VIEWS.map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => { setView(tab.id); setSelectedSessionId(null); setMutationError(null) }}
-              aria-current={view === tab.id ? 'page' : undefined}
-              className={view === tab.id ? 'is-active' : ''}
-            >
-              {tab.label}
-            </button>
-          ))}
         </div>
 
         {loadError ? (

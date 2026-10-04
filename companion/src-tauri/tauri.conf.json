@@ -19,7 +19,9 @@
         "resizable": true,
         "center": true,
         "visible": true,
-        "backgroundThrottling": "disabled"
+        "backgroundThrottling": "disabled",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {
