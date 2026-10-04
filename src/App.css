@@ -4481,7 +4481,21 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-meta,
 .app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-refresh-button span:last-child { opacity: 0; pointer-events: none; }
 .app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-toggle { opacity: 0; }
-.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-status { position: absolute; top: 6px; left: 34px; }
+/* Rail: each item is a centred square, so the selection is never clipped,
+   and the Protection dot becomes a badge on the icon's corner. */
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item {
+  width: 40px;
+  margin-inline: auto;
+  justify-content: center;
+  padding: 0;
+}
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-status {
+  position: absolute;
+  top: 6px;
+  left: 23px;
+  margin: 0;
+  box-shadow: 0 0 0 2px var(--ds-bg);
+}
 .app-shell.is-sidebar-collapsed .app-sidebar:hover,
 .app-shell.is-sidebar-collapsed .app-sidebar:has(:focus-visible) {
   width: 220px;
@@ -4734,3 +4748,13 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .report-details-summary { width: fit-content; margin: 0 auto; padding: var(--ds-space-1) 0; color: var(--ds-label-2); font: 600 11px/1.2 var(--ds-font); letter-spacing: 0.14em; text-transform: uppercase; }
 .report-details-summary:hover { color: var(--ds-label); }
 @media (prefers-reduced-motion: reduce) { .report-checkin-options button { transition: none; } .report-checkin-options button:active { transform: none; } }
+
+/* The Protection status dot: small, vertically centred on the row. */
+.app-sidebar-status { width: 6px; height: 6px; flex: none; }
+/* In the rail the hidden label leaves the layout, so the icon is centred. */
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item em {
+  position: absolute;
+  width: 0;
+  overflow: hidden;
+}
