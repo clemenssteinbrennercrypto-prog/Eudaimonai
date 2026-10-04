@@ -4069,9 +4069,9 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   gap: var(--ds-space-2);
   padding: 0 var(--ds-space-3) var(--ds-space-3);
   border-right: 1px solid var(--ds-silver-line);
-  background: rgba(12, 16, 38, 0.72);
-  -webkit-backdrop-filter: var(--ds-blur);
-  backdrop-filter: var(--ds-blur);
+  /* Same deep night blue as the window (Clemens: the lighter, bluer
+     translucent sidebar stood apart from the rest). */
+  background: var(--ds-bg);
   user-select: none;
   -webkit-user-select: none;
 }

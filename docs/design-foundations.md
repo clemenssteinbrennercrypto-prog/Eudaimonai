@@ -195,7 +195,8 @@ under it. Panels do not nest.
 
 The app is a macOS source-list window (since 4 Oct 2026, after a design
 review): `titleBarStyle: Overlay` puts the traffic lights over a translucent
-sidebar (220 px, `--ds-blur`), content fills the rest of the window.
+sidebar (220 px) in the same deep night blue as the window (`--ds-bg`,
+not a lighter translucent blue), content fills the rest of the window.
 
 - **Sidebar:** Lab, Session, Workspace, Protection, Analytics, AI Companion
   (disabled, "Soon"). 30 px rows, SF-style line icons, the current item on
