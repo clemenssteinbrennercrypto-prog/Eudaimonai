@@ -4500,3 +4500,27 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   .app-sidebar-item em,
   .app-sidebar-meta { transition: none !important; }
 }
+
+/* Workspace editor fields: label above, app pop-up button below, full width.
+   Replaces the native select whose WebView menu used a serif system font. */
+.workspace-field { display: grid; gap: var(--ds-space-2); margin-bottom: var(--ds-space-4); }
+.workspace-field > span { color: var(--ds-label-2); font: 500 12px var(--ds-font); }
+.workspace-field > small { color: var(--ds-label-3); font-size: 11px; line-height: 1.4; }
+.workspace-field .ds-select,
+.ds-select-block { display: block; width: 100%; }
+.workspace-field .ds-select-button { border-radius: var(--ds-radius-md); }
+.workspace-properties .ds-select-menu { min-width: 100%; }
+
+/* The old ".workspace-editor button" rule painted every button ultramarine,
+   including the pop-up buttons. They keep the glass look like everywhere. */
+.workspace-editor .ds-select-button,
+.workspace-calibration .ds-select-button,
+.workspace-library .ds-select-button {
+  padding: 0 var(--ds-space-3) 0 var(--ds-space-4);
+  background: var(--ds-glass-inset);
+  box-shadow: 0 0 0 1px var(--ds-silver-line) inset;
+  color: var(--ds-label);
+  font: 500 13px/1 var(--ds-font);
+}
+.workspace-editor .ds-select-button:hover:not(:disabled),
+.workspace-editor .ds-select.is-open .ds-select-button { background: var(--ds-fill-strong); box-shadow: 0 0 0 1px var(--ds-silver-edge) inset; filter: none; }

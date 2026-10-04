@@ -5,6 +5,7 @@ import {
   WORKSPACE_ROLE_LABELS,
   defaultRoleForType,
 } from '../lib/workspaceObjects'
+import DsSelect from './DsSelect'
 
 // ── Perspective mapping ────────────────────────────────────────────────────────
 // Moderate perspective: 25° tilt, not bird's eye.
@@ -743,15 +744,13 @@ export default function IsometricWorkspace({ devices, setDevices, onContinue }) 
                   }}>
                     Role
                   </label>
-                  <select
+                  <DsSelect
+                    className="ds-select-block"
+                    label="Role"
                     value={activeDevice.role || defaultRoleForType(activeDevice.type)}
-                    onChange={e => updateDeviceRole(activeDevice.id, e.target.value)}
-                    className="ds-native-select"
-                  >
-                    {WORKSPACE_ROLES.map(role => (
-                      <option key={role.id} value={role.id}>{role.label}</option>
-                    ))}
-                  </select>
+                    options={WORKSPACE_ROLES.map(role => ({ value: role.id, label: role.label }))}
+                    onChange={value => updateDeviceRole(activeDevice.id, value)}
+                  />
                 </div>
               )}
               <button

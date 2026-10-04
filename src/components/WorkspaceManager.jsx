@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import WorkspaceSetup from './WorkspaceSetup'
+import DsSelect from './DsSelect'
 import WorkspaceCalibration from './WorkspaceCalibration'
 import WorkspaceAttentionMap from './WorkspaceAttentionMap'
 import { WORKSPACE_OBJECT_TYPES, WORKSPACE_ROLE_LABELS, WORKSPACE_ROLES, defaultRoleForType } from '../lib/workspaceObjects'
@@ -96,7 +97,7 @@ function CustomScreenSizeEditor({ config, physicalSize, onChange }) {
 
   return <div className="workspace-custom-screen-size">
     <label>Diagonal (in)<div className="workspace-measure-input"><input aria-label="Screen diagonal in inches" type="number" min={config.min} max={config.max} step="0.1" value={diagonal} onChange={event => setDiagonal(event.target.value)} onBlur={commitDiagonal} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}/><span>in</span></div></label>
-    <label>Aspect ratio<select aria-label="Screen aspect ratio" value={physicalSize.aspectRatio} onChange={event => onChange(physicalSize.diagonalInches, event.target.value)}>{config.ratios.map(ratio => <option key={ratio} value={ratio}>{ratio}</option>)}</select></label>
+    <div className="workspace-field"><span>Aspect ratio</span><DsSelect label="Screen aspect ratio" value={physicalSize.aspectRatio} options={config.ratios.map(ratio => ({ value: ratio, label: ratio }))} onChange={value => onChange(physicalSize.diagonalInches, value)}/></div>
     <small>{Math.round(physicalSize.diagonalInches * 2.54 * 10) / 10} cm diagonal · proportions and gaze area update together. Calibration remains the source of truth.</small>
   </div>
 }
@@ -219,19 +220,26 @@ function Editor({ initial, onSave, onCancel }) {
       </section>
       <aside className="workspace-properties"><h3>Properties</h3>{selected ? <>
         <div className="workspace-object-kind"><span aria-hidden="true">{deviceGlyph(selected.type)}</span><div><strong>{selectedType?.label || selected.type}</strong><small>{selected.sizePreset ? 'Standard proportions' : selected.physicalSize ? 'Custom physical size' : 'Existing custom proportions'}</small></div></div>
-        <label>Role<select value={selected.role} onChange={event => updateRole(event.target.value)}>{WORKSPACE_ROLES.map(role => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label>
+        <div className="workspace-field"><span>Role</span><DsSelect label="Role" value={selected.role} options={WORKSPACE_ROLES.map(role => ({ value: role.id, label: role.label }))} onChange={updateRole}/></div>
         <div className="workspace-property-section">Size</div>
         {selectedSizePresets.length > 1 ? <>
-          <label>Device size<select aria-label="Device size" value={selected.sizePreset || 'custom'} onChange={event => updateSizePreset(event.target.value)}>{selectedCustomConfig && <option value="custom">Custom size</option>}{!selected.sizePreset && !selectedCustomConfig && <option value="custom" disabled>Custom (existing)</option>}{selectedSizePresets.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select><small>Preset diagonals show inches and approximate centimetres.</small></label>
+          <div className="workspace-field"><span>Device size</span><DsSelect label="Device size" value={selected.sizePreset || 'custom'} options={[
+            ...(selectedCustomConfig ? [{ value: 'custom', label: 'Custom size' }] : []),
+            ...(!selected.sizePreset && !selectedCustomConfig ? [{ value: 'custom', label: 'Custom (existing)', disabled: true }] : []),
+            ...selectedSizePresets.map(item => ({ value: item.id, label: item.label })),
+          ]} onChange={updateSizePreset}/><small>Preset diagonals show inches and approximate centimetres.</small></div>
           {selectedCustomConfig && !selected.sizePreset && (selected.physicalSize
             ? <CustomScreenSizeEditor config={selectedCustomConfig} physicalSize={selected.physicalSize} onChange={updatePhysicalScreenSize}/>
             : <div className="workspace-custom-screen-size workspace-unmeasured-size"><small>This older custom shape has no physical measurement yet.</small><button type="button" onClick={() => { const physical = suggestedCustomScreenSize(selected); updatePhysicalScreenSize(physical.diagonalInches, physical.aspectRatio) }}>Enter measured size</button></div>)}
         </> : <div className="workspace-fixed-size"><span>Device size</span><strong>{selected.sizePreset ? selectedSizePresets[0]?.label || 'Standard' : 'Custom (existing)'}</strong>{!selected.sizePreset && selectedSizePresets[0] && <button type="button" onClick={() => updateSizePreset(selectedSizePresets[0].id)}>Use standard</button>}</div>}
         {selected.type === 'camera' && <>
           <div className="workspace-property-section">Camera mount</div>
-          <label>Attached to<select aria-label="Camera mount target" value={selected.cameraMount?.targetId || 'free'} onChange={event => updateCameraMount(event.target.value === 'free' ? null : { targetId: event.target.value, style: 'integrated', offsetX: 0 })}><option value="free">Free placement</option>{cameraTargets.map((target, index) => <option key={target.id} value={target.id}>{target.role === 'primary_screen' ? 'Primary' : 'Secondary'} {target.type === 'laptop' ? 'laptop' : 'monitor'}{cameraTargets.length > 1 ? ` ${index + 1}` : ''}</option>)}</select></label>
+          <div className="workspace-field"><span>Attached to</span><DsSelect label="Camera mount target" value={selected.cameraMount?.targetId || 'free'} options={[
+            { value: 'free', label: 'Free placement' },
+            ...cameraTargets.map((target, index) => ({ value: target.id, label: `${target.role === 'primary_screen' ? 'Primary' : 'Secondary'} ${target.type === 'laptop' ? 'laptop' : 'monitor'}${cameraTargets.length > 1 ? ` ${index + 1}` : ''}` })),
+          ]} onChange={value => updateCameraMount(value === 'free' ? null : { targetId: value, style: 'integrated', offsetX: 0 })}/></div>
           {selected.cameraMount && <>
-            <label>Mount style<select aria-label="Camera mount style" value={selected.cameraMount.style} onChange={event => updateCameraMount({ style: event.target.value })}><option value="integrated">Built into bezel</option><option value="top">On top of display</option></select></label>
+            <div className="workspace-field"><span>Mount style</span><DsSelect label="Camera mount style" value={selected.cameraMount.style} options={[{ value: 'integrated', label: 'Built into bezel' }, { value: 'top', label: 'On top of display' }]} onChange={value => updateCameraMount({ style: value })}/></div>
             <label>Along the bezel<input aria-label="Camera horizontal mount position" type="range" min="-1" max="1" step="0.05" value={selected.cameraMount.offsetX} onChange={event => updateCameraMount({ offsetX: Number(event.target.value) })}/><small>The lens follows this display when it moves or rotates.</small></label>
           </>}
         </>}
