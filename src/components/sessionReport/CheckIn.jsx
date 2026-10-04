@@ -32,20 +32,14 @@ export default function CheckIn({ session, analysis, onOutcomeChange }) {
     : { blockerText: blockerText.trim() })
 
   return (
-    <div style={{
-      width: '100%', boxSizing: 'border-box',
-      background: 'var(--surface)',
-      border: '1px solid var(--line)',
-      borderRadius: 14,
-      padding: '16px 18px',
-    }}>
-      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
-        Quick check-in <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(required)</span>
+    <div className="report-checkin">
+      <p className="report-checkin-kicker">
+        Quick check-in <span>(required)</span>
       </p>
-      <p style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600, margin: '0 0 12px' }}>
+      <p className="report-checkin-question">
         {session.goal ? `Did you get there: ${session.goal}?` : 'Did you reach your goal?'}
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: selectedOutcome ? 14 : 0 }}>
+      <div className="report-checkin-options" style={{ marginBottom: selectedOutcome ? 14 : 0 }}>
         {GOAL_OUTCOMES.map(({ value, label, color }) => {
           const active = selectedOutcome === value
           return (
@@ -54,17 +48,8 @@ export default function CheckIn({ session, analysis, onOutcomeChange }) {
               type="button"
               onClick={() => selectOutcome(value)}
               aria-pressed={active}
-              style={{
-                padding: '9px 12px',
-                fontSize: 13,
-                fontWeight: 700,
-                background: active ? `${color}22` : 'transparent',
-                color: active ? color : 'var(--text-muted)',
-                border: `1px solid ${active ? color : 'var(--line)'}`,
-                borderRadius: 100,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
+              className={active ? 'is-active' : ''}
+              style={{ '--outcome-tone': color }}
             >
               {label}
             </button>

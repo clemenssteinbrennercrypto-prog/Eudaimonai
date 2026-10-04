@@ -153,10 +153,7 @@ export default function SessionDetails({ session, analysis }) {
 
   return (
     <details style={{ width: '100%', boxSizing: 'border-box' }}>
-      <summary style={{
-        cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)',
-        textTransform: 'uppercase', letterSpacing: '0.07em', padding: '4px 0',
-      }}>
+      <summary className="report-details-summary">
         Details
       </summary>
       <div style={{

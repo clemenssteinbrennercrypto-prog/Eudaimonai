@@ -26,33 +26,23 @@ export default function SessionReport({
       {showRead && <SessionRead analysis={analysis} />}
       <SessionDetails session={session} analysis={analysis} />
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button className="restart-btn" onClick={onPrimaryAction}>
-          Continue to Analytics
-        </button>
+      {/* One primary (ultramarine) action, the rest quiet secondary pills of
+          the same height, as everywhere else in the app. */}
+      <div className="report-actions">
         {onSecondaryAction && (
-          <button onClick={onSecondaryAction} style={secondaryButtonStyle}>
+          <button type="button" className="ds-button-secondary" onClick={onSecondaryAction}>
             New Session
           </button>
         )}
         {onRepeat && (
-          <button onClick={onRepeat} style={secondaryButtonStyle}>
+          <button type="button" className="ds-button-secondary" onClick={onRepeat}>
             Repeat Setup
           </button>
         )}
+        <button type="button" className="ds-button-primary report-primary" onClick={onPrimaryAction}>
+          Continue to Analytics
+        </button>
       </div>
     </div>
   )
-}
-
-const secondaryButtonStyle = {
-  padding: '14px 28px',
-  fontSize: 15, fontWeight: 600,
-  background: 'transparent',
-  color: 'var(--ultra-bright)',
-  border: '1.5px solid var(--ultra)',
-  borderRadius: 14,
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  letterSpacing: '0.01em',
 }
