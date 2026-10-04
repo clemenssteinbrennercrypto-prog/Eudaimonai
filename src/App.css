@@ -4402,7 +4402,7 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 }
 
 /* Session: name and duration first, optional context folded away. */
-.session-more { border-top: 1px solid var(--ds-hairline); padding-top: var(--ds-space-4); }
+.session-more { margin-top: var(--ds-space-5); border-top: 1px solid var(--ds-hairline); padding-top: var(--ds-space-4); }
 .session-more > summary {
   display: flex;
   align-items: center;
@@ -4449,6 +4449,13 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .session-recent-setups > button:hover { border-color: var(--ds-silver-edge); }
 .session-recent-setups > button:hover strong { color: var(--ds-label); }
 .session-recent-setups button div { flex-wrap: wrap; }
+/* Title, optional goal and tags as one evenly spaced column, so the tags
+   no longer sit right against the name. */
+.session-recent-setups > button { row-gap: var(--ds-space-2); align-content: start; padding: var(--ds-space-4) var(--ds-space-4); }
+.session-recent-setups > button strong { line-height: 1.25; }
+.session-recent-setups > button p { margin: 0; }
+.session-recent-setups button div { gap: var(--ds-space-1); }
+.session-recent-setups button div span { line-height: 1.3; }
 
 /* Protection level: the chosen option is marked quietly, not in blue. */
 .protection-strength button { border-color: var(--ds-hairline); border-radius: var(--ds-radius-md); background: var(--ds-glass-inset); }
