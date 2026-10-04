@@ -245,6 +245,15 @@ data colour: an all-silver chart read as grey, i.e. as missing data.
 Yellow is data; amber (`--ds-warn`) is app status (e.g. Protection needs
 attention). Outcome colours (Done / Partial / Missed) stay separate.
 
+### Lab hero (final, 4 Oct 2026)
+
+A hybrid of the old instrument strip and the new structure: the score ring on
+the left (score at 72 px, weight 200; "OF 100" in tracked caps), the three numbers in one
+row beside it without tile boxes (11 px tracked uppercase labels with a
+tone dot, 44/300 numerals, one-line notes), separated by hairlines. The
+quick-start bar sits above it at 38 px. This keeps the old Lab's presence
+(everything at a glance, the number as the hero) with the new readability.
+
 ### Durations
 
 Summaries (Lab, Analytics overview, recent sessions) are rounded to the

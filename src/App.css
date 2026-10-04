@@ -4593,3 +4593,104 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   .lab-quick-start form,
   .lab-quick-durations button { transition: none; }
 }
+
+/* ── Lab hybrid (4 Oct 2026) ────────────────────────────────────────────────
+   The new structure with the old Lab's presence: ring and the three numbers
+   in one row (as the instrument strip used to be), large light numerals
+   without tile boxes, small tracked uppercase labels at a readable 11 px,
+   a bigger score inside the ring, and a flatter quick-start bar so the
+   score sits higher. */
+.lab-hero {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: var(--ds-space-2) var(--ds-space-10);
+  padding: var(--ds-space-6) var(--ds-space-8);
+}
+.lab-hero > h2 {
+  grid-column: 1 / -1;
+  color: var(--ds-label-2);
+  font: 600 11px/1.2 var(--ds-font);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.lab-ring { width: 236px; }
+.lab-ring-center strong { font: 200 72px/1 var(--ds-font); letter-spacing: -0.045em; }
+.lab-ring-center span { font: 600 10px/1 var(--ds-font); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ds-label-3); }
+
+.lab-metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  align-self: stretch;
+}
+.lab-metric,
+.lab-metric-time,
+.lab-metric-attention,
+.lab-metric-deep {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-2) var(--ds-space-6);
+  border: 0;
+  border-left: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.lab-metric > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  color: var(--ds-label-2);
+  font: 600 11px/1.2 var(--ds-font);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.lab-metric > span::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--metric-tone); flex: none; }
+.lab-metric strong {
+  text-align: left;
+  font: 300 44px/1 var(--ds-font);
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+}
+.lab-metric strong small { font-size: 16px; }
+.lab-metric .lab-metric-detail { color: var(--ds-label-3); font-size: 12px; line-height: 1.4; }
+
+.lab-quick-start form { padding: 6px 6px 6px var(--ds-space-5); }
+.lab-quick-start input { height: 38px; font-size: 16px; }
+.ds-button-primary.lab-quick-go { height: 38px; min-height: 38px; font-size: 14px; }
+.lab-quick-start { margin-bottom: 0; }
+
+@media (max-width: 1180px) {
+  .lab-metric strong { font-size: 34px; }
+  .lab-hero { gap: var(--ds-space-2) var(--ds-space-6); padding: var(--ds-space-6); }
+  .lab-ring { width: 200px; }
+  .lab-ring-center strong { font-size: 60px; }
+}
+@media (max-width: 900px) {
+  .lab-hero { grid-template-columns: 1fr; justify-items: center; }
+  .lab-metric-row { justify-self: stretch; }
+}
+@media (max-width: 560px) {
+  .lab-metric-row { grid-template-columns: 1fr; }
+  .lab-metric,
+  .lab-metric-time,
+  .lab-metric-attention,
+  .lab-metric-deep { border-left: 0; border-top: 1px solid var(--ds-hairline); padding: var(--ds-space-4) 0; }
+}
+/* Every column starts at the same line: label, number, note, left aligned. */
+.lab-metric-row { justify-self: stretch; align-items: center; }
+.lab-metric,
+.lab-metric-time,
+.lab-metric-attention,
+.lab-metric-deep {
+  align-items: flex-start;
+  justify-content: flex-start;
+  align-self: center;
+  text-align: left;
+  min-height: 132px;
+}
+.lab-metric .lab-metric-detail { max-width: 24ch; }
+@media (max-width: 900px) { .lab-metric { min-height: 0; } }
