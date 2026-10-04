@@ -17,9 +17,10 @@ function html(tab = 'datenschutz') {
 }
 
 describe('legal copy', () => {
-  it('does not present the incomplete address as a geographic address', () => {
+  it('shows the full geographic address required by § 5 ECG', () => {
     const output = html('impressum')
-    expect(output).toContain('Straße, Hausnummer, PLZ und Ort ergänzen')
+    expect(output).toContain('Adresse: Heinrich-Casper-Gasse 17, 8010 Graz, Österreich')
+    expect(output).not.toContain('ergänzen')
     expect(output).not.toContain('Adresse: Wien, Österreich')
   })
 

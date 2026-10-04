@@ -2,16 +2,14 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 
 const navy = 'var(--ultra)'
 
-// TODO(legal): § 5 ECG verlangt die GEOGRAFISCHE Anschrift — Straße, Hausnummer
-// und PLZ. "Wien, Österreich" erfüllt das nicht, und es ist der am häufigsten
-// abgemahnte Einzelpunkt überhaupt, weil er trivial nachprüfbar ist. Eine
-// Ausnahme für Einzelunternehmer gibt es nicht: ohne andere Niederlassung muss
-// die Wohnadresse hier stehen. Vor dem Launch ausfüllen.
+// § 5 ECG verlangt die geografische Anschrift (Straße, Hausnummer, PLZ, Ort);
+// ohne andere Niederlassung ist das die Wohnadresse. Nicht durch eine Stadt
+// allein ersetzen.
 export const IMPRESSUM = [
   {
     heading: 'Angaben gemäß § 5 ECG',
     body: `Name: Clemens Steinbrenner
-Adresse: [Straße, Hausnummer, PLZ und Ort ergänzen]
+Adresse: Heinrich-Casper-Gasse 17, 8010 Graz, Österreich
 E-Mail: clemenssteinbrenner.crypto@gmail.com`,
   },
   {
