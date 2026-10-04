@@ -369,8 +369,8 @@ export default function LandingPage() {
           </span>
           <div style={{ display: 'flex', gap: 20 }}>
             {[
-              { id: 'impressum',   label: 'Impressum'   },
-              { id: 'datenschutz', label: 'Datenschutz' },
+              { id: 'impressum',   label: 'Legal Notice'   },
+              { id: 'datenschutz', label: 'Privacy Policy' },
             ].map(({ id, label }) => (
               <button
                 key={id}

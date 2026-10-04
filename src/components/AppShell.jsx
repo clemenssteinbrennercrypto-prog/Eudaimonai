@@ -106,8 +106,11 @@ export default function AppShell({ active, onNavigate, onLegal, utility, footer,
       <aside
         className="app-sidebar"
         aria-label="Eudaimonai"
-        onMouseEnter={() => collapsed && schedulePeek(true, 160)}
-        onMouseLeave={() => collapsed && schedulePeek(false, 120)}
+        // Hover intent: a pointer just passing over the rail on its way to
+        // the window edge does not open it, and a brief overshoot past the
+        // open panel does not snap it shut.
+        onMouseEnter={() => collapsed && schedulePeek(true, 200)}
+        onMouseLeave={() => collapsed && schedulePeek(false, 220)}
         onFocus={event => {
           if (collapsed && event.target.matches?.(':focus-visible')) schedulePeek(true, 0)
         }}

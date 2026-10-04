@@ -19,24 +19,24 @@ function html(tab = 'datenschutz') {
 describe('legal copy', () => {
   it('shows the full geographic address required by § 5 ECG', () => {
     const output = html('impressum')
-    expect(output).toContain('Adresse: Heinrich-Casper-Gasse 17, 8010 Graz, Österreich')
-    expect(output).not.toContain('ergänzen')
-    expect(output).not.toContain('Adresse: Wien, Österreich')
+    expect(output).toContain('Address: Heinrich-Casper-Gasse 17, 8010 Graz, Austria')
+    expect(output).not.toContain('[')
+    expect(output).not.toContain('Vienna')
   })
 
   it('describes the native store and the reachable deletion route', () => {
     const output = html()
-    expect(output).toContain('lokalen SQLite-Datenbank')
+    expect(output).toContain('local SQLite database')
     expect(output).toContain('Analytics → Sessions')
     expect(output).toContain('Clear all history')
-    expect(output).toContain('Fenstertitel')
+    expect(output).toContain('window titles')
   })
 
   it('describes transient camera processing without denying the in-memory frame buffer', () => {
     const output = html()
-    expect(output).toContain('kurzzeitig im Arbeitsspeicher verarbeitet')
-    expect(output).toContain('weder dauerhaft gespeichert noch übertragen')
-    expect(output).not.toContain('keine Video- oder Bilddaten gespeichert, gepuffert oder übertragen')
+    expect(output).toContain('briefly processed in memory')
+    expect(output).toContain('neither stored permanently nor transmitted')
+    expect(output).not.toContain('no video or image data is stored, buffered or transmitted')
   })
 
   it('exposes the full-screen legal view as a labelled modal with grouped view buttons', () => {
@@ -52,7 +52,7 @@ describe('legal copy', () => {
     const output = html()
     expect(output).not.toContain('„Local model“')
     expect(output).not.toContain('„Claude API“')
-    expect(output).toContain('ungefähr alle fünf Minuten')
+    expect(output).toContain('roughly every five minutes')
     expect(output).toContain('GitHub Releases')
   })
 })
@@ -75,7 +75,7 @@ describe('legal modal keyboard behavior', () => {
     const opener = screen.getByRole('button', { name: 'Open legal' })
     opener.focus()
     fireEvent.click(opener)
-    const dialog = screen.getByRole('dialog', { name: 'Datenschutz' })
+    const dialog = screen.getByRole('dialog', { name: 'Privacy Policy' })
     expect(within(dialog).getByRole('button', { name: '← Back' })).toHaveFocus()
 
     fireEvent.keyDown(dialog, { key: 'Escape' })
@@ -86,19 +86,19 @@ describe('legal modal keyboard behavior', () => {
 
   it('does not reset focus when a parent supplies a new onClose callback', () => {
     const { rerender } = render(<LegalModal open initialTab="datenschutz" onClose={() => {}} />)
-    const impressum = screen.getByRole('button', { name: 'Impressum' })
+    const impressum = screen.getByRole('button', { name: 'Legal Notice' })
     impressum.focus()
 
     rerender(<LegalModal open initialTab="datenschutz" onClose={() => {}} />)
 
-    expect(screen.getByRole('button', { name: 'Impressum' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Legal Notice' })).toHaveFocus()
   })
 
   it('wraps Tab and Shift-Tab within the modal controls', () => {
     render(<LegalModal open initialTab="datenschutz" onClose={() => {}} />)
     const dialog = screen.getByRole('dialog')
     const back = within(dialog).getByRole('button', { name: '← Back' })
-    const privacy = within(dialog).getByRole('button', { name: 'Datenschutz' })
+    const privacy = within(dialog).getByRole('button', { name: 'Privacy Policy' })
 
     privacy.focus()
     fireEvent.keyDown(privacy, { key: 'Tab' })

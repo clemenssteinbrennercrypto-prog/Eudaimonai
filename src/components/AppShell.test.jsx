@@ -70,7 +70,10 @@ describe('collapsed sidebar peek', () => {
     act(() => { vi.advanceTimersByTime(200) })
     expect(shell).toHaveClass('is-sidebar-peek')
     fireEvent.mouseLeave(aside)
-    act(() => { vi.advanceTimersByTime(200) })
+    // A brief overshoot past the panel does not close it.
+    act(() => { vi.advanceTimersByTime(150) })
+    expect(shell).toHaveClass('is-sidebar-peek')
+    act(() => { vi.advanceTimersByTime(100) })
     expect(shell).not.toHaveClass('is-sidebar-peek')
     vi.useRealTimers()
   })
