@@ -4758,3 +4758,41 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   width: 0;
   overflow: hidden;
 }
+
+/* Analytics view and range switches match the Lab's segmented control:
+   same height, padding, type and quiet thumb (they were 38 px with a
+   heavier pill and a ring that read as a separate button). */
+.analytics-view-switch,
+.analytics-range-switch {
+  padding: 2px;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-glass-inset);
+  box-shadow: 0 0 0 1px var(--ds-silver-line) inset;
+}
+.analytics-view-switch button,
+.analytics-range-switch button {
+  min-width: 84px;
+  min-height: 0;
+  height: 28px;
+  padding: 0 var(--ds-space-4);
+  color: var(--ds-label-2);
+  font: 600 12px/1 var(--ds-font);
+}
+.analytics-view-switch button.is-active,
+.analytics-range-switch button.is-active { color: var(--ds-label); }
+.analytics-view-thumb,
+.analytics-range-thumb {
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  background: var(--ds-fill-strong);
+  box-shadow: none;
+}
+/* The old ".analytics-heading span" kicker rule gave every span in the
+   header (including this thumb) an 8 px bottom margin, shrinking it. */
+.analytics-view-thumb { width: calc((100% - 4px) / 2); }
+.analytics-heading .analytics-view-thumb { margin: 0; }
+.analytics-range-thumb { width: calc((100% - 4px) / 3); }
+.lab-segments { padding: 2px; }
+.lab-segments-thumb { top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--seg-count)); box-shadow: none; }
+.lab-segments button { height: 28px; }
