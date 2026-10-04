@@ -25,6 +25,10 @@ export default defineConfig({
     },
   },
   build: {
+    // The embedded app loads these local, gzip-compressed bundles from its own
+    // WebView. Keep a meaningful ceiling above the current 521/556 kB chunks
+    // without treating Vite's network-oriented 500 kB default as a release fault.
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       input: {
         main: resolve(projectRoot, 'index.html'),

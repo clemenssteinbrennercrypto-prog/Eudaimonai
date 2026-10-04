@@ -1,5 +1,4 @@
 import {
-  FLOW_SCORE,
   CALIBRATION_SECS,
   PHONE_PITCH_THRESH,
   RECOVERY_WINDOW_MS,
@@ -14,23 +13,26 @@ import {
   BLINK_WIN_MS,
   CONF_UNCERTAIN_MAX,
   DISTRACTION_DOWN_HOLD_MS,
-  EARLY_MICROSLEEP_MS,
   EAR_PROLONGED_CLOSE,
   EAR_RECALIB_INTERVAL,
-  EYES_OFF_HOLD_SECS,
   FACE_ABSENT_HOLD_MS,
-  HEAD_DOWN_HOLD,
   HEAD_DRIFT_THRESH,
   HEAD_DRIFT_WIN_MS,
-  HEAD_TURN_HOLD,
   IRIS_OFF_H,
   MAR_YAWN,
   PERCLOS_WIN_MS,
-  PHONE_HOLD_MS,
-  PROLONGED_CLOSE_MS,
   UNCERTAIN_HOLD_MS,
-  YAWN_HOLD_MS,
 } from './cameraScoringConstants.js'
+import {
+  calculateBaseAttentionScore,
+  finalizeAttentionScore,
+  shouldBuildSustainedRamp,
+} from './attentionScore.js'
+import {
+  advancePenaltyFrameState,
+  createPenaltyFrameState,
+  penaltySignalConfirmed,
+} from './attentionPenaltyDebounce.js'
 // Historical FaceMesh.js sampling cadence used by the recorded parity corpus.
 // Keep it explicit here: the live WebView camera controller no longer exists.
 export const PARITY_FRAME_INTERVAL_MS = 67
@@ -92,6 +94,7 @@ export function createCameraScoreReplay({
     sustainedGoodMs: 0,
     lastFrameAt: 0,
     lastDistractionAt: 0,
+    penaltyFrames: createPenaltyFrameState(),
   }
 
   return {
@@ -266,6 +269,16 @@ export function createCameraScoreReplay({
       const productiveHorizontal = horizontalContext.kind === 'productive_left' ||
         horizontalContext.kind === 'productive_right'
 
+      state.penaltyFrames = advancePenaltyFrameState(state.penaltyFrames, {
+        faceAbsent: !hasFace,
+        unknownPhoneDownward,
+        softHeadDown: hasFace && pitchDeg >= pitchDT * 0.75,
+        softHeadLeft: hasFace && !productiveHorizontal && adjustedYawSigned >= yawLT * 0.6,
+        softHeadRight: hasFace && !productiveHorizontal && -adjustedYawSigned >= yawRT * 0.6,
+        eyesRolledUp,
+      })
+      const faceAbsentConfirmed = penaltySignalConfirmed(state.penaltyFrames, 'faceAbsent')
+
       const adjustedIrisH = hasFace ? irisH - state.irisHNeutral : 0
       let eyesOffScreen = false
       if (hasFace) {
@@ -325,62 +338,67 @@ export function createCameraScoreReplay({
 
       const frameDelta = state.lastFrameAt ? Math.min(200, now - state.lastFrameAt) : 33
       state.lastFrameAt = now
-      let score = hasFace ? 68 : 0
-
       if (faceAbsentMs >= FACE_ABSENT_HOLD_MS) {
-        score = 0
         state.sustainedGoodMs = 0
-      } else if (faceAbsentMs > 0) {
-        score = state.focusScore * 0.88
-      } else if (hasFace) {
-        if (hasBlinkData && blinkRate >= 12 && blinkRate <= 20) score += 7
-        else if (hasBlinkData && blinkRate >= 5 && blinkRate < 12) score += 4
-        else if (hasBlinkData && blinkRate >= 8 && blinkRate <= 28) score += 3
-
-        if (fidgetVariance <= HEAD_DRIFT_THRESH * 0.5) score += 5
-        else if (fidgetVariance <= HEAD_DRIFT_THRESH) score += 2
-        if (pitchDeg >= workZonePitchMin && pitchDeg < workZonePitchMax) score += 5
-        if (productiveDownward) score += 3
-        if (productiveHorizontal) score += 5
-
-        if ((phoneMs >= PHONE_HOLD_MS && !productiveDownward) || distractionDownward) score -= 45
-        else if (unknownPhoneDownward) score -= 18
-        if (eyesClosedMs >= PROLONGED_CLOSE_MS) score -= 35
-        else if (earlyMicrosleepMs >= EARLY_MICROSLEEP_MS) score -= 15
-        if (hasPerclos) {
-          if (perclos > 15) score -= 30
-          else if (perclos > 8) score -= 15
-        }
-        if (yawnMs >= YAWN_HOLD_MS) score -= 20
-        if (lookingUpMs >= 3000 && pitchUpDT <= 15) score -= 25
-        if (hasBlinkData && blinkRate > 0 && (blinkRate < 3 || blinkRate > 35)) score -= 15
-        if (pitchDeg >= pitchDT && headDownSecs >= HEAD_DOWN_HOLD) {
-          score -= productiveDownward ? 3 : 25
-        } else if (pitchDeg >= pitchDT * 0.75) {
-          score -= productiveDownward ? 1 : 8
-        }
-        if (!productiveHorizontal) {
-          if (adjustedYawSigned >= yawLT && headTurnLeftSecs >= HEAD_TURN_HOLD) score -= 25
-          else if (adjustedYawSigned >= yawLT * 0.6) score -= 8
-          if (-adjustedYawSigned >= yawRT && headTurnRightSecs >= HEAD_TURN_HOLD) score -= 25
-          else if (-adjustedYawSigned >= yawRT * 0.6) score -= 8
-        }
-        if (eyesOffSecs >= EYES_OFF_HOLD_SECS) score -= 15
-        if (eyesRolledUp) score -= 15
       }
 
-      score = Math.max(0, Math.min(85, score))
+      const baseScore = calculateBaseAttentionScore({
+        hasFace,
+        faceAbsentMs,
+        faceAbsentConfirmed,
+        previousScore: state.focusScore,
+        hasBlinkData,
+        blinkRate,
+        fidgetVariance,
+        pitchDeg,
+        workZonePitchMin,
+        workZonePitchMax,
+        productiveDownward,
+        productiveHorizontal,
+        phoneMs,
+        distractionDownward,
+        unknownPhoneDownwardConfirmed: penaltySignalConfirmed(state.penaltyFrames, 'unknownPhoneDownward'),
+        eyesClosedMs,
+        earlyMicrosleepMs,
+        hasPerclos,
+        perclos,
+        yawnMs,
+        lookingUpMs,
+        pitchUpDT,
+        pitchDT,
+        headDownSecs,
+        softHeadDownConfirmed: penaltySignalConfirmed(state.penaltyFrames, 'softHeadDown'),
+        adjustedYawSigned,
+        yawLT,
+        yawRT,
+        headTurnLeftSecs,
+        headTurnRightSecs,
+        softHeadLeftConfirmed: penaltySignalConfirmed(state.penaltyFrames, 'softHeadLeft'),
+        softHeadRightConfirmed: penaltySignalConfirmed(state.penaltyFrames, 'softHeadRight'),
+        eyesOffSecs,
+        eyesRolledUpConfirmed: penaltySignalConfirmed(state.penaltyFrames, 'eyesRolledUp'),
+        activityPenalty: 0,
+        activityBonus: 0,
+        activityDistractionMs: 0,
+        activityReasonHoldMs: 0,
+      })
+      const holdForPenaltyDebounce = !hasFace && !faceAbsentConfirmed
       const msSinceDistraction = state.lastDistractionAt ? now - state.lastDistractionAt : Infinity
       const rampRate = msSinceDistraction < RECOVERY_WINDOW_MS ? 0.4 : 1
-      if (!trackingUncertain) {
-        state.sustainedGoodMs = score >= FLOW_SCORE
+      if (!trackingUncertain && !holdForPenaltyDebounce) {
+        state.sustainedGoodMs = shouldBuildSustainedRamp(baseScore.score)
           ? Math.min(120_000, state.sustainedGoodMs + frameDelta * rampRate)
           : Math.max(0, state.sustainedGoodMs - frameDelta * 3)
       }
-      const rawFinal = Math.min(100, score + state.sustainedGoodMs / 120_000 * 15)
-      if (!trackingUncertain) {
-        state.focusScore = Math.max(0, Math.min(100, rawFinal * 0.3 + state.focusScore * 0.7))
-      }
+      const previousScore = state.focusScore
+      const finalized = finalizeAttentionScore({
+        base: baseScore,
+        rampBonus: state.sustainedGoodMs / 120_000 * 15,
+        previousScore,
+        trackingUncertain,
+        holdForDebounce: holdForPenaltyDebounce,
+      })
+      state.focusScore = finalized.score
       if (state.focusScore < 55) state.lastDistractionAt = now
       return state.focusScore
     },

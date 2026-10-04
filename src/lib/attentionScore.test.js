@@ -16,7 +16,7 @@ function input(extra = {}) {
     productiveHorizontal: false,
     phoneMs: 0,
     distractionDownward: false,
-    unknownPhoneDownward: false,
+    unknownPhoneDownwardConfirmed: false,
     eyesClosedMs: 0,
     earlyMicrosleepMs: 0,
     hasPerclos: false,
@@ -32,7 +32,11 @@ function input(extra = {}) {
     headTurnLeftSecs: 0,
     headTurnRightSecs: 0,
     eyesOffSecs: 0,
-    eyesRolledUp: false,
+    softHeadDownConfirmed: false,
+    softHeadLeftConfirmed: false,
+    softHeadRightConfirmed: false,
+    eyesRolledUpConfirmed: false,
+    faceAbsentConfirmed: true,
     activityPenalty: 0,
     activityBonus: 0,
     activityDistractionMs: 0,
@@ -81,9 +85,47 @@ describe('pure attention score and trace', () => {
   })
 
   it('records brief face loss as decay from the previous score, not as a new bonus', () => {
-    const base = calculateBaseAttentionScore(input({ hasFace: false, faceAbsentMs: 400, previousScore: 80 }))
+    const base = calculateBaseAttentionScore(input({ hasFace: false, faceAbsentMs: 400, previousScore: 80, faceAbsentConfirmed: true }))
     expect(base.score).toBe(70.4)
     expect(Object.keys(base.components)).toEqual(['face_transition_decay'])
     expect(base.components.face_transition_decay).toBeCloseTo(-9.6)
+  })
+
+  it('holds the trusted score while face loss is still inside the frame deadzone', () => {
+    const base = calculateBaseAttentionScore(input({
+      hasFace: false,
+      faceAbsentMs: 100,
+      previousScore: 80,
+      faceAbsentConfirmed: false,
+    }))
+    const final = finalizeAttentionScore({
+      base,
+      rampBonus: 10,
+      previousScore: 80,
+      trackingUncertain: false,
+      holdForDebounce: true,
+    })
+    expect(base.score).toBe(80)
+    expect(final.score).toBe(80)
+    expect(final.trace.heldForDebounce).toBe(true)
+    expect(final.trace.components).not.toHaveProperty('face_transition_decay')
+  })
+
+  it.each([
+    ['phone_possible', { pitchDeg: 40, unknownPhoneDownwardConfirmed: true }],
+    ['head_down_soft', { pitchDeg: 24, softHeadDownConfirmed: true }],
+    ['head_down_productive_soft', { pitchDeg: 24, productiveDownward: true, softHeadDownConfirmed: true }],
+    ['head_left_soft', { adjustedYawSigned: 20, softHeadLeftConfirmed: true }],
+    ['head_right_soft', { adjustedYawSigned: -20, softHeadRightConfirmed: true }],
+    ['eyes_rolled_up', { eyesRolledUpConfirmed: true }],
+  ])('applies %s only after its frame debounce is confirmed', (component, confirmed) => {
+    const rawSignalOnly = {
+      pitchDeg: confirmed.pitchDeg,
+      adjustedYawSigned: confirmed.adjustedYawSigned,
+    }
+    const unconfirmed = calculateBaseAttentionScore(input(rawSignalOnly))
+    const debounced = calculateBaseAttentionScore(input(confirmed))
+    expect(unconfirmed.components).not.toHaveProperty(component)
+    expect(debounced.components[component]).toBeLessThan(0)
   })
 })

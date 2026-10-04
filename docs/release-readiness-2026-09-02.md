@@ -315,3 +315,29 @@ the repository or conversation.
 - No public release, internal updater change or installer replacement has
   occurred. Signing, notarization, stapling and clean-machine Gatekeeper
   acceptance remain open until the private validation run succeeds.
+
+## Friends & Family technical fixes — 4 October 2026
+
+A final technical audit on top of `0831319` found and fixed two data-integrity
+failures before distribution. This work did not install or replace the running
+app and did not publish either release channel.
+
+- Every formerly immediate camera penalty now passes one shared three-frame
+  deadzone: brief face loss, possible-phone posture, soft head-down/left/right
+  and rolled-up eyes. The first two anomalous frames hold the last trusted score
+  and neither earn nor burn the sustained-focus ramp. The recorded-camera replay
+  uses the same pure scorer and debounce state as the live session.
+- A session insert followed by a failed queued check-in update is now retried
+  against the already-created row. Pending edits survive the failure, the UI
+  exposes a retry, and the retry cannot create a duplicate session or ledger
+  contribution. A later standalone check-in update failure follows the same
+  visible retry path.
+- `npm run test:coverage`: 85 files and 884 tests passed; coverage gates passed
+  at 85.84% statements, 79.33% branches, 89.03% functions and 88.46% lines.
+- `npm run lint`, `npm run build`, `cargo check`, 13 native-camera library tests
+  and 70 app tests passed. `CI=true npm run build:companion` produced the arm64
+  `.app` and DMG successfully. The intentional classic MediaPipe parity script
+  no longer emits a Vite warning, and the local-WebView chunk ceiling is explicit.
+- The hard camera-loss, sleep/lid-close, clean permission, installed updater and
+  CPU/energy gates remain manual checks on the final signed candidate. No claim
+  about those gates is inferred from these automated results.

@@ -121,8 +121,43 @@ describe('failures do not lose the answer', () => {
     }
     const p = createSessionPersister(flaky)
     await p.save(record())
-    await p.edit({ goalOutcome: 'yes' })
+    await expect(p.edit({ goalOutcome: 'yes' })).rejects.toThrow('disk gone')
     expect(p.pendingEdits).toEqual({ goalOutcome: 'yes' })
+  })
+
+  it('retries a failed post-insert patch against the same row', async () => {
+    const { release, repository } = withHeldSave()
+    let saveCalls = 0
+    let updateCalls = 0
+    const flaky = {
+      ...repository,
+      async saveSession(data) {
+        saveCalls += 1
+        return repository.saveSession(data)
+      },
+      async updateSession(id, patch) {
+        updateCalls += 1
+        if (updateCalls === 1) throw new Error('patch failed after insert')
+        return repo.updateSession(id, patch)
+      },
+    }
+    const p = createSessionPersister(flaky)
+
+    const saving = p.save(record())
+    await p.edit({ goalOutcome: 'yes' })
+    release()
+
+    await expect(saving).rejects.toThrow('patch failed after insert')
+    expect(p.savedId).not.toBeNull()
+    expect(p.pendingEdits).toEqual({ goalOutcome: 'yes' })
+    expect((await repo.loadAll())).toHaveLength(1)
+
+    const retried = await p.save(record())
+    expect(saveCalls).toBe(1)
+    expect(updateCalls).toBe(2)
+    expect((await repo.loadAll())).toHaveLength(1)
+    expect((await repo.getSession(retried.id)).goalOutcome).toBe('yes')
+    expect(p.pendingEdits).toEqual({})
   })
 
   it('leaves queued edits intact when the save itself fails', async () => {

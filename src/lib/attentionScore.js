@@ -1,4 +1,4 @@
-import { FLOW_SCORE } from './attention'
+import { FLOW_SCORE } from './attention.js'
 import {
   EYES_OFF_HOLD_SECS,
   FACE_ABSENT_HOLD_MS,
@@ -9,7 +9,7 @@ import {
   PROLONGED_CLOSE_MS,
   EARLY_MICROSLEEP_MS,
   YAWN_HOLD_MS,
-} from './cameraScoringConstants'
+} from './cameraScoringConstants.js'
 
 export const SCORE_TRACE_VERSION = 1
 
@@ -78,7 +78,11 @@ export function calculateBaseAttentionScore(input) {
   let primaryReason = 'focused'
   if (input.hasFace) record.add('face_present_base', 68)
 
-  if (input.faceAbsentMs >= FACE_ABSENT_HOLD_MS) {
+  if (!input.hasFace && !input.faceAbsentConfirmed) {
+    // The native detector can miss a face for one or two frames. Hold the last
+    // trusted score until the shared three-frame deadzone confirms the loss.
+    score = input.previousScore
+  } else if (input.faceAbsentMs >= FACE_ABSENT_HOLD_MS) {
     score = 0
     primaryReason = 'away'
     record.add('face_absent', 0)
@@ -100,7 +104,7 @@ export function calculateBaseAttentionScore(input) {
     if ((input.phoneMs >= PHONE_HOLD_MS && !input.productiveDownward) || input.distractionDownward) {
       add('phone_confirmed', -45)
       primaryReason = 'phone'
-    } else if (input.unknownPhoneDownward) {
+    } else if (input.unknownPhoneDownwardConfirmed) {
       add('phone_possible', -18)
       if (primaryReason === 'focused') primaryReason = 'phone'
     }
@@ -128,20 +132,20 @@ export function calculateBaseAttentionScore(input) {
     }
     if (input.pitchDeg >= input.pitchDT && input.headDownSecs >= HEAD_DOWN_HOLD) {
       add(input.productiveDownward ? 'head_down_productive_sustained' : 'head_down_sustained', input.productiveDownward ? -3 : -25)
-    } else if (input.pitchDeg >= input.pitchDT * 0.75) {
+    } else if (input.pitchDeg >= input.pitchDT * 0.75 && input.softHeadDownConfirmed) {
       add(input.productiveDownward ? 'head_down_productive_soft' : 'head_down_soft', input.productiveDownward ? -1 : -8)
     }
     if (!input.productiveHorizontal) {
       if (input.adjustedYawSigned >= input.yawLT && input.headTurnLeftSecs >= HEAD_TURN_HOLD) add('head_left_sustained', -25)
-      else if (input.adjustedYawSigned >= input.yawLT * 0.6) add('head_left_soft', -8)
+      else if (input.adjustedYawSigned >= input.yawLT * 0.6 && input.softHeadLeftConfirmed) add('head_left_soft', -8)
       if (-input.adjustedYawSigned >= input.yawRT && input.headTurnRightSecs >= HEAD_TURN_HOLD) add('head_right_sustained', -25)
-      else if (-input.adjustedYawSigned >= input.yawRT * 0.6) add('head_right_soft', -8)
+      else if (-input.adjustedYawSigned >= input.yawRT * 0.6 && input.softHeadRightConfirmed) add('head_right_soft', -8)
     }
     if (input.eyesOffSecs >= EYES_OFF_HOLD_SECS) {
       add('eyes_off_screen', -15)
       if (primaryReason === 'focused') primaryReason = 'lookingup'
     }
-    if (input.eyesRolledUp) add('eyes_rolled_up', -15)
+    if (input.eyesRolledUpConfirmed) add('eyes_rolled_up', -15)
   }
 
   const beforeCameraCap = score
@@ -181,10 +185,10 @@ export function calculateBaseAttentionScore(input) {
   }
 }
 
-export function finalizeAttentionScore({ base, rampBonus, previousScore, trackingUncertain }) {
+export function finalizeAttentionScore({ base, rampBonus, previousScore, trackingUncertain, holdForDebounce = false }) {
   const rawFinal = Math.min(100, base.score + rampBonus)
   const smoothedCandidate = clamp(rawFinal * 0.3 + previousScore * 0.7, 0, 100)
-  const finalScore = trackingUncertain ? previousScore : smoothedCandidate
+  const finalScore = trackingUncertain || holdForDebounce ? previousScore : smoothedCandidate
   return {
     score: finalScore,
     rawFinal,
@@ -203,6 +207,7 @@ export function finalizeAttentionScore({ base, rampBonus, previousScore, trackin
       smoothedCandidate,
       finalScore,
       heldForUncertainTracking: trackingUncertain === true,
+      heldForDebounce: holdForDebounce === true,
       signals: base.signals,
     },
   }
