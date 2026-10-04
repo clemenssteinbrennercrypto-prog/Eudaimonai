@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 // SF Symbols-style line glyphs for the sidebar (16px grid, 1.5px stroke).
 const ICONS = {
@@ -20,6 +20,25 @@ export const NAV_ITEMS = [
   { id: 'ai-companion', label: 'AI Companion', soon: true },
 ]
 
+// Collapsed or not is a per-device view preference, like Finder's sidebar.
+// Storage can be unavailable (private window, blocked site data): the
+// sidebar then simply starts expanded.
+export const SIDEBAR_COLLAPSED_KEY = 'eudaimonai_sidebar_collapsed'
+export const TOGGLE_SIDEBAR_EVENT = 'eudaimonai:toggle-sidebar'
+
+function readCollapsed() {
+  try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true' } catch { return false }
+}
+
+function SidebarGlyph() {
+  return (
+    <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2" />
+      <path d="M6 2.75v10.5M3.5 5.5h1M3.5 7.5h1" />
+    </svg>
+  )
+}
+
 function Glyph({ id }) {
   return <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true">{ICONS[id]}</svg>
 }
@@ -28,6 +47,30 @@ function Glyph({ id }) {
 // content to the right. data-tauri-drag-region makes the empty sidebar top
 // and the toolbar drag the window, as a native title bar would.
 export default function AppShell({ active, onNavigate, onLegal, utility, footer, protectionStatus, children }) {
+  const [collapsed, setCollapsed] = useState(readCollapsed)
+  const toggleSidebar = () => setCollapsed(current => {
+    const next = !current
+    try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next)) } catch { /* view preference only */ }
+    return next
+  })
+
+  // ⌃⌘S and View > Toggle Sidebar, as in Finder, Mail and Notes.
+  useEffect(() => {
+    const onToggle = () => toggleSidebar()
+    const onKey = event => {
+      if (event.metaKey && event.ctrlKey && !event.altKey && event.key.toLowerCase() === 's') {
+        event.preventDefault()
+        toggleSidebar()
+      }
+    }
+    window.addEventListener(TOGGLE_SIDEBAR_EVENT, onToggle)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener(TOGGLE_SIDEBAR_EVENT, onToggle)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [])
+
   useEffect(() => {
     const onKeyDown = event => {
       if (!event.metaKey || event.altKey || event.ctrlKey) return
@@ -47,9 +90,20 @@ export default function AppShell({ active, onNavigate, onLegal, utility, footer,
   }, [onNavigate])
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${collapsed ? ' is-sidebar-collapsed' : ''}`}>
       <aside className="app-sidebar" aria-label="Eudaimonai">
-        <div className="app-sidebar-titlebar" data-tauri-drag-region />
+        <div className="app-sidebar-titlebar" data-tauri-drag-region>
+          <button
+            type="button"
+            className="app-sidebar-toggle"
+            onClick={toggleSidebar}
+            aria-pressed={!collapsed}
+            aria-label={collapsed ? 'Show sidebar' : 'Hide sidebar'}
+            title={`${collapsed ? 'Show' : 'Hide'} sidebar (⌃⌘S)`}
+          >
+            <SidebarGlyph />
+          </button>
+        </div>
         <div className="app-sidebar-brand" data-tauri-drag-region>
           <img src="./app-icon-64.png" alt="" width="22" height="22" />
           <span>Eudaimonai</span>

@@ -32,6 +32,12 @@ export function useNativeAppMenu({ onNavigate, onLegal, enabled }) {
         api.MenuItem.new({ id: 'go-new-session', text: 'New Session', accelerator: 'CmdOrCtrl+N', action: go('session-setup') }),
         ...GO_ITEMS.map(([id, text, accelerator]) => api.MenuItem.new({ id: `go-${id}`, text, accelerator, action: go(id) })),
       ])
+      // Toggle Sidebar mirrors ⌃⌘S. If this platform rejects the accelerator,
+      // keep the item without it rather than losing the whole Go menu.
+      const toggleSidebar = () => window.dispatchEvent(new Event('eudaimonai:toggle-sidebar'))
+      const sidebarItem = await api.MenuItem.new({ id: 'go-toggle-sidebar', text: 'Toggle Sidebar', accelerator: 'Cmd+Ctrl+S', action: toggleSidebar })
+        .catch(() => api.MenuItem.new({ id: 'go-toggle-sidebar', text: 'Toggle Sidebar', action: toggleSidebar }))
+      goItems.push(sidebarItem)
       const goMenu = await api.Submenu.new({ text: 'Go', items: goItems })
       const items = await menu.items()
       const titles = await Promise.all(items.map(item => (typeof item.text === 'function' ? item.text() : '')))

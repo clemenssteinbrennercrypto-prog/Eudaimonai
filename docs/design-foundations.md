@@ -218,6 +218,11 @@ not a lighter translucent blue), content fills the rest of the window.
   primary action of a screen (Start session, Save workspace, Done).
 - **Accessibility:** "Increase contrast" strengthens hairlines and secondary
   text; "Reduce transparency" makes sidebar, toolbars and panels solid.
+- **Hiding the sidebar:** the toggle in the sidebar, ⌃⌘S or Go > Toggle
+  Sidebar collapses it to a 76 px icon rail (wide enough for the traffic
+  lights). Hovering the rail opens the full sidebar as an overlay after a
+  160 ms pause, without moving the content; keyboard focus opens it too.
+  The choice is remembered per device (`eudaimonai_sidebar_collapsed`).
 - **Narrow windows** (< 760 px) keep an icon-only sidebar.
 - **Menu-bar extra:** a monochrome template image (`icons/tray-icon.png`),
   tinted by macOS. The app icon sits on Apple's grid (824 px body in a

@@ -4439,3 +4439,60 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .analytics-focus-point-mark { fill: var(--ds-attn-high); }
 .analytics-best-pulse { stroke: var(--ds-attn-deep); animation: none !important; opacity: 0.7; }
 .analytics-main-plot .analytics-best-mark text { fill: var(--ds-attn-deep); }
+
+/* Collapsible sidebar: ⌃⌘S or the toggle keeps a 76 px icon rail (wide
+   enough for the traffic lights). Hovering the rail opens the full sidebar
+   as an overlay after a short pause, without moving the content. */
+.app-sidebar-titlebar { position: relative; }
+.app-sidebar-toggle {
+  position: absolute;
+  top: 14px;
+  right: var(--ds-space-2);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-label-3);
+  transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease), opacity var(--ds-dur-base) var(--ds-ease);
+}
+.app-sidebar-toggle:hover { background: var(--ds-fill); color: var(--ds-label); }
+
+.app-sidebar,
+.app-main { transition: width var(--ds-dur-base) var(--ds-ease), margin-left var(--ds-dur-base) var(--ds-ease), box-shadow var(--ds-dur-base) var(--ds-ease); }
+.app-sidebar-item span,
+.app-sidebar-brand span,
+.app-sidebar-item em,
+.app-sidebar-meta,
+.app-sidebar .app-refresh-button span:last-child { transition: opacity var(--ds-dur-fast) var(--ds-ease); white-space: nowrap; }
+
+.app-shell.is-sidebar-collapsed { --ds-sidebar-w: 76px; }
+.app-shell.is-sidebar-collapsed .app-sidebar { overflow: hidden; }
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-brand span,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-item em,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-meta,
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-refresh-button span:last-child { opacity: 0; pointer-events: none; }
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-toggle { opacity: 0; }
+.app-shell.is-sidebar-collapsed .app-sidebar:not(:hover):not(:has(:focus-visible)) .app-sidebar-status { position: absolute; top: 6px; left: 34px; }
+.app-shell.is-sidebar-collapsed .app-sidebar:hover,
+.app-shell.is-sidebar-collapsed .app-sidebar:has(:focus-visible) {
+  width: 220px;
+  box-shadow: 18px 0 40px rgba(0, 0, 0, 0.45);
+  transition-delay: 160ms;
+}
+.app-shell.is-sidebar-collapsed .app-sidebar:hover .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed .app-sidebar:hover .app-sidebar-brand span { transition-delay: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .app-main,
+  .app-sidebar-toggle,
+  .app-sidebar-item span,
+  .app-sidebar-brand span,
+  .app-sidebar-item em,
+  .app-sidebar-meta { transition: none !important; }
+}
