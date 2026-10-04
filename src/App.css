@@ -4504,27 +4504,10 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-meta,
 .app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-refresh-button span:last-child { opacity: 0; pointer-events: none; }
 .app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-toggle { opacity: 0; }
-/* Rail: each item is a centred square, so the selection is never clipped,
-   and the Protection dot becomes a badge on the icon's corner. */
-.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-item {
-  width: 40px;
-  margin-inline: auto;
-  justify-content: center;
-  padding: 0;
-}
-.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-status {
-  position: absolute;
-  top: 6px;
-  left: 23px;
-  margin: 0;
-  box-shadow: 0 0 0 2px var(--ds-bg);
-}
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar {
   width: 220px;
   box-shadow: 18px 0 40px rgba(0, 0, 0, 0.45);
 }
-.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar-item span,
-.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar-brand span { transition-delay: 60ms; }
 
 @media (prefers-reduced-motion: reduce) {
   .app-sidebar,
@@ -4825,13 +4808,6 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 
 /* The Protection status dot: small, vertically centred on the row. */
 .app-sidebar-status { width: 6px; height: 6px; flex: none; }
-/* In the rail the hidden label leaves the layout, so the icon is centred. */
-.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-item span,
-.app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-item em {
-  position: absolute;
-  width: 0;
-  overflow: hidden;
-}
 
 /* Analytics view and range switches match the Lab's segmented control:
    same height, padding, type and quiet thumb (they were 38 px with a
@@ -4870,6 +4846,105 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .lab-segments { padding: 2px; }
 .lab-segments-thumb { top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--seg-count)); box-shadow: none; }
 .lab-segments button { height: 28px; }
+
+/* Collapsed sidebar motion. Rail and peek share one layout, so opening is a
+   single movement instead of a snap: every row stays in the flow, the
+   selection grows from the 40 px rail square to the full row, icons glide
+   from the rail's centre line to their sidebar position, the Protection dot
+   travels with the row's end, and labels fade in once the panel has room.
+   Opening eases out over 280 ms; closing fades the labels first and starts
+   narrowing 60 ms later, so no label is clipped while still visible. */
+.app-shell.is-sidebar-collapsed {
+  --sb-open: 280ms;
+  --sb-close: 200ms;
+  --sb-close-delay: 60ms;
+  --sb-row-w: calc(220px - 2 * var(--ds-space-3));
+}
+.app-shell.is-sidebar-collapsed .app-sidebar {
+  transition: width var(--sb-close) var(--ds-ease) var(--sb-close-delay), box-shadow var(--sb-close) var(--ds-ease) var(--sb-close-delay);
+}
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar {
+  transition: width var(--sb-open) var(--ds-ease), box-shadow var(--sb-open) var(--ds-ease);
+}
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item {
+  width: 40px;
+  margin-left: 6px;
+  padding: 0 0 0 12px;
+  overflow: hidden;
+  justify-content: flex-start;
+  transition: width var(--sb-close) var(--ds-ease) var(--sb-close-delay), margin-left var(--sb-close) var(--ds-ease) var(--sb-close-delay), padding-left var(--sb-close) var(--ds-ease) var(--sb-close-delay), background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+}
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-item {
+  width: var(--sb-row-w);
+  margin-left: 0;
+  padding: 0 var(--ds-space-2);
+  transition-duration: var(--sb-open), var(--sb-open), var(--sb-open), var(--ds-dur-fast), var(--ds-dur-fast);
+  transition-delay: 0s;
+}
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item em { flex: none; }
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item em { margin-left: auto; }
+
+/* Brand and Reload sit on the same centre line as the rail icons. */
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-brand,
+.app-shell.is-sidebar-collapsed .app-sidebar .app-refresh-button {
+  padding-left: 15px;
+  transition: padding-left var(--sb-close) var(--ds-ease) var(--sb-close-delay), background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+}
+.app-shell.is-sidebar-collapsed .app-sidebar .app-refresh-button { padding-left: 18px; overflow: hidden; white-space: nowrap; }
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-brand,
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-refresh-button {
+  padding-left: var(--ds-space-2);
+  transition-duration: var(--sb-open), var(--ds-dur-fast), var(--ds-dur-fast);
+  transition-delay: 0s;
+}
+
+/* The dot is a badge on the icon in the rail and the row's end when open. */
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-status {
+  position: absolute;
+  top: 6px;
+  left: 23px;
+  margin: 0;
+  box-shadow: 0 0 0 2px var(--ds-bg);
+  transition: left var(--sb-close) var(--ds-ease) var(--sb-close-delay), top var(--sb-close) var(--ds-ease) var(--sb-close-delay), box-shadow var(--sb-close) var(--ds-ease) var(--sb-close-delay);
+}
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-status {
+  top: 12px;
+  left: calc(var(--sb-row-w) - var(--ds-space-2) - 6px);
+  box-shadow: 0 0 0 2px transparent;
+  transition-duration: var(--sb-open);
+  transition-delay: 0s;
+}
+
+/* Labels: out fast on close, in after the panel has opened about halfway. */
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-brand span,
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item em,
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-meta,
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-toggle,
+.app-shell.is-sidebar-collapsed .app-sidebar .app-refresh-button span:last-child {
+  transition: opacity 80ms linear;
+}
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-item span,
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-brand span,
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-item em,
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-meta,
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-toggle,
+.app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-refresh-button span:last-child {
+  transition: opacity 180ms var(--ds-ease) 110ms;
+}
+
+/* ⌃⌘S back to the full sidebar: rows widen with the panel instead of
+   snapping to full width. */
+.app-shell:not(.is-sidebar-collapsed) .app-sidebar .app-sidebar-item {
+  transition: width var(--ds-dur-base) var(--ds-ease), margin-left var(--ds-dur-base) var(--ds-ease), padding-left var(--ds-dur-base) var(--ds-ease), background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.is-sidebar-collapsed .app-sidebar,
+  .app-shell.is-sidebar-collapsed .app-sidebar *,
+  .app-shell .app-sidebar .app-sidebar-item { transition: none !important; }
+}
 
 /* Onboarding: Reload and build identity sit above the full-screen intro. */
 .onboarding-chrome .app-refresh-control,
