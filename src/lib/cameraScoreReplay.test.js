@@ -58,7 +58,7 @@ describe('camera parity score replay', () => {
     expect(replay.step(measuredFrame(landmarks), 2)).toBe(68)
   })
 
-  it('treats an analysed no-face result as data instead of inventing landmarks', () => {
+  it('debounces analysed no-face results before decaying the trusted score', () => {
     const frameCount = Math.ceil(CALIBRATION_SECS * 1000 / PARITY_FRAME_INTERVAL_MS) + 2
     const replay = createCameraScoreReplay()
     const landmarks = makeLandmarks()
@@ -67,10 +67,14 @@ describe('camera parity score replay', () => {
     for (let index = 0; index < frameCount - 1; index += 1) {
       score = replay.step(measuredFrame(landmarks), index)
     }
-    const noFaceScore = replay.step(measuredFrame(null), frameCount - 1)
+    const firstNoFaceScore = replay.step(measuredFrame(null), frameCount - 1)
+    const secondNoFaceScore = replay.step(measuredFrame(null), frameCount)
+    const confirmedNoFaceScore = replay.step(measuredFrame(null), frameCount + 1)
 
     expect(score).toBeGreaterThan(68)
-    expect(noFaceScore).toBeLessThan(score)
-    expect(noFaceScore).not.toBeNull()
+    expect(firstNoFaceScore).toBe(score)
+    expect(secondNoFaceScore).toBe(score)
+    expect(confirmedNoFaceScore).toBeLessThan(score)
+    expect(confirmedNoFaceScore).not.toBeNull()
   })
 })

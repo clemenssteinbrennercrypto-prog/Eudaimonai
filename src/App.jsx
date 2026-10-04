@@ -209,7 +209,16 @@ export default function App() {
   // arrive — which is precisely how these answers used to get dropped.
   const handleOutcomeChange = useCallback(async (patch) => {
     setSessionData(previous => (previous ? { ...previous, ...patch } : previous))
-    await persisterRef.current.edit(patch)
+    try {
+      await persisterRef.current.edit(patch)
+      // Before the initial insert lands, edit() only queues the answer. Keep an
+      // existing insert error visible until the idempotent save retry succeeds.
+      if (persisterRef.current.savedId) setSaveError(null)
+    } catch (error) {
+      // The row may already exist; persistSession/save is idempotent and will
+      // flush the queued patch into that same row when the user retries.
+      setSaveError({ pending: null, message: String(error?.message || error) })
+    }
   }, [])
 
   const handleEnd = useCallback((data) => {
@@ -355,8 +364,8 @@ export default function App() {
           {saveError && (
             <div className="session-save-error" role="alert">
               <span>
-                This session could not be saved ({saveError.message}). It is still
-                here, but it will be lost if you close the app.
+                Some session data could not be saved ({saveError.message}). It is still
+                here, but unsaved changes will be lost if you close the app.
               </span>
               <button type="button" onClick={() => persistSession(saveError.pending)}>
                 Retry save

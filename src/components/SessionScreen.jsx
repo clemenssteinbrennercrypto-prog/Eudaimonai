@@ -69,6 +69,11 @@ import {
   shouldBuildSustainedRamp,
 } from '../lib/attentionScore'
 import {
+  advancePenaltyFrameState,
+  createPenaltyFrameState,
+  penaltySignalConfirmed,
+} from '../lib/attentionPenaltyDebounce'
+import {
   PRIMARY_CAMERA_MEASUREMENT,
   nativeCameraFaultFor,
   nativeLandmarksForScoring,
@@ -535,6 +540,7 @@ export default function SessionScreen({
   const headTurnRightFramesRef = useRef(0)
   const headDownFramesRef      = useRef(0)
   const eyesOffFramesRef       = useRef(0)   // consecutive frames with eyes off-screen
+  const penaltyFramesRef       = useRef(createPenaltyFrameState())
   const eyesOffStartRef        = useRef(null)
   const lowConfSinceRef        = useRef(null)  // when confidence first dropped low (Stage 2 trust gating)
 
@@ -678,6 +684,7 @@ export default function SessionScreen({
     headTurnRightFramesRef.current = 0
     headDownFramesRef.current = 0
     eyesOffFramesRef.current = 0
+    penaltyFramesRef.current = createPenaltyFrameState()
     wasClosedRef.current = false
     blinkTimestampsRef.current = []
     perclosHistRef.current = []
@@ -1494,6 +1501,16 @@ export default function SessionScreen({
       horizontalContext.kind === 'productive_right'
     const unknownHorizontal = horizontalContext.kind === 'unknown_horizontal'
 
+    penaltyFramesRef.current = advancePenaltyFrameState(penaltyFramesRef.current, {
+      faceAbsent: !hasFace,
+      unknownPhoneDownward,
+      softHeadDown: hasFace && pitchDeg >= pitchDT * 0.75,
+      softHeadLeft: hasFace && !productiveHorizontal && adjustedYawSigned >= yawLT * 0.6,
+      softHeadRight: hasFace && !productiveHorizontal && -adjustedYawSigned >= yawRT * 0.6,
+      eyesRolledUp,
+    })
+    const faceAbsentConfirmed = penaltySignalConfirmed(penaltyFramesRef.current, 'faceAbsent')
+
     // Real 2D gaze: iris shifted past the personal neutral = eyes have left the
     // screen even with the head straight — the case head pose alone missed.
     // Direction-aware so 2-monitor setups work: looking AT a side monitor means
@@ -1705,6 +1722,7 @@ export default function SessionScreen({
     const baseScore = calculateBaseAttentionScore({
       hasFace,
       faceAbsentMs,
+      faceAbsentConfirmed,
       previousScore: focusScoreRef.current,
       hasBlinkData,
       blinkRate,
@@ -1716,7 +1734,7 @@ export default function SessionScreen({
       productiveHorizontal,
       phoneMs,
       distractionDownward,
-      unknownPhoneDownward,
+      unknownPhoneDownwardConfirmed: penaltySignalConfirmed(penaltyFramesRef.current, 'unknownPhoneDownward'),
       eyesClosedMs,
       earlyMicrosleepMs,
       hasPerclos,
@@ -1726,19 +1744,23 @@ export default function SessionScreen({
       pitchUpDT,
       pitchDT,
       headDownSecs,
+      softHeadDownConfirmed: penaltySignalConfirmed(penaltyFramesRef.current, 'softHeadDown'),
       adjustedYawSigned,
       yawLT,
       yawRT,
       headTurnLeftSecs,
       headTurnRightSecs,
+      softHeadLeftConfirmed: penaltySignalConfirmed(penaltyFramesRef.current, 'softHeadLeft'),
+      softHeadRightConfirmed: penaltySignalConfirmed(penaltyFramesRef.current, 'softHeadRight'),
       eyesOffSecs,
-      eyesRolledUp,
+      eyesRolledUpConfirmed: penaltySignalConfirmed(penaltyFramesRef.current, 'eyesRolledUp'),
       activityPenalty,
       activityBonus,
       activityDistractionMs,
       activityReasonHoldMs: ACTIVITY_REASON_HOLD_MS,
     })
     const primaryReason = baseScore.primaryReason
+    const holdForPenaltyDebounce = !hasFace && !faceAbsentConfirmed
 
     // ── Sustained-focus ramp (+0 to +15 over ~2 min) ──────────────────────
     // Attention Restoration Theory (Kaplan 1995; Mark et al. 2008):
@@ -1749,7 +1771,7 @@ export default function SessionScreen({
     const inRecovery = msSinceDistraction < RECOVERY_WINDOW_MS
     const rampRate = inRecovery ? 0.4 : 1.0  // 40% speed while recovering
 
-    if (trackingUncertain) {
+    if (trackingUncertain || holdForPenaltyDebounce) {
       // signal unreliable — neither earn nor burn the focus ramp
     } else if (shouldBuildSustainedRamp(baseScore.score)) {
       sustainedGoodMsRef.current = Math.min(120_000, sustainedGoodMsRef.current + frameDelta * rampRate)
@@ -1763,6 +1785,7 @@ export default function SessionScreen({
       rampBonus,
       previousScore: focusScoreRef.current,
       trackingUncertain,
+      holdForDebounce: holdForPenaltyDebounce,
     })
     rawScoreRef.current = finalizedScore.rawFinal
     focusScoreRef.current = finalizedScore.score

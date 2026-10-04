@@ -17,6 +17,7 @@
  */
 export function createSessionPersister(repository) {
   let savedId = null
+  let savedRecord = null
   let pending = {}
 
   return {
@@ -32,6 +33,7 @@ export function createSessionPersister(repository) {
     /** Begin a new session; nothing carries over from the previous one. */
     reset() {
       savedId = null
+      savedRecord = null
       pending = {}
     },
 
@@ -44,14 +46,27 @@ export function createSessionPersister(repository) {
      * whether to surface a retry.
      */
     async save(record) {
-      const saved = await repository.saveSession(record)
-      savedId = saved.id
+      // A retry after the insert succeeded must resume against that row. Calling
+      // saveSession again would duplicate the session and its ledger contribution.
+      if (!savedId) {
+        savedRecord = await repository.saveSession(record)
+        savedId = savedRecord.id
+      }
+
       const queued = pending
       pending = {}
       if (Object.keys(queued).length > 0) {
-        await repository.updateSession(saved.id, queued)
+        try {
+          await repository.updateSession(savedId, queued)
+        } catch (error) {
+          // Preserve edits accepted while the update was in flight. Later edits
+          // win over the older snapshot when both touched the same field.
+          pending = { ...queued, ...pending }
+          throw error
+        }
       }
-      return { ...saved, ...queued }
+      savedRecord = { ...savedRecord, ...queued }
+      return { ...savedRecord }
     },
 
     /**
@@ -66,8 +81,10 @@ export function createSessionPersister(repository) {
       }
       try {
         await repository.updateSession(savedId, patch)
-      } catch {
+        savedRecord = { ...savedRecord, ...patch }
+      } catch (error) {
         pending = { ...pending, ...patch }
+        throw error
       }
     },
   }
