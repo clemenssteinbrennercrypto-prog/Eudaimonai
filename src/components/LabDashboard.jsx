@@ -204,7 +204,7 @@ function AttentionField({ bins, range, title }) {
   )
 }
 
-export default function LabDashboard({ focusModeEnabled, sessions = [], ledger = null, onSession, onAnalytics }) {
+export default function LabDashboard({ focusModeEnabled, sessions = [], ledger = null, quickStart = null, onAnalytics }) {
   const [periodSelection, setPeriodSelection] = useState({ range: 'day', periodStart: null })
   const nativeStatus = useCompanionStatus()
   // Sessions and the ledger arrive as props — App owns loading them and
@@ -270,9 +270,10 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
         </div>
         <div className="ds-toolbar-actions">
           <SegmentedControl items={PERIOD_RANGES} value={periodSelection.range} onChange={selectRange} label="Dashboard range" />
-          <button className="ds-button-primary lab-start" type="button" onClick={onSession} aria-label="Open session setup" title="New session (⌘N)">Start session</button>
         </div>
       </header>
+
+      {quickStart}
 
       <section className="lab-panel lab-hero" aria-labelledby="lab-title">
         <h2 id="lab-title">Focus Score</h2>

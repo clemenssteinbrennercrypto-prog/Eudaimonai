@@ -9,7 +9,7 @@ import DsSelect from './DsSelect'
 
 const DURATIONS = [15, 30, 60, 90]
 
-function ProtectionStartDialog({ protection, onClose, onConfigure, onContinue }) {
+export function ProtectionStartDialog({ protection, onClose, onConfigure, onContinue }) {
   const configureRef = useRef(null)
 
   useEffect(() => {

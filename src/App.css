@@ -4524,3 +4524,72 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 }
 .workspace-editor .ds-select-button:hover:not(:disabled),
 .workspace-editor .ds-select.is-open .ds-select-button { background: var(--ds-fill-strong); box-shadow: 0 0 0 1px var(--ds-silver-edge) inset; filter: none; }
+
+/* Lab quick start: the screen's one primary action, above the score. Name
+   the work, pick a length, start. Plan, tags and energy stay on Session. */
+.lab-quick-start { display: grid; gap: var(--ds-space-2); margin-bottom: var(--ds-space-2); }
+.lab-quick-start form {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-2) var(--ds-space-2) var(--ds-space-2) var(--ds-space-5);
+  border-radius: var(--ds-radius-lg);
+  background: linear-gradient(0deg, rgba(44, 70, 255, 0.10), rgba(44, 70, 255, 0.10)), var(--ds-glass);
+  box-shadow: 0 0 0 1px rgba(91, 116, 255, 0.4) inset, var(--ds-glass-shadow);
+  transition: box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+.lab-quick-start form:focus-within { box-shadow: 0 0 0 1px rgba(122, 146, 255, 0.75) inset, 0 0 0 4px rgba(44, 70, 255, 0.18), var(--ds-glass-shadow); }
+.lab-quick-start input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ds-label);
+  font: 500 17px var(--ds-font);
+  outline: none;
+}
+.lab-quick-start input::placeholder { color: var(--ds-label-3); }
+.lab-quick-durations { display: flex; gap: 2px; padding: 3px; border-radius: var(--ds-radius-full); background: rgba(4, 6, 15, 0.45); }
+.lab-quick-durations button {
+  height: 28px;
+  padding: 0 var(--ds-space-3);
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: transparent;
+  color: var(--ds-label-2);
+  font: 600 12px/1 var(--ds-font);
+  white-space: nowrap;
+  transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+}
+.lab-quick-durations button:hover { color: var(--ds-label); }
+.lab-quick-durations button.is-active { background: var(--ds-fill-strong); box-shadow: 0 0 0 1px var(--ds-silver-line) inset; color: var(--ds-label); }
+.ds-button-primary.lab-quick-go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  height: 44px;
+  min-height: 44px;
+  padding: 0 22px;
+  font-size: 15px;
+  box-shadow: 0 6px 18px -8px rgba(44, 70, 255, 0.8);
+}
+.ds-button-primary.lab-quick-go[aria-disabled='true'] { opacity: 0.55; box-shadow: none; }
+.lab-quick-planner {
+  justify-self: end;
+  padding: 0 var(--ds-space-2);
+  border: 0;
+  background: none;
+  color: var(--ds-accent-text);
+  font: 500 12px var(--ds-font);
+}
+.lab-quick-planner:hover { text-decoration: underline; }
+@media (max-width: 760px) {
+  .lab-quick-start form { flex-wrap: wrap; padding: var(--ds-space-3); }
+  .lab-quick-start input { flex-basis: 100%; }
+  .lab-quick-durations { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-quick-start form,
+  .lab-quick-durations button { transition: none; }
+}
