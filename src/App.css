@@ -4694,3 +4694,43 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 }
 .lab-metric .lab-metric-detail { max-width: 24ch; }
 @media (max-width: 900px) { .lab-metric { min-height: 0; } }
+
+/* Session report: the same controls as everywhere else. */
+.report-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--ds-space-3); margin-top: var(--ds-space-2); }
+.report-actions .ds-button-primary,
+.report-actions .ds-button-secondary { min-height: 36px; height: 36px; padding: 0 var(--ds-space-5); font-size: 14px; }
+.report-actions .report-primary { box-shadow: 0 6px 18px -8px rgba(44, 70, 255, 0.8); }
+.report-checkin {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--ds-space-5);
+  border: 1px solid var(--ds-silver-line);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-glass);
+  box-shadow: var(--ds-glass-shadow);
+  text-align: center;
+}
+.report-checkin-kicker { margin: 0 0 var(--ds-space-2); color: var(--ds-label-2); font: 600 11px/1.2 var(--ds-font); letter-spacing: 0.14em; text-transform: uppercase; }
+.report-checkin-kicker span { color: var(--ds-label-3); font-weight: 500; letter-spacing: 0; text-transform: none; }
+.report-checkin-question { margin: 0 0 var(--ds-space-4); color: var(--ds-label); font: 600 16px/1.35 var(--ds-font); }
+.report-checkin-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ds-space-2); }
+.report-checkin-options button {
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-glass-inset);
+  box-shadow: 0 0 0 1px var(--ds-silver-line) inset;
+  color: var(--ds-label);
+  font: 600 13px/1 var(--ds-font);
+  transition: background var(--ds-dur-fast) var(--ds-ease), box-shadow var(--ds-dur-fast) var(--ds-ease), transform var(--ds-dur-fast) var(--ds-ease);
+}
+.report-checkin-options button:hover { background: var(--ds-fill-strong); }
+.report-checkin-options button:active { transform: scale(0.97); }
+.report-checkin-options button.is-active {
+  background: color-mix(in srgb, var(--outcome-tone) 16%, transparent);
+  box-shadow: 0 0 0 1px var(--outcome-tone) inset;
+  color: var(--outcome-tone);
+}
+.report-details-summary { width: fit-content; margin: 0 auto; padding: var(--ds-space-1) 0; color: var(--ds-label-2); font: 600 11px/1.2 var(--ds-font); letter-spacing: 0.14em; text-transform: uppercase; }
+.report-details-summary:hover { color: var(--ds-label); }
+@media (prefers-reduced-motion: reduce) { .report-checkin-options button { transition: none; } .report-checkin-options button:active { transform: none; } }
