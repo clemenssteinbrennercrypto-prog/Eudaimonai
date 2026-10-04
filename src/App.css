@@ -111,13 +111,17 @@ button:focus-visible {
   --ds-accent-text:    #8C9DFF;  /* accent as text; #2C46FF is ~3:1 on dark */
   --ds-focus-ring:     rgba(140, 157, 255, 0.7);
 
-  /* Attention bands: good attention is silver, only a problem is coloured.
-     One scale for the Lab field, the live ring, session curves and
-     timelines. Outcome and status colours (good/warn/bad) are separate. */
-  --ds-attn-deep:    #FFFFFF;
-  --ds-attn-high:    #CDD2DB;
-  --ds-attn-focused: #858C99;
-  --ds-attn-low:     #FFB340;
+  /* Attention bands (chosen by Clemens on 4 Oct 2026, "S2"): green when
+     attention is good, a darker green for focused, yellow only when it is
+     low. Silver stays the brand material (score rings, icon, numbers); grey
+     means "not measured" only. Validated with the dataviz palette checker
+     on #080B1C: every adjacent pair is distinct for normal vision and the
+     common colour-vision deficiencies. Yellow is data, amber (--ds-warn) is
+     app status; keep them apart. */
+  --ds-attn-deep:    #2FE3A8;
+  --ds-attn-high:    #2FE3A8;
+  --ds-attn-focused: #178A63;
+  --ds-attn-low:     #F5D547;
   --ds-attn-none:    rgba(236, 238, 246, 0.24);
 
   --ds-good: #2FE3A8;
@@ -3791,10 +3795,10 @@ html {
   stroke-linecap: round;
   transition: stroke-dashoffset 700ms var(--ds-ease), stroke 450ms var(--ds-ease);
 }
-/* Silver while attention is good, so the session ring matches the Lab rings;
-   colour only appears when it carries a warning (amber, red).             */
-.live-ring.is-good { --live-tone: #DDE2EB; }
-.live-ring.is-good.is-flow { --live-tone: #FFFFFF; }
+/* The live ring speaks the attention scale: green when attention is good,
+   darker green for focused, yellow when it is low.                        */
+.live-ring.is-good { --live-tone: var(--ds-attn-high); }
+.live-ring.is-good.is-flow { --live-tone: var(--ds-attn-deep); }
 .live-ring.is-warn { --live-tone: var(--ds-attn-focused); }
 .live-ring.is-bad { --live-tone: var(--ds-attn-low); }
 .live-ring.is-calibrating { --live-tone: var(--ds-label-3); }
@@ -4408,8 +4412,8 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .protection-switch[aria-checked="true"] { border: 0; background: var(--ds-accent); box-shadow: none; }
 .protection-switch[aria-checked="true"] span { background: #fff; }
 
-/* Analytics rows and rings speak the attention scale: silver when good,
-   amber only for low attention. No glowing stripe, no hover lift. */
+/* Analytics rows and rings speak the attention scale (green, darker green,
+   yellow). No glowing stripe, no hover lift. */
 .analytics-session-row.is-good { --row-accent: var(--ds-attn-high); }
 .analytics-session-row.is-warn { --row-accent: var(--ds-attn-focused); }
 .analytics-session-row.is-bad { --row-accent: var(--ds-attn-low); }
@@ -4432,8 +4436,8 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
    strip at the top for the traffic lights. */
 .session-root { padding-top: 28px; }
 
-/* Attention trend in the silver scale: a silver line and points, the best
-   session marked in white instead of green (no infinite pulse either). */
+/* Attention trend in the attention scale; the best session is marked
+   without an infinite pulse. */
 .analytics-series-line { stroke: var(--ds-attn-high); }
 .analytics-point-halo { fill: var(--ds-attn-high); }
 .analytics-focus-point-mark { fill: var(--ds-attn-high); }
