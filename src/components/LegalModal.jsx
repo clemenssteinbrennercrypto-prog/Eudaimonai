@@ -2,95 +2,95 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 
 const navy = 'var(--ultra)'
 
-// § 5 ECG verlangt die geografische Anschrift (Straße, Hausnummer, PLZ, Ort);
-// ohne andere Niederlassung ist das die Wohnadresse. Nicht durch eine Stadt
-// allein ersetzen.
+// § 5 ECG (Austrian E-Commerce Act) requires the geographic address: street,
+// number, postcode and town. Without another establishment that is the home
+// address. Never replace it with a town alone.
 export const IMPRESSUM = [
   {
-    heading: 'Angaben gemäß § 5 ECG',
+    heading: 'Information pursuant to § 5 ECG (Austrian E-Commerce Act)',
     body: `Name: Clemens Steinbrenner
-Adresse: Heinrich-Casper-Gasse 17, 8010 Graz, Österreich
-E-Mail: clemenssteinbrenner.crypto@gmail.com`,
+Address: Heinrich-Casper-Gasse 17, 8010 Graz, Austria
+Email: clemenssteinbrenner.crypto@gmail.com`,
   },
   {
-    heading: 'Haftungsausschluss',
-    body: `Die Inhalte dieser Website wurden mit größtmöglicher Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte wird keine Gewähr übernommen.`,
+    heading: 'Disclaimer',
+    body: `The content of this website has been prepared with the greatest possible care. No guarantee is given for its accuracy, completeness or timeliness.`,
   },
 ]
 
-// Diese Erklärung beschreibt, was der Code TATSÄCHLICH tut. Sie stand einmal auf
-// "verlassen Ihr Gerät nicht" — während die App beim Start und danach alle fünf
-// Minuten GitHub nach Updates fragt und dabei die IP-Adresse in die USA
-// überträgt. Eine zu weit gefasste Zusage ist schlimmer als eine ausführliche
-// Erklärung: sie ist widerlegbar, und sie ist zugleich das Marketingversprechen.
+// This policy describes what the code ACTUALLY does. It once promised that
+// data "never leaves your device" while the app asked GitHub for updates at
+// launch and every five minutes, sending the IP address to the USA. An
+// over-broad promise is worse than a long explanation: it can be disproved,
+// and it doubles as the marketing claim.
 //
-// Wer hier etwas ändert: erst prüfen, ob der Code es noch hergibt.
-//   Update-Intervall      src/lib/useUpdateAvailable.js  (CHECK_INTERVAL_MS)
-//   Modellanbieter aus    src/lib/storage.js             (CONTRACT_DEFAULTS)
-//   Nur Metadaten         companion/src-tauri/src/output.rs
+// Before changing anything here, check the code still supports it:
+//   Update interval       src/lib/useUpdateAvailable.js  (CHECK_INTERVAL_MS)
+//   Model providers off   src/lib/storage.js             (CONTRACT_DEFAULTS)
+//   Metadata only         companion/src-tauri/src/output.rs
 export const DATENSCHUTZ = [
   {
-    heading: 'Verantwortlicher',
-    body: `Clemens Steinbrenner (siehe Impressum)`,
+    heading: 'Controller',
+    body: `Clemens Steinbrenner (see Legal Notice)`,
   },
   {
-    heading: 'Grundsatz',
-    body: `Eudaimonai betreibt keinen Server und kein Nutzerkonto. Ihre Sitzungsdaten werden ausschließlich auf Ihrem Gerät verarbeitet und gespeichert. Die einzige Netzwerkverbindung der öffentlichen App ist die unten beschriebene Update-Prüfung.`,
+    heading: 'Principle',
+    body: `Eudaimonai runs no server and has no user accounts. Your session data is processed and stored only on your device. The only network connection the public app makes is the update check described below.`,
   },
   {
-    heading: 'Kamera',
-    body: `Die Kamera dient ausschließlich der Aufmerksamkeitsanalyse auf Ihrem Gerät. Einzelne Kamerabilder werden dafür kurzzeitig im Arbeitsspeicher verarbeitet, aber weder dauerhaft gespeichert noch übertragen. Die Analyse läuft lokal mit MediaPipe; aus dem Kamerabild werden nur Messwerte wie Lidöffnung, Blinzelrate und Kopfhaltung abgeleitet, und auch diese verlassen das Gerät nicht.
+    heading: 'Camera',
+    body: `The camera is used only to analyse attention on your device. Individual camera frames are briefly processed in memory for this purpose, but are neither stored permanently nor transmitted. The analysis runs locally with MediaPipe; only measurements such as eyelid opening, blink rate and head pose are derived from the image, and these never leave the device either.
 
-Gesichtsmerkmale werden NICHT zur Identifizierung von Personen verarbeitet. Es findet kein Gesichtsabgleich und keine Wiedererkennung statt. Damit handelt es sich nicht um biometrische Daten im Sinne von Art. 9 DSGVO, der nur die Verarbeitung zum Zweck der eindeutigen Identifizierung erfasst.`,
+Facial features are NOT processed to identify anyone. There is no face matching and no recognition. This is therefore not biometric data within the meaning of Art. 9 GDPR, which covers processing only for the purpose of uniquely identifying a person.`,
   },
   {
-    heading: 'Lokale Speicherung',
-    body: `In der nativen macOS-App werden Ihre Sitzungsdaten in einer lokalen SQLite-Datenbank im App-Datenordner gespeichert. Im Web- und Entwicklungsmodus verwendet die App localStorage. Es werden gespeichert:
-– Sitzungsstatistiken: Dauer, Fokus-Score, Ablenkungsereignisse und Zeitverlauf
-– beobachtete Apps, Websites und — soweit vom System geliefert — Fenstertitel
-– Sessionname, optionale „Definition of plan“ sowie Namen bearbeiteter Dateien, falls Sie die Fortschrittsmessung nutzen
-– Workspace-Konfiguration, Blockierlisten, Onboarding-Status und lokale Einstellungen
+    heading: 'Local storage',
+    body: `In the native macOS app, your session data is stored in a local SQLite database in the app's data folder. In web and development mode, the app uses localStorage. The following is stored:
+– Session statistics: duration, Focus Score, distraction events and timeline
+– Apps and websites observed and, where the system provides them, window titles
+– Session name, optional “Definition of plan” and the names of edited files, if you use progress tracking
+– Workspace configuration, block lists, onboarding status and local settings
 
-In der App können Sie einzelne Sitzungen oder die gesamte Sitzungshistorie unter Analytics → Sessions löschen. „Clear all history“ löscht die lokale Sitzungshistorie einschließlich der zugehörigen Tageswerte; Workspace-Konfiguration und andere Einstellungen bleiben bestehen. Im Web-/Entwicklungsmodus können Sie zusätzlich die Website-Daten Ihres Browsers löschen.`,
+In the app you can delete individual sessions or your entire session history under Analytics → Sessions. “Clear all history” deletes the local session history including its daily totals; workspace configuration and other settings are kept. In web/development mode you can also clear your browser's site data.`,
   },
   {
-    heading: 'Companion-App (macOS)',
-    body: `Während einer Sitzung fragt die Companion-App ungefähr alle drei Sekunden ab, welche App im Vordergrund ist, und bei unterstützten Browsern die Adresse des aktiven Tabs. Diese Aktivitätsdaten werden für Ablenkungserkennung, Blockieren und die lokale Sitzungsübersicht verwendet und in der lokalen Sitzungshistorie gespeichert.
+    heading: 'Companion app (macOS)',
+    body: `During a session, the companion app checks roughly every three seconds which app is in the foreground and, for supported browsers, the address of the active tab. This activity data is used for distraction detection, blocking and the local session overview, and is stored in the local session history.
 
-Wenn Sie einen Projektordner für die Fortschrittsmessung auswählen, werden ausschließlich Metadaten gelesen: Dateinamen, Größen, Änderungszeitpunkte und Git-Zähler. Dateiinhalte werden nie geöffnet oder gelesen, Tastatureingaben nie aufgezeichnet.`,
+If you choose a project folder for progress tracking, only metadata is read: file names, sizes, modification times and Git counters. File contents are never opened or read, and keystrokes are never recorded.`,
   },
   {
-    heading: 'Update-Prüfung (verlässt das Gerät)',
-    body: `Die App fragt beim Start und anschließend ungefähr alle fünf Minuten bei GitHub Releases an, ob eine neuere signierte Version vorliegt. GitHub erhält dabei technisch bedingt Ihre IP-Adresse und übliche Verbindungsdaten. Die installierte Version wird von der App lokal mit der Antwort verglichen; Sitzungs-, Kamera- und Aktivitätsdaten werden nicht übertragen.
+    heading: 'Update check (leaves the device)',
+    body: `At launch and then roughly every five minutes, the app asks GitHub Releases whether a newer signed version is available. For technical reasons, GitHub receives your IP address and standard connection data. The app compares the installed version with the response locally; no session, camera or activity data is transmitted.
 
-Es werden dabei keine Sitzungs-, Kamera- oder Aktivitätsdaten übertragen. Rechtsgrundlage ist unser berechtigtes Interesse an sicheren und aktuellen Installationen (Art. 6 Abs. 1 lit. f DSGVO).`,
+The legal basis is our legitimate interest in secure, up-to-date installations (Art. 6(1)(f) GDPR).`,
   },
-  // TODO(legal): Clemens bitte prüfen lassen, ob Vercel und GitHub mit dem
-  // tatsächlichen Hosting- bzw. Download-Setup übereinstimmen, und den
-  // Drittlandtransfer (USA) konkret benennen (z. B. Data Privacy Framework).
+  // TODO(legal): Clemens to confirm that Vercel and GitHub match the actual
+  // hosting and download setup, and to name the third-country transfer (USA)
+  // specifically (e.g. the EU-US Data Privacy Framework).
   {
-    heading: 'Diese Website',
-    body: `Diese Website wird über den Hosting-Dienst Vercel Inc. (USA) ausgeliefert. Beim Aufruf verarbeitet Vercel technisch notwendige Verbindungsdaten wie IP-Adresse, Zeitpunkt, aufgerufene Seite und Browser-Kennung, um die Seite auszuliefern und vor Missbrauch zu schützen. Die App-Datei selbst wird beim Download von GitHub (USA) bereitgestellt, das dabei ebenfalls Ihre IP-Adresse und übliche Verbindungsdaten erhält.
+    heading: 'This website',
+    body: `This website is delivered by the hosting provider Vercel Inc. (USA). When you visit it, Vercel processes technically necessary connection data such as IP address, time, page requested and browser identifier in order to deliver the site and protect it from abuse. The app file itself is provided for download by GitHub (USA), which also receives your IP address and standard connection data.
 
-Die Website selbst erfasst keine Sitzungs-, Kamera- oder Aktivitätsdaten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und funktionsfähigen Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO).`,
+The website itself collects no session, camera or activity data. The legal basis is our legitimate interest in providing the site securely and reliably (Art. 6(1)(f) GDPR).`,
   },
   {
     heading: 'Cookies',
-    body: `Es werden keine Cookies gesetzt und kein Analyse- oder Tracking-Dienst eingebunden. Der verwendete localStorage dient ausschließlich der von Ihnen angeforderten Funktion und ist damit nicht einwilligungsbedürftig.`,
+    body: `No cookies are set and no analytics or tracking service is used. The localStorage in use serves only the function you requested and therefore does not require consent.`,
   },
   {
-    heading: 'Support-Bericht',
-    body: `Sie können in der App freiwillig einen lokalen Support-Bericht als JSON-Datei exportieren. Er wird nicht automatisch übertragen und enthält keine Sitzungen, Scores, Kamera- oder Landmark-Daten, App-Namen, URLs, Fenstertitel, Dateipfade oder Zugangsdaten. Fehlerzustände werden nur als technische Ja/Nein-Merkmale ausgegeben. Sie entscheiden selbst, ob und an wen Sie diese Datei weitergeben.`,
+    heading: 'Support report',
+    body: `You can voluntarily export a local support report as a JSON file from the app. It is never sent automatically and contains no sessions, scores, camera or landmark data, app names, URLs, window titles, file paths or credentials. Error states are included only as technical yes/no flags. You decide whether to share this file, and with whom.`,
   },
   {
-    heading: 'Ihre Rechte',
-    body: `Ihnen stehen die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch zu, ebenso ein Beschwerderecht bei der Österreichischen Datenschutzbehörde.
+    heading: 'Your rights',
+    body: `You have the right of access, rectification, erasure, restriction of processing, data portability and objection, as well as the right to lodge a complaint with the Austrian Data Protection Authority (Datenschutzbehörde).
 
-In der Praxis liegen die Sitzungsdaten ausschließlich bei Ihnen: Wir speichern keine Sitzungsdaten und können Sie anhand einer Update-Anfrage nicht identifizieren, weshalb wir Auskunfts- oder Löschbegehren dazu nicht zuordnen können (Art. 11 DSGVO). Ihre lokale Sitzungshistorie löschen Sie selbst über Analytics → Sessions → Clear all history; einzelne Sitzungen können dort ebenfalls gelöscht werden.`,
+In practice, your session data stays with you alone: we store no session data and cannot identify you from an update request, so we cannot match access or erasure requests to it (Art. 11 GDPR). You delete your local session history yourself under Analytics → Sessions → Clear all history; individual sessions can be deleted there too.`,
   },
   {
-    heading: 'Kontakt',
-    body: `Bei Fragen: clemenssteinbrenner.crypto@gmail.com`,
+    heading: 'Contact',
+    body: `Questions: clemenssteinbrenner.crypto@gmail.com`,
   },
 ]
 
@@ -184,7 +184,7 @@ export default function LegalModal({ open, onClose, initialTab }) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
           <h1 id={titleId} style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.022em', color: 'var(--text)', margin: 0 }}>
-            {tab === 'impressum' ? 'Impressum' : 'Datenschutz'}
+            {tab === 'impressum' ? 'Legal Notice' : 'Privacy Policy'}
           </h1>
           <button
             ref={closeRef}
@@ -204,8 +204,8 @@ export default function LegalModal({ open, onClose, initialTab }) {
         {/* Tabs */}
         <div role="group" aria-label="Legal information" style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
           {[
-            { id: 'impressum',   label: 'Impressum'   },
-            { id: 'datenschutz', label: 'Datenschutz' },
+            { id: 'impressum',   label: 'Legal Notice'   },
+            { id: 'datenschutz', label: 'Privacy Policy' },
           ].map(t => (
             <button
               key={t.id}

@@ -4505,8 +4505,8 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-refresh-button span:last-child { opacity: 0; pointer-events: none; }
 .app-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .app-sidebar .app-sidebar-toggle { opacity: 0; }
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar {
-  width: 220px;
-  box-shadow: 18px 0 40px rgba(0, 0, 0, 0.45);
+  width: var(--sb-peek-w);
+  box-shadow: 1px 0 0 var(--ds-silver-line), 10px 0 28px rgba(0, 0, 0, 0.28);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4852,19 +4852,25 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
    selection grows from the 40 px rail square to the full row, icons glide
    from the rail's centre line to their sidebar position, the Protection dot
    travels with the row's end, and labels fade in once the panel has room.
-   Opening eases out over 280 ms; closing fades the labels first and starts
+   Opening takes 260 ms; closing fades the labels first and starts
    narrowing 60 ms later, so no label is clipped while still visible. */
 .app-shell.is-sidebar-collapsed {
-  --sb-open: 280ms;
+  /* The peek is narrower than the docked sidebar so it covers less of the
+     page; the longest label ("AI Companion") still fits. */
+  --sb-peek-w: 184px;
+  --sb-open: 260ms;
   --sb-close: 200ms;
   --sb-close-delay: 60ms;
-  --sb-row-w: calc(220px - 2 * var(--ds-space-3));
+  /* Symmetric ease: accelerates and settles evenly. The app-wide --ds-ease
+     front-loads the motion, which made the panel shoot out and then crawl. */
+  --sb-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --sb-row-w: calc(var(--sb-peek-w) - 2 * var(--ds-space-3));
 }
 .app-shell.is-sidebar-collapsed .app-sidebar {
-  transition: width var(--sb-close) var(--ds-ease) var(--sb-close-delay), box-shadow var(--sb-close) var(--ds-ease) var(--sb-close-delay);
+  transition: width var(--sb-close) var(--sb-ease) var(--sb-close-delay), box-shadow var(--sb-close) var(--sb-ease) var(--sb-close-delay);
 }
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar {
-  transition: width var(--sb-open) var(--ds-ease), box-shadow var(--sb-open) var(--ds-ease);
+  transition: width var(--sb-open) var(--sb-ease), box-shadow var(--sb-open) var(--sb-ease);
 }
 .app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item {
   width: 40px;
@@ -4872,7 +4878,7 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   padding: 0 0 0 12px;
   overflow: hidden;
   justify-content: flex-start;
-  transition: width var(--sb-close) var(--ds-ease) var(--sb-close-delay), margin-left var(--sb-close) var(--ds-ease) var(--sb-close-delay), padding-left var(--sb-close) var(--ds-ease) var(--sb-close-delay), background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+  transition: width var(--sb-close) var(--sb-ease) var(--sb-close-delay), margin-left var(--sb-close) var(--sb-ease) var(--sb-close-delay), padding-left var(--sb-close) var(--sb-ease) var(--sb-close-delay), background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
 }
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-item {
   width: var(--sb-row-w);
@@ -4883,13 +4889,13 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 }
 .app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item span,
 .app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item em { flex: none; }
-.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item em { margin-left: auto; }
+.app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-item em { display: none; }
 
 /* Brand and Reload sit on the same centre line as the rail icons. */
 .app-shell.is-sidebar-collapsed .app-sidebar .app-sidebar-brand,
 .app-shell.is-sidebar-collapsed .app-sidebar .app-refresh-button {
   padding-left: 15px;
-  transition: padding-left var(--sb-close) var(--ds-ease) var(--sb-close-delay), background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+  transition: padding-left var(--sb-close) var(--sb-ease) var(--sb-close-delay), background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
 }
 .app-shell.is-sidebar-collapsed .app-sidebar .app-refresh-button { padding-left: 18px; overflow: hidden; white-space: nowrap; }
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-brand,
@@ -4906,7 +4912,7 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   left: 23px;
   margin: 0;
   box-shadow: 0 0 0 2px var(--ds-bg);
-  transition: left var(--sb-close) var(--ds-ease) var(--sb-close-delay), top var(--sb-close) var(--ds-ease) var(--sb-close-delay), box-shadow var(--sb-close) var(--ds-ease) var(--sb-close-delay);
+  transition: left var(--sb-close) var(--sb-ease) var(--sb-close-delay), top var(--sb-close) var(--sb-ease) var(--sb-close-delay), box-shadow var(--sb-close) var(--sb-ease) var(--sb-close-delay);
 }
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-status {
   top: 12px;
@@ -4931,7 +4937,7 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-meta,
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-sidebar-toggle,
 .app-shell.is-sidebar-collapsed.is-sidebar-peek .app-sidebar .app-refresh-button span:last-child {
-  transition: opacity 180ms var(--ds-ease) 110ms;
+  transition: opacity 160ms var(--sb-ease) 90ms;
 }
 
 /* ⌃⌘S back to the full sidebar: rows widen with the panel instead of
