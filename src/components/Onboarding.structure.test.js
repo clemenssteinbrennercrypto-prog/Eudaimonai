@@ -25,10 +25,10 @@ describe('onboarding camera handoff', () => {
     expect(source).toContain('onClick={completeOnboarding}')
   })
 
-  // These stay source-level on purpose: the repo has no DOM test environment,
-  // so an internal-state screen like the awakening cannot be driven. The
-  // decision that was actually wrong here — cancellation vs. a real camera
-  // error — lives in cameraReadiness.js and is covered behaviourally there.
+  // These stay source-level: the awakening's internal readiness states are
+  // not driven here. The decision that was actually wrong — cancellation vs.
+  // a real camera error — lives in cameraReadiness.js and is covered
+  // behaviourally there; the slides are driven in Onboarding.test.jsx.
   it('never treats a failure as a cancellation by error name alone', () => {
     expect(source).toContain('isReadinessCancellation(error)')
     expect(source).not.toContain("error?.name === 'AbortError'")

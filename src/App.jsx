@@ -37,13 +37,17 @@ import { useNativeAppMenu } from './lib/nativeAppMenu'
 const isNativeRuntime = () => Boolean(window.__TAURI__?.core?.invoke)
 
 function getInitialFlow() {
+  // Public web stays marketing/download only. This check comes first so the
+  // ?onboarding switch below cannot open the app on the public website.
+  if (!isNativeRuntime() && !import.meta.env.DEV) return 'landing'
   // ?onboarding=1 forces the intro flow — lets you re-experience the first-run
   // moment even after you've onboarded (handy for demos/testing).
-  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('onboarding')) {
+  if (new URLSearchParams(window.location.search).has('onboarding')) return 'onboarding'
+  try {
+    return localStorage.getItem('eudaimonia_onboarded') === 'true' ? 'app' : 'onboarding'
+  } catch {
     return 'onboarding'
   }
-  if (!isNativeRuntime() && !import.meta.env.DEV) return 'landing'
-  return localStorage.getItem('eudaimonia_onboarded') === 'true' ? 'app' : 'onboarding'
 }
 
 export default function App() {
@@ -255,11 +259,16 @@ export default function App() {
   if (flow === 'onboarding') {
     return (
       <>
-        <Onboarding onComplete={() => {
-          setFlow('app')
-          if (!getActiveWorkspace(loadWorkspaceState())) setScreen('setup')
-          else setScreen('lab')
-        }} />
+        <Onboarding
+          onComplete={() => {
+            setFlow('app')
+            if (!getActiveWorkspace(loadWorkspaceState())) setScreen('setup')
+            else setScreen('lab')
+          }}
+          // The camera slide is where the user decides; the policy that backs
+          // its privacy claims has to be one click away there, not only after.
+          onOpenPrivacy={() => setLegalTab('datenschutz')}
+        />
         {/* Kept during onboarding so a stuck first launch can still update,
             but after the onboarding in tab order and drawn above it: the first
             Tab used to land on this button while it sat hidden underneath. */}
@@ -267,6 +276,11 @@ export default function App() {
           <AppRefreshControl updateStatus={updateStatus} />
           <BuildIdentity />
         </div>
+        <LegalModal
+          open={legalTab !== null}
+          onClose={() => setLegalTab(null)}
+          initialTab={legalTab ?? 'datenschutz'}
+        />
       </>
     )
   }
@@ -406,7 +420,10 @@ export default function App() {
     setup: getActiveProtectionSetup(protectionState),
     nativeStatus,
   })
-  const protectionStatus = protectionReadiness.state === 'off'
+  // No rules yet is a normal state, not a fault: sessions without blocking are
+  // a first-class choice, so a fresh install must not open on an amber
+  // "needs attention" dot for a feature nobody has set up.
+  const protectionStatus = protectionReadiness.state === 'off' || protectionReadiness.state === 'empty'
     ? null
     : protectionReadiness.state === 'ready'
       ? { tone: 'good', label: 'Protection ready' }
