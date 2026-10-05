@@ -27,10 +27,17 @@ const SLIDES = [
   {
     kicker: 'Eudaimonai',
     title: 'Meet your\nfocus guardian',
-    // Not "the moment you drift": the alert waits for sustained low attention
-    // (90 s or more), and nothing is measured outside a session you start.
-    body: 'Start a session and it follows your attention through your camera. When your focus slips for a while, it brings you back — quietly, on your side.',
-    cta: 'Show me',
+    // Apple's welcome-screen pattern: one row per thing the app does. Each
+    // line states only what the code does — e.g. not "the moment you drift":
+    // the alert waits for sustained low attention (about 1–2 min, see
+    // alertDelayMs in SessionScreen.jsx), and nothing runs outside a session.
+    features: [
+      { icon: 'timer', title: 'Measured sessions', text: 'Pick a task and a length. While the session runs, your camera measures how focused you are.' },
+      { icon: 'bell', title: 'A nudge when you drift', text: 'If your attention stays low for a minute or two, a reminder and a short sound bring you back.' },
+      { icon: 'shield', title: 'Optional blocking', text: 'Choose apps and websites to hide or block during a session. Nothing is blocked outside one.' },
+      { icon: 'chart', title: 'Your progress', text: 'The Lab shows today’s Focus Score. Analytics compares your sessions over time.' },
+    ],
+    cta: 'Continue',
   },
   {
     kicker: 'How it works',
@@ -42,7 +49,8 @@ const SLIDES = [
     // a single network call disproves. Keep it that way; see LegalModal.jsx.
     // "Attention", not "focus score": the Focus Score is the daily number in
     // the Lab; what a session shows live is attention.
-    body: 'Blink rate, eye openness, head position — turned into a live attention score. No video is ever recorded, and nothing from your camera or your sessions leaves your Mac.',
+    // "Up to 15 times a second": NATIVE_CAMERA_MAX_FPS in capture.rs.
+    body: 'Up to 15 times a second it reads your blinking, how open your eyes are, where your head points and where you look, and turns that into an attention score from 0 to 100. No video is recorded, and nothing from your camera or your sessions leaves your Mac.',
     cta: 'Continue',
   },
   {
@@ -54,6 +62,23 @@ const SLIDES = [
     cta: 'Enable camera',
   },
 ]
+
+// SF Symbols-style line icons (1.5 px stroke on a 20 px grid), the same idiom
+// as the workspace glyphs and the sidebar.
+const FEATURE_ICONS = {
+  timer: <><circle cx="10" cy="11" r="6.75" /><path d="M10 7.5V11l2.25 1.75M8 2.25h4M10 2.25v2" /></>,
+  bell: <><path d="M5 13.75V9a5 5 0 0 1 10 0v4.75l1.25 1.5H3.75z" /><path d="M8.25 17.25a1.9 1.9 0 0 0 3.5 0" /></>,
+  shield: <><path d="M10 2.25 4 4.5v4.75c0 4 2.6 6.9 6 8.5 3.4-1.6 6-4.5 6-8.5V4.5z" /><path d="m7.5 10 1.75 1.75L12.75 8.25" /></>,
+  chart: <><path d="M3.25 16.75h13.5" /><path d="M5.5 13.5v-3M10 13.5v-8M14.5 13.5V8.5" /></>,
+}
+
+function FeatureIcon({ name }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {FEATURE_ICONS[name]}
+    </svg>
+  )
+}
 
 // The recurring brand motif — a focus ring. Rendered at different intensities.
 function RingMark({ size = 88, active = false }) {
@@ -228,9 +253,13 @@ export default function Onboarding({ onComplete, onOpenPrivacy }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 300, overflow: 'hidden',
+      // Scrolls rather than clips: the window can be 560 px tall, less than
+      // the welcome list or a camera error needs. Children centre with
+      // margin: auto, which (unlike align-items) never pushes content above
+      // the scrollable area.
+      position: 'fixed', inset: 0, zIndex: 300, overflowX: 'hidden', overflowY: 'auto',
       background: 'var(--ds-bg)', fontFamily: font,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', flexDirection: 'column',
       padding: '32px 24px',
     }}>
       <style>{`
@@ -245,17 +274,19 @@ export default function Onboarding({ onComplete, onOpenPrivacy }) {
         .ob-cta:active { transform: scale(0.97); }
       `}</style>
 
-      {/* Ambient glow */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', top: '46%', left: '50%',
-        width: 620, height: 620, borderRadius: '50%', pointerEvents: 'none',
-        background: 'radial-gradient(circle, rgba(122,152,255,0.85) 0%, rgba(14,22,44,0.35) 40%, transparent 70%)',
-        animation: 'ambientPulse 7s ease-in-out infinite',
-      }} />
+      {/* Ambient glow, in its own fixed layer so it never adds scroll area */}
+      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '46%', left: '50%',
+          width: 620, height: 620, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(122,152,255,0.85) 0%, rgba(14,22,44,0.35) 40%, transparent 70%)',
+          animation: 'ambientPulse 7s ease-in-out infinite',
+        }} />
+      </div>
 
       {!isAwakening ? (
         // ── Slides ────────────────────────────────────────────────────────────
-        <div style={{ position: 'relative', width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 34 }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: 440, margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 34 }}>
           <div aria-hidden="true" style={{ opacity: visible ? 1 : 0, transition: 'opacity .22s ease' }}>
             <RingMark size={92} active={step >= 1} />
           </div>
@@ -271,9 +302,23 @@ export default function Onboarding({ onComplete, onOpenPrivacy }) {
             <h1 style={{ fontSize: 'clamp(30px,7vw,40px)', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.08, margin: 0, whiteSpace: 'pre-line' }}>
               {slide.title}
             </h1>
-            <p style={{ fontSize: 16, color: 'var(--ds-label-2)', lineHeight: 1.65, margin: '2px auto 0', maxWidth: 380, fontWeight: 400 }}>
-              {slide.body}
-            </p>
+            {slide.features ? (
+              <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'left' }}>
+                {slide.features.map(feature => (
+                  <li key={feature.title} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', columnGap: 14, alignItems: 'start' }}>
+                    <span style={{ color: 'var(--ds-label)', paddingTop: 1 }}><FeatureIcon name={feature.icon} /></span>
+                    <span>
+                      <strong style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--ds-label)', lineHeight: 1.35 }}>{feature.title}</strong>
+                      <span style={{ display: 'block', fontSize: 13, color: 'var(--ds-label-2)', lineHeight: 1.5 }}>{feature.text}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p style={{ fontSize: 16, color: 'var(--ds-label-2)', lineHeight: 1.65, margin: '2px auto 0', maxWidth: 380, fontWeight: 400 }}>
+                {slide.body}
+              </p>
+            )}
           </div>
 
           {error && (
@@ -316,7 +361,7 @@ export default function Onboarding({ onComplete, onOpenPrivacy }) {
         </div>
       ) : (
         // ── The awakening: live "it sees you" moment ──────────────────────────
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 30, animation: 'riseIn .5s ease' }}>
+        <div style={{ position: 'relative', margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 30, animation: 'riseIn .5s ease' }}>
           <div style={{
             position: 'relative', width: 260, height: 260, borderRadius: '50%',
             animation: awakenPhase === 'locked' ? 'softPulse 2s ease-in-out infinite' : 'none',

@@ -7,8 +7,9 @@ import { emptyWorkspaceState, migrateLegacyDevices } from '../lib/workspaceStore
 describe('WorkspaceManager', () => {
   it('requires a visual template when no workspace exists', () => {
     const html = renderToStaticMarkup(<WorkspaceManager state={emptyWorkspaceState()} onChange={() => ({ ok: true })} onContinue={() => {}} />)
-    expect(html).toContain('Build the desk Eudaimonai will understand.')
-    expect(html).toContain('Use quick question setup instead')
+    expect(html).toContain('Which setup is closest to your desk?')
+    expect(html).toContain('Answer a few questions instead')
+    for (const title of ['Laptop', 'One display', 'Two displays']) expect(html).toContain(`<strong>${title}</strong>`)
   })
 
   it('renders a migrated active workspace in the reusable library', () => {

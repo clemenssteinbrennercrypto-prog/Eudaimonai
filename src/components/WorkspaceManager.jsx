@@ -60,6 +60,54 @@ const TEMPLATE_OBJECTS = {
   ],
 }
 
+// What each starting point contains, in the user's words. Order is the order
+// of the chooser.
+const TEMPLATE_CHOICES = [
+  { kind: 'laptop', title: 'Laptop', detail: 'Built-in screen and camera, phone nearby' },
+  { kind: 'desktop', title: 'One display', detail: 'External display with its camera, keyboard and mouse' },
+  { kind: 'dual', title: 'Two displays', detail: 'Main display with a second one beside it' },
+]
+
+// Front-on line drawings in the SF Symbols idiom of deviceGlyph: flat strokes,
+// rounded joins, the camera as a dot on the screen it belongs to and the main
+// screen a shade lighter. They replace a tilted blue "3D desk" that read as a
+// web illustration rather than a Mac control.
+function TemplateIllustration({ kind }) {
+  const screen = (x, y, width, height, main = false) => (
+    <rect x={x} y={y} width={width} height={height} rx="4" className={main ? 'is-main' : undefined} />
+  )
+  const stand = (cx, y) => <path d={`M${cx} ${y}v9M${cx - 9} ${y + 9}h18`} />
+  const camera = (cx, cy) => <circle cx={cx} cy={cy} r="1.6" className="is-camera" />
+  const drawings = {
+    laptop: <>
+      {screen(44, 12, 72, 48, true)}
+      <path d="M32 64h96l-5 7H37z" />
+      {camera(80, 16)}
+      <rect x="136" y="40" width="14" height="26" rx="3" />
+    </>,
+    desktop: <>
+      {screen(38, 6, 84, 52, true)}
+      {stand(80, 58)}
+      {camera(80, 10)}
+      <rect x="50" y="78" width="50" height="9" rx="2.5" />
+      <rect x="108" y="76" width="9" height="13" rx="4.5" />
+    </>,
+    dual: <>
+      {screen(14, 8, 70, 46, true)}
+      {stand(49, 54)}
+      {camera(49, 12)}
+      {screen(90, 12, 58, 40)}
+      {stand(119, 52)}
+      <rect x="34" y="78" width="50" height="9" rx="2.5" />
+    </>,
+  }
+  return (
+    <svg viewBox="0 0 160 96" aria-hidden="true">
+      {drawings[kind]}
+    </svg>
+  )
+}
+
 function templateWorkspace(kind, index) {
   const labels = { laptop: 'Laptop workspace', desktop: 'Desktop workspace', dual: 'Dual-screen workspace' }
   const objects = TEMPLATE_OBJECTS[kind].map(object => ({ ...object, scene: sceneFromLegacy(object), scale: 1 }))
@@ -290,7 +338,20 @@ export default function WorkspaceManager({ state, onChange, onContinue }) {
     setMode('library')
   }} />
   if (editing) return <Editor initial={editing} onCancel={() => { setEditing(null); setMode(state.workspaces.length ? 'library' : 'templates') }} onSave={draft => { commit(saveWorkspaceDraft(state, draft)); setEditing(null); setMode('library') }} />
-  if (mode === 'templates') return <main className="workspace-templates"><header><span>Workspace setup</span><h1>Build the desk Eudaimonai will understand.</h1><p>Pick the layout closest to your desk and adjust it, so Eudaimonai knows where your screens are. It stays on this Mac.</p></header><div className="workspace-template-grid">{Object.keys(TEMPLATE_OBJECTS).map(kind => <button key={kind} onClick={() => setEditing(templateWorkspace(kind, state.workspaces.length))}><div className={`workspace-template-scene ${kind}`}><i/><i/><i/></div><strong>{kind === 'laptop' ? 'Laptop' : kind === 'desktop' ? 'Desktop' : 'Dual screen'}</strong><span>Open editable scene</span></button>)}</div><button className="workspace-quick-link" onClick={() => setMode('quick')}>Use quick question setup instead</button></main>
+  // Says why the layout matters: looking at a second display is work, looking
+  // away is not, and only the layout tells the two apart.
+  if (mode === 'templates') return <main className="workspace-chooser">
+    <header data-tauri-drag-region>
+      <h1>Which setup is closest to your desk?</h1>
+      <p>Eudaimonai uses your screen layout to tell a look at your second display from looking away. You can adjust it afterwards, and it stays on this Mac.</p>
+    </header>
+    <div className="workspace-chooser-grid">{TEMPLATE_CHOICES.map(choice => <button type="button" key={choice.kind} className="workspace-chooser-tile" onClick={() => setEditing(templateWorkspace(choice.kind, state.workspaces.length))}>
+      <span className="workspace-chooser-art"><TemplateIllustration kind={choice.kind} /></span>
+      <strong>{choice.title}</strong>
+      <span className="workspace-chooser-detail">{choice.detail}</span>
+    </button>)}</div>
+    <button type="button" className="workspace-chooser-link" onClick={() => setMode('quick')}>Answer a few questions instead</button>
+  </main>
   return <main className="workspace-library">
     <header data-tauri-drag-region><div><h1>Workspace</h1><p>The active workspace gives every session its spatial context.</p></div><button onClick={() => setMode('templates')}>New workspace</button></header>
     {error && <p className="workspace-error">{error}</p>}
