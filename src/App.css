@@ -5016,24 +5016,8 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .workspace-quality .attention-legend span { font-size: 11px; }
 .workspace-properties .workspace-role-effect { margin: 0; }
 
-/* Workspace map: a top-down line plan. Glass tiles with the editor's glyphs;
-   colour only says what looking at the device does to the score. */
-/* 400 × 260 map at a size where the device glyphs stay legible. */
+/* Workspace map preview: large enough that the device icons stay legible. */
 .workspace-card-main { grid-template-columns: 168px minmax(0, 1fr); }
-.workspace-card-preview { width: 168px; height: 109px; border: 1px solid var(--ds-hairline); border-radius: var(--ds-radius-md); background: var(--ds-glass-inset); box-shadow: none; }
-.workspace-attention-map .workspace-map-desk { fill: rgba(255, 255, 255, 0.015); stroke: var(--ds-hairline); stroke-width: 1.5; }
-.workspace-attention-map .workspace-map-tile > rect { fill: rgba(236, 240, 250, 0.035); stroke: var(--ds-hairline); stroke-width: 1.5; }
-.workspace-attention-map .workspace-map-tile.is-focus > rect {
-  fill: color-mix(in srgb, var(--ds-attn-high) 9%, transparent);
-  stroke: color-mix(in srgb, var(--ds-attn-high) 55%, transparent);
-}
-.workspace-attention-map .workspace-map-tile.is-distraction > rect {
-  fill: color-mix(in srgb, var(--ds-attn-low) 9%, transparent);
-  stroke: color-mix(in srgb, var(--ds-attn-low) 60%, transparent);
-}
-.workspace-attention-map .workspace-map-glyph { fill: none; stroke: var(--ds-label-2); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.workspace-attention-map .workspace-map-tile.is-focus .workspace-map-glyph,
-.workspace-attention-map .workspace-map-tile.is-distraction .workspace-map-glyph { stroke: var(--ds-label); }
-.workspace-attention-map .workspace-map-camera { fill: var(--ds-label); }
-.workspace-attention-map .workspace-map-user { fill: none; stroke: var(--ds-label-3); stroke-width: 2; stroke-linecap: round; }
-.workspace-attention-map text { fill: var(--ds-label-2); stroke: none; font: 600 10px var(--ds-font); }
+.workspace-card-preview { width: 168px; height: 109px; }
+/* Distraction is marked red in the workspace (editor rings, legend). */
+.workspace-quality .attention-legend .is-distraction::before { background: var(--ds-bad); }

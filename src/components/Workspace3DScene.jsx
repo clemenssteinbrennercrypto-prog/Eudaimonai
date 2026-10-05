@@ -16,10 +16,10 @@ const COLORS = {
   desk: 0x0c1022,
   edge: 0x1c2338,
   white: 0xe6e9ef,
-  // The attention colours (--ds-attn-high / --ds-attn-low): what looking at a
-  // device does to the score, shown on the device itself.
+  // What looking at a device does to the score, shown on the device itself:
+  // --ds-attn-high for work, --ds-bad for a distraction.
   attnFocus: 0x2fe3a8,
-  attnDistraction: 0xf5d547,
+  attnDistraction: 0xff4d6a,
 }
 
 const MEANING_COLOR = { focus: COLORS.attnFocus, distraction: COLORS.attnDistraction }
@@ -30,7 +30,7 @@ const OUTLINE_MIN_RADIUS = .09
 // tint of its surface: the device reads as "marked" without anything new
 // lying on the desk. Lines never take the pointer, so dragging is unchanged.
 function addAttentionOutline(group) {
-  const lineMaterial = new THREE.LineBasicMaterial({ color: COLORS.attnFocus, transparent: true, opacity: .8, depthWrite: false, fog: false })
+  const lineMaterial = new THREE.LineBasicMaterial({ color: COLORS.attnFocus, transparent: true, opacity: 1, depthWrite: false, fog: false })
   const bodies = []
   group.traverse(child => { if (child.isMesh && child.userData.isWorkspaceMesh) bodies.push(child) })
   for (const body of bodies) {
@@ -371,7 +371,7 @@ export default function Workspace3DScene({ objects, selectedId, view, onSelect, 
           child.material.emissiveIntensity = .55
         } else if (meaningColor != null && !child.material.userData.baseEmissive) {
           child.material.emissive.setHex(meaningColor)
-          child.material.emissiveIntensity = .045
+          child.material.emissiveIntensity = .22
         } else {
           child.material.emissive.setHex(child.material.userData.baseEmissive || 0)
           child.material.emissiveIntensity = child.material.userData.baseEmissiveIntensity || 0

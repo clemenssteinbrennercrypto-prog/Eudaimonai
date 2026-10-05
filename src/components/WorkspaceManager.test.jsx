@@ -20,7 +20,7 @@ describe('WorkspaceManager', () => {
     const html = renderToStaticMarkup(<WorkspaceManager state={state} onChange={() => ({ ok: true })} onContinue={() => {}} />)
     expect(html).toContain('Imported workspace')
     expect(html).toContain('Active')
-    expect(html).toContain('class="workspace-attention-map workspace-card-preview"')
+    expect(html).toContain('class="workspace-card-preview"')
     expect(html).toContain('aria-label="Attention field for Imported workspace with 2 objects"')
     expect(html).toContain('viewBox="0 0 400 260"')
     expect(html).toContain('data-attention-map="true"')
