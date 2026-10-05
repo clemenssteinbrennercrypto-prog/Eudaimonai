@@ -25,12 +25,13 @@ function controlledVideo() {
     }),
     cancelVideoFrameCallback: vi.fn(id => callbacks.delete(id)),
   }
-  const present = mediaTime => {
+  const present = mediaTime => presentMetadata({ mediaTime })
+  const presentMetadata = metadata => {
     const [id, callback] = callbacks.entries().next().value
     callbacks.delete(id)
-    callback(performance.now(), { mediaTime })
+    callback(performance.now(), metadata)
   }
-  return { video, present }
+  return { video, present, presentMetadata }
 }
 
 afterEach(() => {
@@ -53,6 +54,34 @@ describe('camera readiness', () => {
     await expect(readiness).resolves.toMatchObject({ advances: 2, mediaTime: 0.066 })
     expect(video.srcObject).toBe(stream)
     expect(video.requestVideoFrameCallback).toHaveBeenCalledTimes(3)
+  })
+
+  // The shape WebKit hands a live camera stream: mediaTime pinned at 0 while
+  // presentedFrames counts up. Reading mediaTime alone failed every first
+  // launch of the macOS app with "Camera is not ready".
+  it('accepts WebKit live-stream frames whose mediaTime never advances', async () => {
+    const { video, presentMetadata } = controlledVideo()
+    const readiness = waitForAdvancingVideoFrames(video, { timeoutMs: 1000 })
+
+    presentMetadata({ mediaTime: 0, presentedFrames: 1 })
+    presentMetadata({ mediaTime: 0, presentedFrames: 2 })
+    presentMetadata({ mediaTime: 0, presentedFrames: 3 })
+
+    await expect(readiness).resolves.toMatchObject({ advances: 2 })
+  })
+
+  it('still refuses a WebKit stream whose presented frame count is stalled', async () => {
+    vi.useFakeTimers()
+    const { video, presentMetadata } = controlledVideo()
+    const readiness = waitForAdvancingVideoFrames(video, { timeoutMs: 500 })
+    const rejection = expect(readiness).rejects.toMatchObject({ code: 'no_advancing_frames' })
+
+    presentMetadata({ mediaTime: 0, presentedFrames: 4 })
+    presentMetadata({ mediaTime: 0, presentedFrames: 4 })
+    presentMetadata({ mediaTime: 0, presentedFrames: 4 })
+    await vi.advanceTimersByTimeAsync(500)
+
+    await rejection
   })
 
   it('gives denied permission an actionable explanation without implying measurement', () => {

@@ -5,12 +5,12 @@
 }
 
 /* Workspace system */
-.workspace-library,.workspace-templates{min-height:100%;padding:clamp(28px,5vw,64px);color:var(--text)}
+.workspace-library{min-height:100%;padding:clamp(28px,5vw,64px);color:var(--text)}
 .workspace-library>header,.workspace-library>footer,.workspace-editor-header{display:flex;align-items:center;justify-content:space-between;gap:24px}
-.workspace-library header span,.workspace-templates header span,.workspace-editor-header span{font-size: 11px;font-weight:800;color:#7a98ff}
-.workspace-library h1,.workspace-templates h1{font-size:clamp(32px,5vw,58px);line-height:1.02;letter-spacing:-.045em;margin:10px 0 12px;max-width:760px}
-.workspace-library p,.workspace-templates p{color:var(--text-muted);line-height:1.6}
-.workspace-library button,.workspace-templates button,.workspace-editor button,.workspace-calibration button{font:inherit;color:#fff;background:#2c46ff;border:0;border-radius:11px;padding:11px 16px;cursor:pointer}
+.workspace-library header span,.workspace-editor-header span{font-size: 11px;font-weight:800;color:#7a98ff}
+.workspace-library h1{font-size:clamp(32px,5vw,58px);line-height:1.02;letter-spacing:-.045em;margin:10px 0 12px;max-width:760px}
+.workspace-library p{color:var(--text-muted);line-height:1.6}
+.workspace-library button,.workspace-editor button,.workspace-calibration button{font:inherit;color:#fff;background:#2c46ff;border:0;border-radius:11px;padding:11px 16px;cursor:pointer}
 .workspace-library button:disabled,.workspace-editor button:disabled{opacity:.35;cursor:not-allowed}
 .workspace-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:38px 0}
 .workspace-card-grid article{border:1px solid #1c285a;background:#0a1028;border-radius:18px;padding:18px;overflow:hidden;transition:border-color .2s,transform .2s}
@@ -21,11 +21,10 @@
 .workspace-card-copy{min-width:0}.workspace-card-copy>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.workspace-card-copy strong{overflow:hidden;font-size:17px;text-overflow:ellipsis;white-space:nowrap}.workspace-card-copy em{flex:none;font-style:normal;font-size: 11px;color:#9bb0ff}.workspace-card-copy p{font-size:11px;margin:8px 0 0}
 .workspace-card-actions{display:flex;gap:6px;margin-top:16px;flex-wrap:wrap}.workspace-card-actions button{padding:7px 10px;font-size:11px;background:#151f4b;border:1px solid #27366f}.workspace-card-actions button:first-child{background:#2c46ff}
 .workspace-library>footer{padding-top:24px;border-top:1px solid #17214d;color:var(--text-muted)}.workspace-error,.workspace-quality em{color:#fca5a5!important}
-.workspace-templates{display:grid;place-content:center}.workspace-templates header{text-align:center}.workspace-templates header p{max-width:600px;margin:0 auto}.workspace-template-grid{display:grid;grid-template-columns:repeat(3,minmax(190px,250px));gap:16px;margin:38px auto 22px}.workspace-template-grid>button{display:flex;flex-direction:column;text-align:left;padding:0;overflow:hidden;background:#0a1028;border:1px solid #1c285a}.workspace-template-grid strong{font-size:16px;padding:16px 16px 2px}.workspace-template-grid span{font-size:11px;color:#6f7dae;padding:0 16px 16px}.workspace-template-scene{height:140px;width:100%;position:relative;background:linear-gradient(150deg,#1a265c,#080d24);overflow:hidden}.workspace-template-scene:after{content:"";position:absolute;left:14%;right:14%;bottom:15%;height:44%;background:#27366f;transform:skewX(-18deg);border:1px solid #5971cf}.workspace-template-scene i{position:absolute;z-index:1;bottom:43%;width:42px;height:30px;border:3px solid #9bb0ff;background:#111944}.workspace-template-scene i:first-child{left:40%}.workspace-template-scene.dual i:nth-child(2){left:62%}.workspace-template-scene.desktop i:nth-child(2),.workspace-template-scene.dual i:nth-child(3){left:46%;bottom:21%;width:70px;height:16px}.workspace-quick-link{margin:auto!important;display:block;background:transparent!important;color:#8291c4!important}
 .workspace-editor{min-height:100vh;background:#070b1a;color:var(--text);display:flex;flex-direction:column}.workspace-editor-header{padding:14px 22px;background:#0a1028;border-bottom:1px solid #17214d}.workspace-editor-header>div:first-child{display:grid;gap:5px}.workspace-editor-header input{font:700 18px inherit;color:var(--text);background:transparent;border:0;border-bottom:1px solid transparent;padding:2px 0}.workspace-editor-header input:focus{outline:0;border-color:#7a98ff}.workspace-actions{display:flex;gap:8px;flex-wrap:wrap}.workspace-actions .secondary{background:#151f4b;color:#aeb9de}.workspace-editor-body{display:grid;grid-template-columns:170px minmax(400px,1fr) 210px;min-height:0;flex:1}.workspace-palette,.workspace-properties{padding:18px 12px;background:#0a1028;overflow:auto}.workspace-palette{border-right:1px solid #17214d}.workspace-properties{border-left:1px solid #17214d}.workspace-palette h3,.workspace-properties h3{font-size: 11px;color:#5f6c9c;margin:0 6px 14px}.workspace-palette>button{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;margin:2px 0;text-align:left;background:transparent;color:#aeb9de;font-size:12px}.workspace-palette>button:hover{background:#151f4b}.workspace-palette>button span{font-size:20px;width:26px;text-align:center}.workspace-properties label{display:grid;gap:7px;font-size: 11px;color:#6f7dae;margin-bottom:18px}.workspace-properties select{width:100%;background:#111944;color:#d8def7;border:1px solid #27366f;border-radius:8px;padding:8px}.workspace-properties small{display:block;color:#6f7dae;margin-bottom:18px}.workspace-properties .danger{background:#411d2b;color:#fca5a5;width:100%}.workspace-stage{position:relative;display:flex;flex-direction:column;min-width:0}.workspace-view-tabs{display:flex;justify-content:center;gap:5px;padding:12px}.workspace-view-tabs button{background:#111944;color:#6f7dae;padding:7px 13px;font-size:11px}.workspace-view-tabs button.is-active{background:#2c46ff;color:#fff}.workspace-quality{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:auto 20px 18px;padding:13px 15px;border:1px solid #1c285a;border-radius:13px;background:#0a1028}.workspace-quality strong{font-size:12px}.workspace-quality span{font-size:11px;color:#7181b5}.workspace-quality button{margin-left:auto;padding:8px 12px;font-size:11px}.workspace-3d-host,.workspace-3d-loading{position:relative;width:100%;height:min(66vh,640px);min-height:420px;overflow:hidden;border-top:1px solid #17214d;border-bottom:1px solid #17214d;background:#070b1a}.workspace-3d-host{cursor:grab}.workspace-3d-host:active{cursor:grabbing}.workspace-3d-host canvas{display:block;width:100%;height:100%;outline:none}.workspace-3d-loading{display:grid;place-items:center;color:#7181b5;font-size:12px}.workspace-stage:has(.workspace-3d-host):before{content:"Drag devices to place · drag empty space to orbit · scroll to zoom";position:absolute;z-index:2;margin:58px 0 0 22px;padding:7px 10px;border:1px solid #283875;border-radius:999px;background:#090f28cc;backdrop-filter:blur(10px);color:#8493c8;font-size: 11px;letter-spacing:.03em;pointer-events:none}
 .workspace-calibration{min-height:100vh;background:#070b1a;color:var(--text);display:grid;grid-template-columns:minmax(320px,480px) minmax(380px,1fr);align-items:center;gap:7vw;padding:7vw}.workspace-calibration-copy>span{font-size: 11px;color:#7a98ff}.workspace-calibration h2{font-size:42px;letter-spacing:-.04em;margin:14px 0}.workspace-calibration p{color:#8d9ac5;line-height:1.6}.workspace-calibration-progress{height:6px;border-radius:5px;background:#17214d;overflow:hidden;margin:26px 0 14px}.workspace-calibration-progress i{display:block;height:100%;background:#7a98ff;transition:width .15s}.workspace-good{color:#34d399}.workspace-warn{display:block;color:#fbbf24;line-height:1.5}.workspace-camera-frame{aspect-ratio:1;border-radius:50%;overflow:hidden;position:relative;border:2px solid #405bc7;box-shadow: none}.workspace-camera-frame video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.workspace-camera-reticle{position:absolute;inset:18%;border:1px solid #9bb0ff66;border-radius:50%}.workspace-camera-reticle:before,.workspace-camera-reticle:after{content:"";position:absolute;background:#9bb0ff55}.workspace-camera-reticle:before{left:50%;top:-25%;bottom:-25%;width:1px}.workspace-camera-reticle:after{top:50%;left:-25%;right:-25%;height:1px}.workspace-camera-reticle span{position:absolute;left:50%;top:50%;width:10px;height:10px;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%)}
 .workspace-camera-native{position:absolute;inset:0;width:100%;height:100%;background:#070b1a}
-@media(max-width:850px){.workspace-template-grid{grid-template-columns:1fr}.workspace-editor-body{grid-template-columns:110px 1fr}.workspace-properties{grid-column:1/-1;border-left:0;border-top:1px solid #17214d}.workspace-calibration{grid-template-columns:1fr}.workspace-camera-frame{max-width:420px;margin:auto}.workspace-library>header,.workspace-library>footer{align-items:flex-start;flex-direction:column}}
+@media(max-width:850px){.workspace-editor-body{grid-template-columns:110px 1fr}.workspace-properties{grid-column:1/-1;border-left:0;border-top:1px solid #17214d}.workspace-calibration{grid-template-columns:1fr}.workspace-camera-frame{max-width:420px;margin:auto}.workspace-library>header,.workspace-library>footer{align-items:flex-start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){.workspace-card-grid article,.workspace-calibration-progress i{transition:none}.workspace-card-grid article:hover{transform:none}}
 
 button, input, textarea, select {
@@ -2850,7 +2849,6 @@ html {
 
 /* Workspace: buttons read as one family — pills, gradient primary. */
 .workspace-library button,
-.workspace-templates button,
 .workspace-editor button,
 .workspace-calibration button {
   border-radius: 999px;
@@ -2861,7 +2859,6 @@ html {
   transition: filter var(--t-fast) var(--ease-soft), box-shadow var(--t-fast) var(--ease-soft);
 }
 .workspace-library button:hover:not(:disabled),
-.workspace-templates button:hover:not(:disabled),
 .workspace-editor button:hover:not(:disabled),
 .workspace-calibration button:hover:not(:disabled) { filter: brightness(1.12); }
 .workspace-actions .secondary,
@@ -2876,8 +2873,6 @@ html {
 .workspace-card-actions button { padding: 7px 14px; font-size: 12px; border: 0; }
 .workspace-view-tabs button { padding: 7px 14px; font-size: 12px; }
 .workspace-properties .danger { background: rgba(255, 77, 106, 0.1); box-shadow: 0 0 0 1px rgba(255, 77, 106, 0.35) inset; color: #ff8a9c; font-size: 12px; }
-.workspace-quick-link { box-shadow: none !important; font-size: 13px !important; }
-.workspace-quick-link:hover { color: var(--text) !important; }
 
 /* The object palette is a list, not a row of actions: keep it quiet. */
 .workspace-palette > button {
@@ -2898,31 +2893,15 @@ html {
 }
 
 /* Workspace: glass cards like Analytics. */
-.workspace-card-grid article,
-.workspace-template-grid > button {
+.workspace-card-grid article {
   border: 1px solid var(--line);
   background:
     radial-gradient(120% 90% at 0% 0%, rgba(44, 70, 255, 0.10), transparent 55%),
     rgba(13, 19, 48, 0.55);
   box-shadow: 0 24px 60px -32px rgba(0, 0, 0, 0.6);
 }
-.workspace-template-grid > button { border-radius: 18px; padding: 0; transition: transform var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-soft); }
-.workspace-template-grid > button:hover { transform: translateY(-2px); border-color: var(--line-strong); filter: none; }
-.workspace-card-grid article.is-active { border-color: rgba(107, 140, 255, 0.6); box-shadow: 0 0 0 1px rgba(107, 140, 255, 0.25), 0 24px 60px -30px rgba(44, 70, 255, 0.45); }
 
-/* Workspace templates: every device glyph gets an explicit spot. Unplaced
-   glyphs used to fall back to left: 0 and hung off the desk's edge. */
-.workspace-template-scene i { left: 50%; transform: translateX(-50%); }
-.workspace-template-scene.laptop i:nth-child(1) { left: 46%; width: 50px; height: 32px; }
-.workspace-template-scene.laptop i:nth-child(2) { left: 44%; bottom: 30%; width: 62px; height: 9px; border-width: 2px; }
-.workspace-template-scene.laptop i:nth-child(3) { left: 70%; bottom: 30%; width: 12px; height: 20px; border-width: 2px; }
-.workspace-template-scene.desktop i:nth-child(1) { left: 50%; }
-.workspace-template-scene.desktop i:nth-child(2) { left: 46%; bottom: 23%; width: 64px; height: 12px; border-width: 2px; }
-.workspace-template-scene.desktop i:nth-child(3) { left: 64%; bottom: 24%; width: 10px; height: 14px; border-width: 2px; border-radius: 6px; }
-.workspace-template-scene.dual i:nth-child(1) { left: 38%; }
-.workspace-template-scene.dual i:nth-child(2) { left: 62%; }
-.workspace-template-scene.dual i:nth-child(3) { left: 46%; bottom: 23%; width: 64px; height: 12px; border-width: 2px; }
-.workspace-template-scene i { border-radius: 4px; box-shadow: none; }
+.workspace-card-grid article.is-active { border-color: rgba(107, 140, 255, 0.6); box-shadow: 0 0 0 1px rgba(107, 140, 255, 0.25), 0 24px 60px -30px rgba(44, 70, 255, 0.45); }
 
 /* Workspace editor: themed sliders and the calibration bar right under the scene. */
 .workspace-quality { margin: 14px 20px 18px; border-color: var(--line); border-radius: 14px; background: rgba(13, 19, 48, 0.6); }
@@ -2976,11 +2955,6 @@ html {
 .session-intent-field > input::placeholder { color: var(--text-muted); font-weight: 500; }
 .protection-start-actions button.is-primary { color: #fff; }
 
-@media (prefers-reduced-motion: reduce) {
-  .workspace-template-grid > button { transition: none; }
-  .workspace-template-grid > button:hover { transform: none; }
-}
-
 /* ── Darker ground, white accents ─────────────────────────────────────────
    One notch darker everywhere so white type and solid ultramarine carry the
    emphasis: surfaces lose most of their blue wash, active controls become
@@ -2991,8 +2965,7 @@ html {
 .analytics-inbox,
 .analytics-history,
 .session-overview-time,
-.workspace-card-grid article,
-.workspace-template-grid > button {
+.workspace-card-grid article {
   background:
     radial-gradient(120% 90% at 0% 0%, rgba(44, 70, 255, 0.045), transparent 55%),
     rgba(8, 11, 28, 0.72);
@@ -3030,16 +3003,9 @@ html {
 .analytics-details-index button.is-active::before { background: #fff; box-shadow: none; }
 .analytics-pill-select.is-set { background: rgba(44, 70, 255, 0.22); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22) inset; }
 .workspace-library button,
-.workspace-templates button,
 .workspace-editor button,
 .workspace-calibration button { background: var(--ultra); }
-.workspace-palette > button,
-.workspace-template-grid > button { background: transparent; }
-.workspace-template-grid > button {
-  background:
-    radial-gradient(120% 90% at 0% 0%, rgba(44, 70, 255, 0.045), transparent 55%),
-    rgba(8, 11, 28, 0.72);
-}
+.workspace-palette > button { background: transparent; }
 .workspace-actions .secondary,
 .workspace-card-actions button:not(:first-child),
 .workspace-view-tabs button:not(.is-active) { background: rgba(3, 5, 14, 0.5); }
@@ -3077,9 +3043,7 @@ html {
 .analytics-inbox-row strong,
 .analytics-workspace-list span { font-weight: 540; }
 .session-intent-heading h1,
-.workspace-library h1,
-.workspace-templates h1 { font-weight: 560; }
-.workspace-template-grid strong,
+.workspace-library h1 { font-weight: 560; }
 .workspace-card-copy strong { font-weight: 540; }
 
 /* ── App shell + Lab on the design foundations ─────────────────────────────
@@ -3544,7 +3508,6 @@ html {
   font: 650 34px/1.1 var(--ds-font);
   letter-spacing: -0.03em;
 }
-.workspace-templates h1 { font: 650 clamp(32px, 4vw, 44px)/1.08 var(--ds-font); letter-spacing: -0.035em; }
 
 /* Glass panels */
 .protection-library,
@@ -3969,7 +3932,6 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 
 /* ── Workspace: library, editor, calibration in the shared language ─────── */
 .workspace-library > header span,
-.workspace-templates header span,
 .workspace-editor-header span,
 .workspace-calibration-copy > span { color: var(--ds-label-3); font: 500 13px var(--ds-font); }
 .workspace-library > header button { background: var(--ds-glass-inset); box-shadow: 0 0 0 1px var(--ds-silver-edge) inset; color: var(--ds-label); }
@@ -4959,11 +4921,92 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   .app-shell .app-sidebar .app-sidebar-item { transition: none !important; }
 }
 
-/* Onboarding: Reload and build identity sit above the full-screen intro. */
-.onboarding-chrome .app-refresh-control,
+/* Onboarding: the build identity sits above the full-screen intro. */
 .onboarding-chrome .app-build-identity { z-index: 320; }
 /* Workspace editor next to the sidebar: the 3D stage gives way instead of
    pushing the properties column off the window (it demanded 400 px, which
    overflowed between ~850 and ~1000 px window width). */
 .workspace-editor-body { grid-template-columns: 170px minmax(0, 1fr) 210px; }
 .workspace-stage { min-width: 0; }
+
+/* ── Workspace chooser (first run) ─────────────────────────────────────────
+   A macOS template chooser: glass tiles with a flat line drawing, the name
+   and one line of detail. No tilt, no blue scene, no hover lift; selection
+   feedback is the silver edge and the shared 0.97 press. */
+.workspace-chooser {
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  gap: var(--ds-space-8);
+  padding: var(--ds-space-12) var(--ds-space-8);
+  color: var(--ds-label);
+  font-family: var(--ds-font);
+}
+.workspace-chooser > header { max-width: 560px; margin: 0 auto; text-align: center; }
+.workspace-chooser h1 { margin: 0 0 var(--ds-space-2); font: 650 26px/1.2 var(--ds-font); letter-spacing: 0; }
+.workspace-chooser > header p { margin: 0; color: var(--ds-label-2); font: 400 13px/1.5 var(--ds-font); }
+.workspace-chooser-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(168px, 216px));
+  justify-content: center;
+  gap: var(--ds-space-4);
+}
+.workspace-chooser-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-3) var(--ds-space-3) var(--ds-space-5);
+  border: 1px solid var(--ds-hairline);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-glass);
+  box-shadow: var(--ds-glass-shadow);
+  color: var(--ds-label);
+  font-family: var(--ds-font);
+  text-align: center;
+  cursor: default;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease), transform var(--ds-dur-fast) var(--ds-ease);
+}
+.workspace-chooser-tile:hover { border-color: var(--ds-silver-edge); }
+.workspace-chooser-tile:active { transform: scale(0.97); }
+.workspace-chooser-tile:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+.workspace-chooser-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  margin-bottom: var(--ds-space-3);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-glass-inset);
+}
+.workspace-chooser-art svg {
+  width: 80%;
+  height: auto;
+  fill: none;
+  stroke: var(--ds-label-2);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.workspace-chooser-art .is-main { fill: var(--ds-fill-strong); stroke: var(--ds-label); }
+.workspace-chooser-art .is-camera { fill: var(--ds-label); stroke: none; }
+.workspace-chooser-tile strong { font: 600 15px/1.35 var(--ds-font); }
+.workspace-chooser-detail { padding: 0 var(--ds-space-1); color: var(--ds-label-2); font: 400 12px/1.4 var(--ds-font); }
+.workspace-chooser-link {
+  justify-self: center;
+  padding: var(--ds-space-1) var(--ds-space-2);
+  border: 0;
+  background: none;
+  color: var(--ds-accent-text);
+  font: 500 13px var(--ds-font);
+  cursor: default;
+}
+@media (max-width: 760px) {
+  .workspace-chooser { padding: var(--ds-space-8) var(--ds-space-4); }
+  /* The window is at least 720 px wide, so three narrower columns still fit. */
+  .workspace-chooser-grid { grid-template-columns: repeat(3, minmax(0, 200px)); gap: var(--ds-space-3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-chooser-tile { transition: none; }
+  .workspace-chooser-tile:active { transform: none; }
+}

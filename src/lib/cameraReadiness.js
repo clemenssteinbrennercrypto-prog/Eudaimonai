@@ -84,6 +84,7 @@ export function waitForAdvancingVideoFrames(video, {
   return new Promise((resolve, reject) => {
     let settled = false
     let lastMediaTime = null
+    let lastPresentedFrames = null
     let advances = 0
     let scheduledId = null
     let scheduledWithVideoCallback = false
@@ -116,11 +117,21 @@ export function waitForAdvancingVideoFrames(video, {
       const mediaTime = Number.isFinite(metadata?.mediaTime)
         ? metadata.mediaTime
         : Number(video.currentTime)
+      // WebKit — the engine of the macOS app — reports mediaTime 0 on every
+      // frame of a live camera stream, so mediaTime alone never advances there
+      // and every first launch timed out on "Camera is not ready". The spec's
+      // presentedFrames counter does advance in WebKit (verified against
+      // Playwright WebKit 26 with a captured MediaStream), so either signal
+      // moving counts as a new frame. Both stay flat when the camera stalls.
+      const presentedFrames = Number(metadata?.presentedFrames)
       const dimensionsReady = Number(video.videoWidth) > 0 && Number(video.videoHeight) > 0
 
-      if (dimensionsReady && Number.isFinite(mediaTime)) {
-        if (lastMediaTime !== null && mediaTime > lastMediaTime) advances += 1
-        if (lastMediaTime === null || mediaTime > lastMediaTime) lastMediaTime = mediaTime
+      if (dimensionsReady) {
+        const timeAdvanced = Number.isFinite(mediaTime) && lastMediaTime !== null && mediaTime > lastMediaTime
+        const framesAdvanced = Number.isFinite(presentedFrames) && lastPresentedFrames !== null && presentedFrames > lastPresentedFrames
+        if (timeAdvanced || framesAdvanced) advances += 1
+        if (Number.isFinite(mediaTime) && (lastMediaTime === null || mediaTime > lastMediaTime)) lastMediaTime = mediaTime
+        if (Number.isFinite(presentedFrames) && (lastPresentedFrames === null || presentedFrames > lastPresentedFrames)) lastPresentedFrames = presentedFrames
       }
 
       if (advances >= requiredAdvances) {
