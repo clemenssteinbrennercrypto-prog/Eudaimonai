@@ -4921,8 +4921,7 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   .app-shell .app-sidebar .app-sidebar-item { transition: none !important; }
 }
 
-/* Onboarding: Reload and build identity sit above the full-screen intro. */
-.onboarding-chrome .app-refresh-control,
+/* Onboarding: the build identity sits above the full-screen intro. */
 .onboarding-chrome .app-build-identity { z-index: 320; }
 /* Workspace editor next to the sidebar: the 3D stage gives way instead of
    pushing the properties column off the window (it demanded 400 px, which

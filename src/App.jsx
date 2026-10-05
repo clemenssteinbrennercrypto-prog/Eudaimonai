@@ -269,11 +269,13 @@ export default function App() {
           // its privacy claims has to be one click away there, not only after.
           onOpenPrivacy={() => setLegalTab('datenschutz')}
         />
-        {/* Kept during onboarding so a stuck first launch can still update,
-            but after the onboarding in tab order and drawn above it: the first
-            Tab used to land on this button while it sat hidden underneath. */}
+        {/* No Reload here: a "Reload current app" pill on the welcome screen
+            read as a fault to first-time users, and onboarding can no longer
+            get stuck (every camera failure has a way out). Updates install
+            from the sidebar once the app is open. The build identity stays so
+            testers can say which build they saw; it is drawn above the intro
+            and after it in tab order. */}
         <div className="onboarding-chrome">
-          <AppRefreshControl updateStatus={updateStatus} />
           <BuildIdentity />
         </div>
         <LegalModal
