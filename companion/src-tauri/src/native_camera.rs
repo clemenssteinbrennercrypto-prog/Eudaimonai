@@ -72,6 +72,10 @@ struct NativeLandmarkEvent {
     captured_at_ms: u64,
     frame_present: bool,
     face_present: bool,
+    face_confidence: f32,
+    mean_luma: f32,
+    dark_fraction: f32,
+    bright_fraction: f32,
     landmarks: Option<Vec<pipeline::Landmark>>,
 }
 
@@ -218,13 +222,17 @@ fn run_native_camera(
                 stale_reported = false;
                 let (sequence, captured_at_ms) = record_real_frame(&shared);
                 match pipeline.process(&frame) {
-                    Ok(landmarks) => {
+                    Ok(observation) => {
                         let event = NativeLandmarkEvent {
                             frame_sequence: sequence,
                             captured_at_ms,
                             frame_present: true,
-                            face_present: landmarks.is_some(),
-                            landmarks,
+                            face_present: observation.landmarks.is_some(),
+                            face_confidence: observation.face_confidence,
+                            mean_luma: observation.quality.mean_luma,
+                            dark_fraction: observation.quality.dark_fraction,
+                            bright_fraction: observation.quality.bright_fraction,
+                            landmarks: observation.landmarks,
                         };
                         let _ = app.emit(NATIVE_CAMERA_EVENT, event);
                     }

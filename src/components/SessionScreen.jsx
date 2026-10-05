@@ -76,8 +76,15 @@ import {
 import {
   PRIMARY_CAMERA_MEASUREMENT,
   nativeCameraFaultFor,
+  nativeFrameQualityForScoring,
   nativeLandmarksForScoring,
 } from '../lib/cameraMeasurement'
+import {
+  advanceCameraVisibilityState,
+  cameraVisibilityCandidate,
+  cameraVisibilityMessage,
+  createCameraVisibilityState,
+} from '../lib/cameraVisibility'
 import { attachSessionWindowLifecycle, canApplyCompanionActive } from '../lib/sessionWindowLifecycle'
 import { sessionShortcutAction } from '../lib/destructiveActions'
 import { formatDuration, formatTimer } from '../lib/durationFormat'
@@ -393,6 +400,7 @@ export default function SessionScreen({
   const [hintVisible,     setHintVisible]     = useState(true)
   const [endConfirm,      setEndConfirm]      = useState(false)
   const [faceAbsentPrompt, setFaceAbsentPrompt] = useState(false)
+  const [visibilityIssue, setVisibilityIssue] = useState(null)
   const [gazePos,         setGazePos]         = useState(null) // {x, y} normalized 0..1
   const [detectionConf,   setDetectionConf]   = useState(0)   // 0..1 signal quality
   const [scoreHistory,    setScoreHistory]    = useState([68])
@@ -442,6 +450,7 @@ export default function SessionScreen({
   const lastDeliveredFrameAtRef = useRef(0)    // real frame only; camera restart grace must never count as measurement
   const cameraFaultRef         = useRef(null)  // mirrors cameraFault for the interval callback
   const trackingFaultObservedRef = useRef(false)
+  const measurementTrustworthyRef = useRef(false)
   const cameraReadyRef         = useRef(false) // true only after native MediaPipe returned a frame for the current generation
   const cameraGenerationRef    = useRef(0)
   const nativeFrameSequenceRef = useRef(0)
@@ -549,6 +558,8 @@ export default function SessionScreen({
   const penaltyFramesRef       = useRef(createPenaltyFrameState())
   const eyesOffStartRef        = useRef(null)
   const lowConfSinceRef        = useRef(null)  // when confidence first dropped low (Stage 2 trust gating)
+  const cameraVisibilityStateRef = useRef(createCameraVisibilityState())
+  const visibilityIssueRef = useRef(null)
 
   // ── Ambient sound refs ────────────────────────────────────────────────────
   const ambientRef = useRef(null) // { source, gain }
@@ -691,12 +702,16 @@ export default function SessionScreen({
     headDownFramesRef.current = 0
     eyesOffFramesRef.current = 0
     penaltyFramesRef.current = createPenaltyFrameState()
+    cameraVisibilityStateRef.current = createCameraVisibilityState()
+    visibilityIssueRef.current = null
+    measurementTrustworthyRef.current = false
     wasClosedRef.current = false
     blinkTimestampsRef.current = []
     perclosHistRef.current = []
     nosePtHistRef.current = []
     setCurrentStreak(0)
     setFaceAbsentPrompt(false)
+    setVisibilityIssue(null)
 
     if (preDriftRiskRef.current.active || preDriftRiskRef.current.level !== 0) {
       preDriftRiskRef.current = { active: false, level: 0, reason: 'stable' }
@@ -1055,7 +1070,7 @@ export default function SessionScreen({
     }
     // A manual stop can land between timer callbacks. Flush that final real span
     // so background throttling cannot leave the last one-to-three seconds out.
-    if (!isPausedRef.current && !cameraFaultRef.current) {
+    if (!isPausedRef.current && !cameraFaultRef.current && measurementTrustworthyRef.current) {
       const calibrationEndAt = startTimeRef.current + pausedTotalRef.current + CALIBRATION_SECS * 1000
       const finalSampleSeconds = measuredSpanSeconds({
         previousAt: Math.max(statsSampleAtRef.current, calibrationEndAt),
@@ -1303,7 +1318,7 @@ export default function SessionScreen({
   }, [cancelEndConfirmation, pauseSession, requestEndConfirmation, resumeSession, showSessionPlan])
 
   // ── Per-frame analysis ────────────────────────────────────────────────────
-  const handleFaceResults = useCallback((results, capturedAt = Date.now()) => {
+  const handleFaceResults = useCallback((results, capturedAt = Date.now(), frameQuality = null) => {
     // Frame heartbeat: proof that the camera pipeline is actually delivering.
     // Recorded before the pause/end guard so a paused session isn't judged stalled.
     const deliveredAt = Number.isFinite(capturedAt)
@@ -1322,6 +1337,14 @@ export default function SessionScreen({
     const now            = deliveredAt
     const sessionElapsed = (now - startTimeRef.current - pausedTotalRef.current) / 1000
     const calibrating    = sessionElapsed < CALIBRATION_SECS
+
+    const visibilityCandidate = cameraVisibilityCandidate({ hasFace, frameQuality })
+    cameraVisibilityStateRef.current = advanceCameraVisibilityState(
+      cameraVisibilityStateRef.current,
+      visibilityCandidate,
+      now,
+    )
+    const cameraVisibilityIssue = cameraVisibilityStateRef.current.issue
 
     if (!hasFace) {
       if (!faceAbsentSinceRef.current) faceAbsentSinceRef.current = now
@@ -1465,13 +1488,23 @@ export default function SessionScreen({
     // Sustained low confidence (with a face, outside calibration) = tracking
     // uncertain. Debounced against flicker. When uncertain we freeze the score
     // and mute alerts rather than accusing the user of being distracted.
-    if (hasFace && !calibrating && conf <= CONF_UNCERTAIN_MAX) {
+    const landmarkQualityLimited = hasFace && !calibrating && conf <= CONF_UNCERTAIN_MAX
+    if (landmarkQualityLimited) {
       if (!lowConfSinceRef.current) lowConfSinceRef.current = now
     } else {
       lowConfSinceRef.current = null
     }
     const trackingUncertain = !!lowConfSinceRef.current &&
       (now - lowConfSinceRef.current) >= UNCERTAIN_HOLD_MS
+    // Withhold arithmetic immediately on poor evidence; debounce only the UI
+    // warning so a single noisy frame never flashes corrective copy.
+    const measurementUncertain = landmarkQualityLimited || visibilityCandidate != null
+    measurementTrustworthyRef.current = !measurementUncertain
+    const nextVisibilityIssue = cameraVisibilityIssue || (trackingUncertain ? 'face_obscured' : null)
+    if (nextVisibilityIssue !== visibilityIssueRef.current) {
+      visibilityIssueRef.current = nextVisibilityIssue
+      setVisibilityIssue(nextVisibilityIssue)
+    }
 
     const eyesRolledUp   = hasFace && irisV > 0.25
     const calibratedTarget = hasFace && !calibrating
@@ -1708,7 +1741,7 @@ export default function SessionScreen({
     // ── Scoring: earned focus, not assumed ──────────────────────────────────
     // Hold/debounce state lives here; the arithmetic and its versioned trace
     // live in attentionScore.js so the exact same rule can be audited in tests.
-    if (faceAbsentMs >= FACE_ABSENT_HOLD_MS) {
+    if (faceAbsentMs >= FACE_ABSENT_HOLD_MS && !measurementUncertain) {
       sustainedGoodMsRef.current = 0  // ramp resets when person is clearly away
       // Activity-based bonus/penalty accumulators must reset here too, otherwise
       // a distraction penalty built up while the user is away from the webcam
@@ -1777,7 +1810,7 @@ export default function SessionScreen({
     const inRecovery = msSinceDistraction < RECOVERY_WINDOW_MS
     const rampRate = inRecovery ? 0.4 : 1.0  // 40% speed while recovering
 
-    if (trackingUncertain || holdForPenaltyDebounce) {
+    if (measurementUncertain || holdForPenaltyDebounce) {
       // signal unreliable — neither earn nor burn the focus ramp
     } else if (shouldBuildSustainedRamp(baseScore.score)) {
       sustainedGoodMsRef.current = Math.min(120_000, sustainedGoodMsRef.current + frameDelta * rampRate)
@@ -1790,7 +1823,7 @@ export default function SessionScreen({
       base: baseScore,
       rampBonus,
       previousScore: focusScoreRef.current,
-      trackingUncertain,
+      trackingUncertain: measurementUncertain,
       holdForDebounce: holdForPenaltyDebounce,
     })
     rawScoreRef.current = finalizedScore.rawFinal
@@ -1804,7 +1837,7 @@ export default function SessionScreen({
         : 'alert'
     // Trust gate: surface "signal weak" instead of a (held, possibly low) status
     // so the user knows it's the camera signal, not an accusation.
-    const displayStatus = trackingUncertain ? 'uncertain' : newStatus
+    const displayStatus = measurementUncertain ? 'uncertain' : newStatus
     const displayReason = (displayStatus === 'focused' || displayStatus === 'uncertain') ? 'focused' : primaryReason
 
     // ── Pre-drift risk: sustained early destabilization before full distraction ─
@@ -1833,9 +1866,9 @@ export default function SessionScreen({
     const strongestPreDriftReason = preDriftSignals[0] || 'stable'
     const riskInput = preDriftSignals.length >= 2 || unstableHead || earlyAwayGlance
 
-    if (newStatus === 'alert' || faceAbsentMs >= FACE_ABSENT_HOLD_MS) {
+    if (!measurementUncertain && (newStatus === 'alert' || faceAbsentMs >= FACE_ABSENT_HOLD_MS)) {
       preDriftChargeMsRef.current = 0
-    } else if (trackingUncertain) {
+    } else if (measurementUncertain) {
       // Stage-2 trust gate: the gaze/head signals pre-drift reads are exactly
       // what's unreliable while the signal is weak. Hold the charge — don't
       // inflate it on camera noise, don't decay it either. Resumes on recovery.
@@ -1848,7 +1881,7 @@ export default function SessionScreen({
     // Never surface/count pre-drift while tracking is uncertain: it would contradict
     // the "Signal weak" state and pollute the debrief's drift-risk stats.
     const preDriftActive = preDriftChargeMsRef.current >= PRE_DRIFT_HOLD_MS &&
-      newStatus !== 'alert' && !trackingUncertain
+      newStatus !== 'alert' && !measurementUncertain
     const preDriftLevel = Math.round((preDriftChargeMsRef.current / PRE_DRIFT_MAX_MS) * 100)
     const prevPreDriftActive = preDriftRiskRef.current.active
     const nextPreDriftRisk = {
@@ -1885,7 +1918,7 @@ export default function SessionScreen({
     //     than letting one frame erase the entire warm-up
     // Head stability already contributes to the score. Requiring the same
     // signal again here would silently double-penalize natural movement.
-    const flowConditions = !trackingUncertain &&
+    const flowConditions = !measurementUncertain &&
       focusScoreRef.current >= FLOW_SCORE &&
       primaryReason === 'focused'
     const nextFlowGate = advanceFlowGate(flowGateRef.current, {
@@ -1911,7 +1944,7 @@ export default function SessionScreen({
     // Score dipped below 55 = mark latest distraction timestamp (reset on each new dip)
     // This ensures the recovery ramp is measured from the MOST RECENT distraction,
     // not stuck on the first one from an hour ago.
-    if (focusScoreRef.current < 55) {
+    if (!measurementUncertain && focusScoreRef.current < 55) {
       lastDistractionRef.current = now
     }
 
@@ -1924,7 +1957,7 @@ export default function SessionScreen({
       preDriftActive &&
       phasePolicy.preDriftNudge &&
       gentleReminderEnabledRef.current &&
-      !trackingUncertain &&
+      !measurementUncertain &&
       !overlayActiveRef.current &&
       (now - lastPhaseCueRef.current) >= GENTLE_REMINDER_COOLDOWN_MS &&
       (now - lastGentleReminderRef.current) >= GENTLE_REMINDER_COOLDOWN_MS
@@ -1947,7 +1980,13 @@ export default function SessionScreen({
     }
 
     // ── Gentle reminder: earlier, optional nudge before the severe overlay ─
-    if (newStatus !== 'focused') {
+    if (measurementUncertain) {
+      // Unmeasured time must not mature reminder/alert timers and then accuse
+      // the user immediately when visibility recovers.
+      distractedSinceRef.current = null
+      scoreLowSinceRef.current = null
+      lastNoAlertCheckRef.current = now
+    } else if (newStatus !== 'focused') {
       if (!distractedSinceRef.current) distractedSinceRef.current = now
       const distractedFor = now - distractedSinceRef.current
       const gentleCooldownOk = (now - lastGentleReminderRef.current) >= GENTLE_REMINDER_COOLDOWN_MS
@@ -1958,7 +1997,7 @@ export default function SessionScreen({
 
       if (
         gentleReminderEnabledRef.current &&
-        !trackingUncertain &&
+        !measurementUncertain &&
         distractedFor >= Math.max(
           5_000,
           (phasePolicy.gentleDelayMs || GENTLE_REMINDER_DELAY_MS) * 1
@@ -1982,12 +2021,12 @@ export default function SessionScreen({
       distractedSinceRef.current = null
     }
 
-    if (focusScoreRef.current < ALERT_SCORE) {
+    if (!measurementUncertain && focusScoreRef.current < ALERT_SCORE) {
       if (!scoreLowSinceRef.current) scoreLowSinceRef.current = now
       const lowFor     = now - scoreLowSinceRef.current
       const cooldownOk = (now - lastAlertTimeRef.current) >= ALERT_COOLDOWN_MS
 
-      if (lowFor >= adaptedAlertMs && !overlayActiveRef.current && cooldownOk && !trackingUncertain) {
+      if (lowFor >= adaptedAlertMs && !overlayActiveRef.current && cooldownOk && !measurementUncertain) {
         overlayActiveRef.current   = true
         lastAlertTimeRef.current   = now
         lastDistractionRef.current = now  // start recovery window
@@ -2109,7 +2148,8 @@ export default function SessionScreen({
     const onLandmarks = payload => {
       if (cancelled || generation !== cameraGenerationRef.current || sessionEndedRef.current) return
       const landmarks = nativeLandmarksForScoring(payload)
-      if (landmarks == null) {
+      const frameQuality = nativeFrameQualityForScoring(payload)
+      if (landmarks == null || frameQuality == null) {
         interruptCamera('library')
         return
       }
@@ -2117,7 +2157,8 @@ export default function SessionScreen({
       nativeFrameSequenceRef.current = payload.frameSequence
       handleFaceResults(
         { multiFaceLandmarks: landmarks.length ? [landmarks] : [] },
-        payload.capturedAtMs
+        payload.capturedAtMs,
+        frameQuality,
       )
       markReady()
     }
@@ -2253,6 +2294,15 @@ export default function SessionScreen({
       })
       setCalibProgress(1)
 
+      if (!measurementTrustworthyRef.current) {
+        // Frames are flowing, but the face signal is not trustworthy enough to
+        // classify. Exclude this wall time from every score/time accumulator.
+        goodStreakSecsRef.current = 0
+        currentStreakRef.current = 0
+        setCurrentStreak(0)
+        return
+      }
+
       // setInterval is throttled when this WebView sits behind the app the user
       // is actually working in. Count the real span represented by this wake-up,
       // but only while a genuinely delivered camera frame is still fresh. Long
@@ -2344,6 +2394,7 @@ export default function SessionScreen({
   }, [])
 
   const overlayMsg = getPhaseAlertMessage(alertReason, focusPhase)
+  const visibilityMessage = cameraVisibilityMessage(visibilityIssue)
   const showStreak = !isCalibrating && currentStreak > 30
   const activityConnected = isActivityConnected()
   // Per-render memo (renders fire several times/sec from score updates); reclassify
@@ -2746,7 +2797,15 @@ export default function SessionScreen({
       </div>
 
       <div className="webcam-corner" ref={nativePreviewHostRef}>
-        {faceAbsentPrompt && !isPaused && !isCalibrating && (
+        {visibilityMessage && !isPaused && !isCalibrating && (
+          <div style={{
+            fontSize: 11, color: 'var(--warn)', textAlign: 'center',
+            marginBottom: 4, letterSpacing: '0.02em', fontWeight: 600,
+          }}>
+            {visibilityMessage}
+          </div>
+        )}
+        {faceAbsentPrompt && !visibilityMessage && !isPaused && !isCalibrating && (
           <div style={{
             fontSize: 11, color: 'var(--text-muted)', textAlign: 'center',
             marginBottom: 4, letterSpacing: '0.04em', fontWeight: 500,

@@ -327,17 +327,26 @@ app and did not publish either release channel.
   and rolled-up eyes. The first two anomalous frames hold the last trusted score
   and neither earn nor burn the sustained-focus ramp. The recorded-camera replay
   uses the same pure scorer and debounce state as the live session.
+- A follow-up visibility trust gate now distinguishes confidently empty frames
+  from extreme exposure or sub-threshold face evidence. Rust emits only four
+  bounded aggregate values (model confidence, mean luminance and dark/bright
+  fractions); no pixels leave the native process. Sustained poor visibility or
+  unstable landmarks hold the visible score, suppress interventions and exclude
+  the affected wall time from measured score, focused-seconds, Flow and streak
+  accumulators. The UI asks for more light, less backlight or a clearer face
+  instead of accusing the user of looking away.
 - A session insert followed by a failed queued check-in update is now retried
   against the already-created row. Pending edits survive the failure, the UI
   exposes a retry, and the retry cannot create a duplicate session or ledger
   contribution. A later standalone check-in update failure follows the same
   visible retry path.
-- `npm run test:coverage`: 85 files and 884 tests passed; coverage gates passed
-  at 85.84% statements, 79.33% branches, 89.03% functions and 88.46% lines.
-- `npm run lint`, `npm run build`, `cargo check`, 13 native-camera library tests
+- `npm run test:coverage`: 86 files and 889 tests passed; coverage gates passed
+  at 85.87% statements, 79.39% branches, 89.10% functions and 88.50% lines.
+- `npm run lint`, `npm run build`, `cargo check`, 15 native-camera library tests
   and 70 app tests passed. `CI=true npm run build:companion` produced the arm64
   `.app` and DMG successfully. The intentional classic MediaPipe parity script
   no longer emits a Vite warning, and the local-WebView chunk ceiling is explicit.
-- The hard camera-loss, sleep/lid-close, clean permission, installed updater and
-  CPU/energy gates remain manual checks on the final signed candidate. No claim
-  about those gates is inferred from these automated results.
+- The hard camera-loss, sleep/lid-close, clean permission, installed updater,
+  CPU/energy and real sunglasses/backlight behavior remain manual checks on the
+  final signed candidate. No claim about those gates is inferred from these
+  automated results.

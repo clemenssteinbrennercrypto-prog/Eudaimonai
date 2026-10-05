@@ -4,6 +4,7 @@ import {
   PRIMARY_CAMERA_MEASUREMENT,
   WEBVIEW_CAMERA_MEASUREMENT,
   nativeCameraFaultFor,
+  nativeFrameQualityForScoring,
   nativeLandmarksForScoring,
 } from './cameraMeasurement'
 
@@ -45,5 +46,21 @@ describe('primary camera measurement', () => {
     expect(nativeLandmarksForScoring({
       framePresent: true, frameSequence: 5, facePresent: false, landmarks: null,
     })).toBeNull()
+  })
+
+  it('accepts only bounded aggregate frame-quality metadata', () => {
+    expect(nativeFrameQualityForScoring({
+      faceConfidence: 0.4,
+      meanLuma: 0.5,
+      darkFraction: 0.1,
+      brightFraction: 0.2,
+    })).toEqual({ faceConfidence: 0.4, meanLuma: 0.5, darkFraction: 0.1, brightFraction: 0.2 })
+    expect(nativeFrameQualityForScoring({
+      faceConfidence: 0.4,
+      meanLuma: 1.2,
+      darkFraction: 0.1,
+      brightFraction: 0.2,
+    })).toBeNull()
+    expect(nativeFrameQualityForScoring({ faceConfidence: 0.4 })).toBeNull()
   })
 })

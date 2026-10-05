@@ -45,3 +45,16 @@ export function nativeLandmarksForScoring(payload) {
     ? payload.landmarks
     : null
 }
+
+export function nativeFrameQualityForScoring(payload) {
+  const quality = {
+    faceConfidence: payload?.faceConfidence,
+    meanLuma: payload?.meanLuma,
+    darkFraction: payload?.darkFraction,
+    brightFraction: payload?.brightFraction,
+  }
+  return Object.values(quality).every(value =>
+    Number.isFinite(value) && value >= 0 && value <= 1)
+    ? quality
+    : null
+}
