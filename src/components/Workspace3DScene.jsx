@@ -16,27 +16,32 @@ const COLORS = {
   desk: 0x0c1022,
   edge: 0x1c2338,
   white: 0xe6e9ef,
-  // The attention colours (--ds-attn-high / --ds-attn-low): what looking at an
-  // object does to the score. Used only for the role marker under each object.
+  // The attention colours (--ds-attn-high / --ds-attn-low): what looking at a
+  // device does to the score, shown on the device itself.
   attnFocus: 0x2fe3a8,
   attnDistraction: 0xf5d547,
 }
 
-// Footprint radius of each model (before the object's own scale).
-const MARKER_RADIUS = { monitor: .62, laptop: .74, phone: .4, ipad: .6, keyboard: .62, mouse: .32, paper: .62, notebook: .62, book: .62 }
+const MEANING_COLOR = { focus: COLORS.attnFocus, distraction: COLORS.attnDistraction }
+// Below this bounding radius a mesh is detail (keyboard keys), not outline.
+const OUTLINE_MIN_RADIUS = .09
 
-// A flat ring on the desk under the object. It belongs to the object's group so
-// it moves, scales and selects with it, and it never casts a shadow.
-function attentionMarker(type) {
-  const radius = MARKER_RADIUS[type] || .5
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(radius - .07, radius, 48),
-    new THREE.MeshBasicMaterial({ color: COLORS.attnFocus, transparent: true, opacity: .7, depthWrite: false, side: THREE.DoubleSide, fog: false }),
-  )
-  ring.rotation.x = -Math.PI / 2
-  ring.position.y = .012
-  ring.userData.attentionMarker = true
-  return ring
+// A hairline along the hard edges of the device's own body, plus a faint
+// tint of its surface: the device reads as "marked" without anything new
+// lying on the desk. Lines never take the pointer, so dragging is unchanged.
+function addAttentionOutline(group) {
+  const lineMaterial = new THREE.LineBasicMaterial({ color: COLORS.attnFocus, transparent: true, opacity: .8, depthWrite: false, fog: false })
+  const bodies = []
+  group.traverse(child => { if (child.isMesh && child.userData.isWorkspaceMesh) bodies.push(child) })
+  for (const body of bodies) {
+    body.geometry.computeBoundingSphere()
+    if (body.material.userData.baseEmissive || body.geometry.boundingSphere.radius < OUTLINE_MIN_RADIUS) continue
+    const outline = new THREE.LineSegments(new THREE.EdgesGeometry(body.geometry, 30), lineMaterial)
+    outline.raycast = () => {}
+    outline.userData.attentionOutline = true
+    body.add(outline)
+  }
+  group.userData.attentionOutline = lineMaterial
 }
 
 function material(color, roughness = .48, metalness = .22) {
@@ -337,18 +342,16 @@ export default function Workspace3DScene({ objects, selectedId, view, onSelect, 
       let group = runtime.objectGroups.get(object.id)
       if (!group) {
         group = deviceModel(object.type)
-        const marker = attentionMarker(object.type)
-        group.add(marker)
-        group.userData.attentionMarker = marker
+        addAttentionOutline(group)
         group.userData.objectId = object.id
         group.traverse(child => { child.userData.objectId = object.id })
         runtime.objectGroups.set(object.id, group)
         runtime.scene.add(group)
       }
-      const meaning = attentionMeaning(object)
-      const marker = group.userData.attentionMarker
-      marker.visible = meaning !== 'neutral'
-      marker.material.color.setHex(meaning === 'distraction' ? COLORS.attnDistraction : COLORS.attnFocus)
+      const meaningColor = MEANING_COLOR[attentionMeaning(object)]
+      const outline = group.userData.attentionOutline
+      outline.color.setHex(meaningColor ?? COLORS.attnFocus)
+      group.traverse(child => { if (child.userData.attentionOutline) child.visible = meaningColor != null })
       const mountPose = mountedCameraPose(object, objects)
       const position = mountPose || scenePosition(object)
       group.position.set(position.x, position.y, position.z)
@@ -366,6 +369,9 @@ export default function Workspace3DScene({ objects, selectedId, view, onSelect, 
         if (object.id === selectedId) {
           child.material.emissive.setHex(COLORS.ultra)
           child.material.emissiveIntensity = .55
+        } else if (meaningColor != null && !child.material.userData.baseEmissive) {
+          child.material.emissive.setHex(meaningColor)
+          child.material.emissiveIntensity = .045
         } else {
           child.material.emissive.setHex(child.material.userData.baseEmissive || 0)
           child.material.emissiveIntensity = child.material.userData.baseEmissiveIntensity || 0

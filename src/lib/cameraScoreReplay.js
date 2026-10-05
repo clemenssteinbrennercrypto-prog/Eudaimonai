@@ -32,6 +32,8 @@ import {
   createPenaltyFrameState,
   penaltySignalConfirmed,
 } from './attentionPenaltyDebounce.js'
+import { OFF_TARGET_REST, stepOffTarget } from './offTargetAttention.js'
+import { isScreenRole } from './workspaceObjects.js'
 // Historical FaceMesh.js sampling cadence used by the recorded parity corpus.
 // Keep it explicit here: the live WebView camera controller no longer exists.
 export const PARITY_FRAME_INTERVAL_MS = 67
@@ -79,6 +81,7 @@ export function createCameraScoreReplay({
     phoneStart: null,
     distractionDownStart: null,
     downwardContextHistory: [],
+    offTarget: OFF_TARGET_REST,
     lookingUpStart: null,
     faceAbsentSince: null,
     lowConfidenceSince: null,
@@ -332,6 +335,23 @@ export function createCameraScoreReplay({
         state.sustainedGoodMs = 0
       }
 
+      const offTarget = stepOffTarget({
+        previous: state.offTarget,
+        hasFace,
+        faceAbsentMs,
+        trackingUncertain,
+        yaw: adjustedYawSigned,
+        pitch: pitchDeg - pitchUpDeg,
+        yawLT,
+        yawRT,
+        pitchDT,
+        pitchUpDT,
+        onWorkObject: productiveDownward || productiveHorizontal ||
+          isScreenRole(gazeContext.calibratedTarget?.role),
+        deltaMs: frameDelta,
+      })
+      state.offTarget = offTarget.state
+
       const baseScore = calculateBaseAttentionScore({
         hasFace,
         faceAbsentMs,
@@ -371,6 +391,7 @@ export function createCameraScoreReplay({
         activityBonus: 0,
         activityDistractionMs: 0,
         activityReasonHoldMs: 0,
+        offTargetFactor: offTarget.state.factor,
       })
       const holdForPenaltyDebounce = !hasFace && !faceAbsentConfirmed
       const msSinceDistraction = state.lastDistractionAt ? now - state.lastDistractionAt : Infinity

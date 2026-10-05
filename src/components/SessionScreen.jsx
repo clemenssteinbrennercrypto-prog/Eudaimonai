@@ -67,6 +67,8 @@ import {
   finalizeAttentionScore,
   shouldBuildSustainedRamp,
 } from '../lib/attentionScore'
+import { OFF_TARGET_REST, stepOffTarget } from '../lib/offTargetAttention'
+import { isScreenRole } from '../lib/workspaceObjects'
 import {
   advancePenaltyFrameState,
   createPenaltyFrameState,
@@ -270,6 +272,7 @@ const ALERT_MESSAGES = {
   phone:      { text: 'Put the phone down.',     sub: 'Eyes back on the screen',         icon: 'phone' },
   distraction_app: { text: 'Switch back to your work.', sub: 'A distraction app is open', icon: 'away' },
   away:       { text: 'Come back to your work.', sub: 'Your session is still running',   icon: 'away' },
+  looking_away: { text: 'Look back at your work.', sub: 'Your session is still running',  icon: 'away' },
   yawn:       { text: 'Take a 2-minute break.',  sub: 'Stand up, stretch, come back strong', icon: 'yawn' },
   lookingup:  { text: 'Eyes on the task.',       sub: 'Bring your focus back here',      icon: 'lookingup' },
   prolonged:  { text: 'Take a 2-minute break.',  sub: 'Rest your eyes, then continue',   icon: 'yawn' },
@@ -452,6 +455,7 @@ export default function SessionScreen({
   const scoreLowSinceRef       = useRef(null)
   const sustainedGoodMsRef     = useRef(0)   // ms of consecutive good focus (for ramp-up bonus)
   const lastFrameTsRef         = useRef(0)
+  const offTargetRef           = useRef(OFF_TARGET_REST) // low-passed distance outside every work zone
   const lastDistractionRef     = useRef(0)   // timestamp of last distraction event (alert or prolonged low score)
   const recoveryElapsedBeforeFaultRef = useRef(null) // measured recovery time preserved across camera outages
   const lastAlertTimeRef       = useRef(0)
@@ -667,6 +671,7 @@ export default function SessionScreen({
     currentStreakRef.current = 0
     sustainedGoodMsRef.current = 0
     lastFrameTsRef.current = 0
+    offTargetRef.current = OFF_TARGET_REST
     scoreLowSinceRef.current = null
     flowGateRef.current = { qualifiedMs: 0, interruptionMs: 0, inFlow: false }
     flowCandidateSecondsRef.current = 0
@@ -1724,6 +1729,24 @@ export default function SessionScreen({
       }
     }
 
+    // ── Distance outside every work zone (offTargetAttention.js) ───────────
+    const offTarget = stepOffTarget({
+      previous: offTargetRef.current,
+      hasFace,
+      faceAbsentMs,
+      trackingUncertain,
+      yaw: adjustedYawSigned,
+      pitch: pitchDeg - pitchUpDeg,
+      yawLT,
+      yawRT,
+      pitchDT,
+      pitchUpDT,
+      onWorkObject: productiveDownward || productiveHorizontal ||
+        isScreenRole(gazeContext.calibratedTarget?.role),
+      deltaMs: frameDelta,
+    })
+    offTargetRef.current = offTarget.state
+
     const baseScore = calculateBaseAttentionScore({
       hasFace,
       faceAbsentMs,
@@ -1763,6 +1786,9 @@ export default function SessionScreen({
       activityBonus,
       activityDistractionMs,
       activityReasonHoldMs: ACTIVITY_REASON_HOLD_MS,
+      offTargetFactor: offTarget.state.factor,
+      offTargetExcessDeg: offTarget.excessDeg,
+      gazeTarget: downwardContext.object?.id || gazeContext.calibratedTarget?.object?.id || null,
     })
     const primaryReason = baseScore.primaryReason
     const holdForPenaltyDebounce = !hasFace && !faceAbsentConfirmed

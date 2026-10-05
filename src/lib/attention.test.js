@@ -81,6 +81,13 @@ describe('yaw / iris sign conventions', () => {
     expect(classifyHorizontalAttention(screenAt(0.8), -40).kind).toBe('productive_right')
   })
 
+  it('ends the side screen\'s zone where its widened tolerance ends', () => {
+    const { yawRight } = computeThresholds(screenAt(0.8))
+    expect(classifyHorizontalAttention(screenAt(0.8), -yawRight).kind).toBe('productive_right')
+    expect(classifyHorizontalAttention(screenAt(0.8), -(yawRight + 1)).kind).toBe('unknown_horizontal')
+    expect(classifyHorizontalAttention(screenAt(0.8), -90).kind).toBe('unknown_horizontal')
+  })
+
   it('does not call a turn productive when the screen is on the other side', () => {
     expect(classifyHorizontalAttention(screenAt(0.8), 40).kind).toBe('unknown_horizontal')
     expect(classifyHorizontalAttention(screenAt(0.2), -40).kind).toBe('unknown_horizontal')

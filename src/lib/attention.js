@@ -226,8 +226,12 @@ export function classifyHorizontalAttention(devices = [], yawSigned = 0) {
   // inverted, which made "looking left" read as "productively facing the right
   // monitor" — suppressing the head-turn penalty AND handing out a +5 bonus.
   // 15° rather than 20°: users don't turn far for a side monitor.
-  if (yawSigned > 15  && hasLeftScreen)  return { kind: 'productive_left' }
-  if (yawSigned < -15 && hasRightScreen) return { kind: 'productive_right' }
+  // The side screen's zone ends where computeThresholds' widened tolerance for
+  // it ends. Without that bound a 90° turn past the monitor (out of the window,
+  // to a person) counted as "facing the side screen" for as long as it lasted.
+  const { yawLeft, yawRight } = computeThresholds(devices)
+  if (yawSigned > 15  && yawSigned <= yawLeft && hasLeftScreen)  return { kind: 'productive_left' }
+  if (yawSigned < -15 && -yawSigned <= yawRight && hasRightScreen) return { kind: 'productive_right' }
   if (Math.abs(yawSigned) > 30) return { kind: 'unknown_horizontal' }
   return { kind: 'center' }
 }
