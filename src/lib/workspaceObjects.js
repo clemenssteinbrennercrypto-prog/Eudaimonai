@@ -63,6 +63,20 @@ export function normalizeWorkspaceObjects(objects = []) {
     .filter(Boolean)
 }
 
+// The legacy `row` coordinate means two different things, depending on how the
+// object is placed. Screens and the webcam are placed by HEIGHT (row 0 = top of
+// the field of view, 1 = bottom). Everything else lies on the desk and is placed
+// by DEPTH: row 0 = the desk edge in front of the user, 1 = the back of the desk.
+// Scoring (classifyDownwardAttention, computeThresholds) relies on the depth
+// convention for desk objects. The 3D editor's scene.z runs the other way
+// (z = 1 is nearest the user), so it must convert through rowFromScene /
+// sceneFromLegacy and never copy z into row.
+const HEIGHT_PLACED_TYPES = new Set(['monitor', 'laptop', 'camera'])
+
+export function isHeightPlacedType(type) {
+  return HEIGHT_PLACED_TYPES.has(type)
+}
+
 export function isScreenRole(role) {
   return role === 'primary_screen' || role === 'secondary_screen'
 }
@@ -71,4 +85,14 @@ export function isProductiveDownwardRole(role) {
   return role === 'reference_material' ||
     role === 'writing_surface' ||
     role === 'input_area'
+}
+
+/** What looking at this object does to the score, in the same terms the scorer
+ *  uses (resolveGazeContext): a phone is a distraction whatever its role. Every
+ *  workspace graphic reads this, so the picture cannot disagree with scoring. */
+export function attentionMeaning(object) {
+  const role = object?.role || defaultRoleForType(object?.type)
+  if (object?.type === 'phone' || role === 'distraction_device') return 'distraction'
+  if (isScreenRole(role) || isProductiveDownwardRole(role)) return 'focus'
+  return 'neutral'
 }

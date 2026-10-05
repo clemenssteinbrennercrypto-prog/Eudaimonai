@@ -3,11 +3,10 @@ import {
   PHONE_PITCH_THRESH,
   RECOVERY_WINDOW_MS,
   analyzeFrame,
-  classifyCalibratedWorkspace,
-  classifyDownwardAttention,
-  classifyHorizontalAttention,
   computeThresholds,
   headVariance,
+  resolveGazeContext,
+  smoothDownwardContext,
 } from './attention.js'
 import {
   BLINK_WIN_MS,
@@ -79,6 +78,7 @@ export function createCameraScoreReplay({
     yawnStart: null,
     phoneStart: null,
     distractionDownStart: null,
+    downwardContextHistory: [],
     lookingUpStart: null,
     faceAbsentSince: null,
     lowConfidenceSince: null,
@@ -171,13 +171,6 @@ export function createCameraScoreReplay({
       }
       const yawnMs = state.yawnStart ? now - state.yawnStart : 0
 
-      if (hasFace && pitchDeg >= PHONE_PITCH_THRESH) {
-        if (!state.phoneStart) state.phoneStart = now
-      } else {
-        state.phoneStart = null
-      }
-      const phoneMs = state.phoneStart ? now - state.phoneStart : 0
-
       if (hasFace && pitchUpDeg >= pitchUpDT) {
         if (!state.lookingUpStart) state.lookingUpStart = now
       } else {
@@ -236,52 +229,49 @@ export function createCameraScoreReplay({
         now - state.lowConfidenceSince >= UNCERTAIN_HOLD_MS
 
       const eyesRolledUp = hasFace && irisV > 0.25
-      const calibratedTarget = hasFace && !calibrating
-        ? classifyCalibratedWorkspace(
-            workspace,
-            { yawSigned, pitchDeg: pitchDeg - pitchUpDeg, irisH },
-            state.workspaceNeutral,
-          )
-        : null
-      const calibratedRole = calibratedTarget?.role
-      const calibratedDownward = calibratedRole === 'reference_material' ||
-        calibratedRole === 'writing_surface' || calibratedRole === 'input_area'
-      const calibratedDistraction = calibratedRole === 'distraction_device' ||
-        calibratedTarget?.object?.type === 'phone'
-      const downwardContext = calibratedDistraction
-        ? { kind: 'distraction', object: calibratedTarget.object, role: calibratedRole }
-        : calibratedDownward
-          ? { kind: 'productive', object: calibratedTarget.object, role: calibratedRole }
-          : hasFace
-            ? classifyDownwardAttention(devices, pitchDeg, adjustedYawSigned)
-            : { kind: 'none' }
-      const calibratedScreen = calibratedRole === 'primary_screen' || calibratedRole === 'secondary_screen'
-      const calibratedCol = calibratedTarget?.object?.col ?? 0.5
-      const horizontalContext = calibratedScreen && calibratedRole === 'secondary_screen'
-        ? { kind: calibratedCol < 0.5 ? 'productive_left' : 'productive_right' }
-        : calibratedScreen
-          ? { kind: 'center' }
-          : hasFace
-            ? classifyHorizontalAttention(devices, adjustedYawSigned)
-            : { kind: 'center' }
+      const gazeContext = resolveGazeContext({
+        workspace,
+        devices,
+        hasFace,
+        calibrating,
+        yawSigned,
+        adjustedYawSigned,
+        pitchDeg,
+        pitchUpDeg,
+        irisH,
+        neutral: state.workspaceNeutral,
+      })
+      const smoothedDownward = smoothDownwardContext(
+        state.downwardContextHistory, gazeContext.downwardContext, now, hasFace,
+      )
+      state.downwardContextHistory = smoothedDownward.history
+      const downwardContext = smoothedDownward.context
+      const { horizontalContext } = gazeContext
       const productiveDownward = downwardContext.kind === 'productive'
       const unknownPhoneDownward = downwardContext.kind === 'unknown_phone'
       const productiveHorizontal = horizontalContext.kind === 'productive_left' ||
         horizontalContext.kind === 'productive_right'
 
+      if (hasFace && pitchDeg >= PHONE_PITCH_THRESH && !productiveDownward) {
+        if (!state.phoneStart) state.phoneStart = now
+      } else {
+        state.phoneStart = null
+      }
+      const phoneMs = state.phoneStart ? now - state.phoneStart : 0
+
       state.penaltyFrames = advancePenaltyFrameState(state.penaltyFrames, {
         faceAbsent: !hasFace,
         unknownPhoneDownward,
         softHeadDown: hasFace && pitchDeg >= pitchDT * 0.75,
-        softHeadLeft: hasFace && !productiveHorizontal && adjustedYawSigned >= yawLT * 0.6,
-        softHeadRight: hasFace && !productiveHorizontal && -adjustedYawSigned >= yawRT * 0.6,
+        softHeadLeft: hasFace && !productiveHorizontal && !productiveDownward && adjustedYawSigned >= yawLT * 0.6,
+        softHeadRight: hasFace && !productiveHorizontal && !productiveDownward && -adjustedYawSigned >= yawRT * 0.6,
         eyesRolledUp,
       })
       const faceAbsentConfirmed = penaltySignalConfirmed(state.penaltyFrames, 'faceAbsent')
 
       const adjustedIrisH = hasFace ? irisH - state.irisHNeutral : 0
       let eyesOffScreen = false
-      if (hasFace) {
+      if (hasFace && !productiveDownward) {
         eyesOffScreen = productiveHorizontal
           ? adjustedIrisH * adjustedYawSigned > 0 && Math.abs(adjustedIrisH) >= IRIS_OFF_H
           : Math.abs(adjustedIrisH) >= IRIS_OFF_H

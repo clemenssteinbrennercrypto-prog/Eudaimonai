@@ -91,4 +91,14 @@ describe('WorkspaceManager editor', () => {
     expect(other).toHaveAttribute('aria-pressed', 'true')
     expect(placed).toHaveAttribute('aria-pressed', 'false')
   })
+
+  it('tells what the selected object does to the score and whether it was measured', async () => {
+    render(<WorkspaceManager state={state} onChange={() => ({ ok: true })} onContinue={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+
+    expect(await screen.findByText(
+      'Counts as focus: looking at it keeps your score up. Estimated from where you placed it until you calibrate.',
+    )).toBeTruthy()
+    expect(screen.getByText('Counts as distraction')).toBeTruthy()
+  })
 })

@@ -135,7 +135,10 @@ export function calculateBaseAttentionScore(input) {
     } else if (input.pitchDeg >= input.pitchDT * 0.75 && input.softHeadDownConfirmed) {
       add(input.productiveDownward ? 'head_down_productive_soft' : 'head_down_soft', input.productiveDownward ? -1 : -8)
     }
-    if (!input.productiveHorizontal) {
+    // A head turn is a distraction signal only when no work object explains it.
+    // Facing a side screen or a pad/mouse beside the keyboard is turning TO the
+    // work, so the side the object sits on must not cost points.
+    if (!input.productiveHorizontal && !input.productiveDownward) {
       if (input.adjustedYawSigned >= input.yawLT && input.headTurnLeftSecs >= HEAD_TURN_HOLD) add('head_left_sustained', -25)
       else if (input.adjustedYawSigned >= input.yawLT * 0.6 && input.softHeadLeftConfirmed) add('head_left_soft', -8)
       if (-input.adjustedYawSigned >= input.yawRT && input.headTurnRightSecs >= HEAD_TURN_HOLD) add('head_right_sustained', -25)

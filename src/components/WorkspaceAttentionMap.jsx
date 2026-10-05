@@ -1,10 +1,9 @@
 import { useId } from 'react'
-import { defaultRoleForType, isScreenRole, normalizeWorkspaceObjects } from '../lib/workspaceObjects'
+import { attentionMeaning, defaultRoleForType, isHeightPlacedType, isScreenRole, normalizeWorkspaceObjects } from '../lib/workspaceObjects'
 
 const navy = '#2C46FF'
-const green = '#2f855a'
-const amber = '#c47f1a'
-const red = '#c2413b'
+// The attention colours: what looking at an object does to the score.
+const MEANING_COLOR = { focus: 'var(--ds-attn-high)', distraction: 'var(--ds-attn-low)' }
 const desk = { x: 50, y: 34, width: 300, height: 160 }
 const user = { x: 200, y: 235 }
 
@@ -15,9 +14,13 @@ function devicePoint(device, devices = []) {
     const anchor = devicePoint(target, devices)
     return { x: anchor.x + (mount.offsetX || 0) * 18, y: anchor.y - (mount.style === 'top' ? 20 : 12) }
   }
+  // The user sits below the map. Screens are drawn by height (row 0 = top);
+  // desk objects store depth (row 0 = nearest the user), so they are mirrored
+  // to land near the user.
+  const row = device.row ?? 0.5
   return {
     x: desk.x + 32 + (device.col ?? 0.5) * (desk.width - 64),
-    y: desk.y + 26 + (device.row ?? 0.5) * (desk.height - 52),
+    y: desk.y + 26 + (isHeightPlacedType(device.type) ? row : 1 - row) * (desk.height - 52),
   }
 }
 
@@ -112,14 +115,13 @@ export default function WorkspaceAttentionMap({ devices, className, style, showL
   >
     <defs><clipPath id={clipId}><rect x={desk.x} y={desk.y} width={desk.width} height={desk.height} rx="20" /></clipPath></defs>
     <rect x={desk.x} y={desk.y} width={desk.width} height={desk.height} rx="20" fill="#0d1330" stroke="#3a4d91" strokeWidth="2" />
+    {/* Only what the scorer actually uses: the direction of the screens, and
+        a halo per object in the colour of its effect (attentionMeaning). Fixed
+        "ambiguous" fans and a red strip along the front edge used to cover the
+        very place where pads and the mouse sit, contradicting the score. */}
     <g clipPath={`url(#${clipId})`}>
-      <path d={fanPath(-160, -116, 225)} fill={amber} opacity=".2" data-attention-zone="ambiguous-left" />
-      <path d={fanPath(-64, -20, 225)} fill={amber} opacity=".2" data-attention-zone="ambiguous-right" />
-      <path d={productiveFanPath(screens)} fill={green} opacity=".3" data-attention-zone="productive" />
-      <path d="M50 142H350V194H50Z" fill={red} opacity=".16" data-attention-zone="distraction" />
+      <path d={productiveFanPath(screens)} fill={MEANING_COLOR.focus} opacity=".14" data-attention-zone="productive" />
     </g>
-    <path d="M80 194Q200 214 320 194" fill="none" stroke={red} strokeWidth="2" strokeDasharray="5 7" opacity=".65" />
-    <path d="M116 67Q200 35 284 67" fill="none" stroke={green} strokeWidth="2" strokeDasharray="5 7" opacity=".75" />
     {workspaceDevices.map((device, index) => {
       const base = devicePoint(device, workspaceDevices)
       const overlaps = device.cameraMount ? 0 : workspaceDevices.slice(0, index).filter(previous =>
@@ -128,7 +130,19 @@ export default function WorkspaceAttentionMap({ devices, className, style, showL
       ).length
       const x = base.x + overlaps * 18
       const y = base.y + overlaps * 5.4
+      const meaning = attentionMeaning(device)
       return <g key={device.id || `${device.type}-${index}`}>
+        {meaning !== 'neutral' && <circle
+          cx={x}
+          cy={y}
+          r="24"
+          fill={MEANING_COLOR[meaning]}
+          fillOpacity=".18"
+          stroke={MEANING_COLOR[meaning]}
+          strokeOpacity=".75"
+          strokeWidth="1.5"
+          data-attention-zone={meaning}
+        />}
         <DeviceIcon type={device.type} x={x} y={y} />
         {showLabels && <text x={x} y={y + 30} textAnchor="middle" fontSize="10" fontWeight="700" fill="#9eaad9">{deviceLabel(device.type)}</text>}
       </g>

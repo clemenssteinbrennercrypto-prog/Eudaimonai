@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { attentionMeaning } from '../lib/workspaceObjects'
 
 const COLORS = {
   // Night blue and silver, like the rest of the app. Ultramarine is kept
@@ -15,6 +16,27 @@ const COLORS = {
   desk: 0x0c1022,
   edge: 0x1c2338,
   white: 0xe6e9ef,
+  // The attention colours (--ds-attn-high / --ds-attn-low): what looking at an
+  // object does to the score. Used only for the role marker under each object.
+  attnFocus: 0x2fe3a8,
+  attnDistraction: 0xf5d547,
+}
+
+// Footprint radius of each model (before the object's own scale).
+const MARKER_RADIUS = { monitor: .62, laptop: .74, phone: .4, ipad: .6, keyboard: .62, mouse: .32, paper: .62, notebook: .62, book: .62 }
+
+// A flat ring on the desk under the object. It belongs to the object's group so
+// it moves, scales and selects with it, and it never casts a shadow.
+function attentionMarker(type) {
+  const radius = MARKER_RADIUS[type] || .5
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(radius - .07, radius, 48),
+    new THREE.MeshBasicMaterial({ color: COLORS.attnFocus, transparent: true, opacity: .7, depthWrite: false, side: THREE.DoubleSide, fog: false }),
+  )
+  ring.rotation.x = -Math.PI / 2
+  ring.position.y = .012
+  ring.userData.attentionMarker = true
+  return ring
 }
 
 function material(color, roughness = .48, metalness = .22) {
@@ -315,11 +337,18 @@ export default function Workspace3DScene({ objects, selectedId, view, onSelect, 
       let group = runtime.objectGroups.get(object.id)
       if (!group) {
         group = deviceModel(object.type)
+        const marker = attentionMarker(object.type)
+        group.add(marker)
+        group.userData.attentionMarker = marker
         group.userData.objectId = object.id
         group.traverse(child => { child.userData.objectId = object.id })
         runtime.objectGroups.set(object.id, group)
         runtime.scene.add(group)
       }
+      const meaning = attentionMeaning(object)
+      const marker = group.userData.attentionMarker
+      marker.visible = meaning !== 'neutral'
+      marker.material.color.setHex(meaning === 'distraction' ? COLORS.attnDistraction : COLORS.attnFocus)
       const mountPose = mountedCameraPose(object, objects)
       const position = mountPose || scenePosition(object)
       group.position.set(position.x, position.y, position.z)

@@ -3,7 +3,7 @@ import React from 'react'
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import WorkspaceCalibration from './WorkspaceCalibration'
+import WorkspaceCalibration, { CAPTURE_SETTLE_MS } from './WorkspaceCalibration'
 
 const native = vi.hoisted(() => ({ landmarks: null, status: null }))
 
@@ -20,6 +20,7 @@ vi.mock('../lib/nativeCompanion', () => ({
 }))
 
 afterEach(() => {
+  vi.restoreAllMocks()
   cleanup()
   native.landmarks = null
   native.status = null
@@ -45,6 +46,8 @@ describe('WorkspaceCalibration native camera boundary', () => {
     )
 
     await waitFor(() => expect(native.landmarks).toEqual(expect.any(Function)))
+    const settledAt = Date.now() + CAPTURE_SETTLE_MS
+    vi.spyOn(Date, 'now').mockReturnValue(settledAt)
     await act(async () => {
       for (let index = 0; index < 30; index += 1) {
         native.landmarks({ facePresent: true, landmarks: [{ x: 0, y: 0, z: 0 }] })
@@ -57,5 +60,29 @@ describe('WorkspaceCalibration native camera boundary', () => {
     expect(mediaDevices.getUserMedia).not.toHaveBeenCalled()
     expect(globalThis.window.FaceMesh).toBeUndefined()
     unmount()
+  })
+  it('ignores the frames recorded while the gaze is still travelling to the target', async () => {
+    const startedAt = Date.now()
+    vi.spyOn(Date, 'now').mockReturnValue(startedAt)
+    render(
+      <WorkspaceCalibration
+        workspace={{
+          id: 'desk',
+          objects: [{ id: 'screen', type: 'monitor', role: 'primary_screen', col: 0.5, row: 0.5 }],
+          calibration: { targets: {} },
+        }}
+        onDone={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => expect(native.landmarks).toEqual(expect.any(Function)))
+    await act(async () => {
+      for (let index = 0; index < 30; index += 1) {
+        native.landmarks({ facePresent: true, landmarks: [{ x: 0, y: 0, z: 0 }] })
+      }
+    })
+    expect(screen.queryByText('Target captured')).not.toBeInTheDocument()
+    expect(document.querySelector('.workspace-calibration-progress i').style.width).toBe('0%')
   })
 })
