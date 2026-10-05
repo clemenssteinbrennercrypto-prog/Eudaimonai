@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { attentionMeaning } from './workspaceObjects'
 import {
   ALERT_SCORE,
   CALIBRATION_SECS,
@@ -12,6 +13,10 @@ import {
   isFocusedSecond,
   classifyFocusPhase,
   classifyCalibratedWorkspace,
+  classifyDownwardAttention,
+  PRODUCTIVE_CONTEXT_WINDOW_MS,
+  smoothDownwardContext,
+  resolveGazeContext,
   classifyHorizontalAttention,
   computeThresholds,
   getCircadianFactor,
@@ -381,5 +386,128 @@ describe('focus phase score boundaries', () => {
   it('does not promote a score below the good-streak band to ramp', () => {
     expect(classifyFocusPhase({ ...stable, score: GOOD_STREAK_SCORE - 1 })).toBe('fade')
     expect(classifyFocusPhase({ ...stable, score: GOOD_STREAK_SCORE })).toBe('ramp')
+  })
+})
+
+// The setup this was found on: one screen, a pad on each side of the keyboard,
+// the mouse on the right. Desk rows use the depth convention (0 = nearest).
+describe('side pads and the mouse', () => {
+  const objects = [
+    { id: 'screen', type: 'monitor', role: 'primary_screen', col: 0.5, row: 0.28 },
+    { id: 'padLeft', type: 'notebook', role: 'writing_surface', col: 0.2, row: 0.2 },
+    { id: 'padRight', type: 'notebook', role: 'writing_surface', col: 0.8, row: 0.2 },
+    { id: 'mouse', type: 'mouse', role: 'input_area', col: 0.72, row: 0.25 },
+  ]
+  const target = (deltaYaw, deltaPitch, deltaIrisH) => ({ deltaYaw, deltaPitch, deltaIrisH, quality: 1, sampleCount: 30 })
+  const calibrated = {
+    objects,
+    calibration: { targets: {
+      screen: target(0, 0, 0),
+      padLeft: target(18, 22, -0.06),
+      padRight: target(-18, 22, 0.06),
+      mouse: target(-14, 26, 0.05),
+    } },
+  }
+  const context = (workspace, pose) => resolveGazeContext({
+    workspace,
+    devices: workspace?.objects || objects,
+    hasFace: true,
+    calibrating: false,
+    pitchUpDeg: 0,
+    adjustedYawSigned: pose.yawSigned,
+    neutral: {},
+    ...pose,
+  })
+
+  it('keeps the writing posture inside the pad\'s calibrated target, below the glance anchor only', () => {
+    // 20° deeper than the calibration glance: the old symmetric 15° reach lost it.
+    const writing = context(calibrated, { yawSigned: -18, pitchDeg: 42, irisH: 0.06 })
+    expect(writing.downwardContext.kind).toBe('productive')
+    const padOnly = { objects: [objects[0], objects[2]], calibration: { targets: {
+      screen: calibrated.calibration.targets.screen,
+      padRight: calibrated.calibration.targets.padRight,
+    } } }
+    expect(classifyCalibratedWorkspace(padOnly, { yawSigned: -18, pitchDeg: 42, irisH: 0.06 })?.object.id).toBe('padRight')
+    // The same offset UPWARD is not a writing posture and stays outside.
+    expect(classifyCalibratedWorkspace(calibrated, { yawSigned: -18, pitchDeg: 2, irisH: 0.06 })?.object.id)
+      .not.toBe('padRight')
+  })
+
+  it('does not stretch a screen\'s target downward', () => {
+    const screenOnly = { objects: [objects[0]], calibration: { targets: { screen: target(0, 0, 0) } } }
+    expect(classifyCalibratedWorkspace(screenOnly, { yawSigned: 0, pitchDeg: 20, irisH: 0 })).toBeNull()
+  })
+
+  it('never lets the layout guess overrule a calibrated object', () => {
+    // Head straight down into the lap: no calibrated target explains it, and the
+    // calibrated pads/mouse must not be re-admitted by the column heuristic.
+    const lap = context(calibrated, { yawSigned: 0, pitchDeg: 45, irisH: 0 })
+    expect(lap.downwardContext.kind).toBe('unknown_phone')
+  })
+
+  it('needs a side look before an uncalibrated side object explains the pose', () => {
+    expect(classifyDownwardAttention(objects, 45, 0).kind).toBe('unknown_phone')
+    expect(classifyDownwardAttention(objects, 30, -15)).toMatchObject({ kind: 'productive' })
+    expect(classifyDownwardAttention(objects, 30, 15)).toMatchObject({ kind: 'productive', object: { id: 'padLeft' } })
+    // A centred object still covers a straight-down look.
+    const withKeyboard = [...objects, { id: 'keyboard', type: 'keyboard', role: 'input_area', col: 0.48, row: 0.25 }]
+    expect(classifyDownwardAttention(withKeyboard, 30, 0)).toMatchObject({ kind: 'productive', object: { id: 'keyboard' } })
+  })
+
+  it('still flags a phone on the side the head is turned to', () => {
+    const withPhone = [...objects, { id: 'phone', type: 'phone', role: 'distraction_device', col: 0.85, row: 0.2 }]
+    expect(classifyDownwardAttention(withPhone, 42, -25).kind).toBe('distraction')
+  })
+})
+
+describe('smoothDownwardContext', () => {
+  const productive = { kind: 'productive', object: { id: 'pad' } }
+  const unknown = { kind: 'unknown' }
+  const run = (kinds, step = 67) => {
+    let history = []
+    let context = null
+    kinds.forEach((kind, index) => {
+      const result = smoothDownwardContext(history, kind, index * step, true)
+      history = result.history
+      context = result.context
+    })
+    return context
+  }
+
+  it('removes isolated frames in both directions', () => {
+    expect(run([productive, productive, productive, productive, unknown])).toBe(productive)
+    expect(run([unknown, unknown, unknown, unknown, productive]).kind).toBe('unknown')
+  })
+
+  it('does not turn an occasional graze into a productive look', () => {
+    const grazing = Array.from({ length: 30 }, (_, index) => index % 4 === 0 ? productive : unknown)
+    expect(run(grazing).kind).toBe('unknown')
+  })
+
+  it('follows a sustained change within the window', () => {
+    const frames = Math.ceil(PRODUCTIVE_CONTEXT_WINDOW_MS / 67)
+    const away = [...Array(frames).fill(productive), ...Array(frames).fill(unknown)]
+    expect(run(away).kind).toBe('unknown')
+  })
+
+  it('never hides a distraction or a lost face', () => {
+    const history = smoothDownwardContext([], productive, 0, true).history
+    expect(smoothDownwardContext(history, { kind: 'distraction' }, 10, true).context.kind).toBe('distraction')
+    expect(smoothDownwardContext(history, { kind: 'none' }, 10, false)).toEqual({ context: { kind: 'none' }, history: [] })
+  })
+})
+
+describe('attentionMeaning matches the scorer', () => {
+  it('names a phone a distraction whatever role it was given', () => {
+    expect(attentionMeaning({ type: 'phone', role: 'reference_material' })).toBe('distraction')
+    expect(attentionMeaning({ type: 'ipad', role: 'distraction_device' })).toBe('distraction')
+  })
+
+  it('names screens and productive desk objects focus, and everything else neutral', () => {
+    expect(attentionMeaning({ type: 'monitor', role: 'secondary_screen' })).toBe('focus')
+    expect(attentionMeaning({ type: 'notebook' })).toBe('focus')
+    expect(attentionMeaning({ type: 'mouse' })).toBe('focus')
+    expect(attentionMeaning({ type: 'camera' })).toBe('neutral')
+    expect(attentionMeaning({ type: 'book', role: 'neutral' })).toBe('neutral')
   })
 })

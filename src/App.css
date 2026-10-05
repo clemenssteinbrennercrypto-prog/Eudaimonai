@@ -5010,3 +5010,8 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   .workspace-chooser-tile { transition: none; }
   .workspace-chooser-tile:active { transform: none; }
 }
+
+/* Workspace editor: the ring legend and the selected object's effect on the score. */
+.workspace-quality .attention-legend { margin-top: 0; }
+.workspace-quality .attention-legend span { font-size: 11px; }
+.workspace-properties .workspace-role-effect { margin: 0; }

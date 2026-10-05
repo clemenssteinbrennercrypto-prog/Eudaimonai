@@ -12,6 +12,12 @@ import { WORKSPACE_OBJECT_LABELS } from '../lib/workspaceObjects'
 
 const MIN_SAMPLES = 30
 const CAPTURE_TIMEOUT_MS = 8_000
+// A target starts the moment "Next target" is clicked, while the eyes are still
+// on the button. Moving head and eyes to a new object takes a few hundred
+// milliseconds (saccade latency plus the head turn), so frames from that window
+// describe the journey, not the object. With 30 samples (~1-2 s) they could
+// be a third or more of the window and drag the anchor's median toward the screen.
+export const CAPTURE_SETTLE_MS = 700
 
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b)
@@ -96,6 +102,7 @@ export default function WorkspaceCalibration({ workspace, onDone, onCancel }) {
 
     const onLandmarks = payload => {
       if (stopped || statusRef.current === 'done' || payload?.facePresent !== true) return
+      if (Date.now() - startedAtRef.current < CAPTURE_SETTLE_MS) return
       const landmarks = Array.isArray(payload.landmarks) ? payload.landmarks : null
       if (!landmarks?.length) return
       const analyzed = analyzeFrame(landmarks)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CALIBRATION_SECS } from './attention'
+import { CALIBRATION_SECS, GOOD_STREAK_SCORE } from './attention'
 import {
   PARITY_FRAME_INTERVAL_MS,
   createCameraScoreReplay,
@@ -76,5 +76,51 @@ describe('camera parity score replay', () => {
     expect(secondNoFaceScore).toBe(score)
     expect(confirmedNoFaceScore).toBeLessThan(score)
     expect(confirmedNoFaceScore).not.toBeNull()
+  })
+})
+
+// Synthetic face for a given head pose, using analyzeFrame's own geometry:
+// pitch from the nose's height between forehead (y .2) and chin (y .8), yaw
+// from the nose's offset to the eye-corner midpoint (eye width .3).
+function poseLandmarks({ pitchDeg = 0, yawDeg = 0, irisShift = 0 } = {}) {
+  const lowerRatio = 0.5 - Math.sin(pitchDeg * Math.PI / 180) / 2
+  const noseY = 0.8 - lowerRatio * 0.6
+  const noseX = 0.5 + Math.sign(yawDeg) * Math.sin(Math.abs(yawDeg) * Math.PI / 180) * 0.15
+  const landmarks = makeLandmarks({ noseX, irisShift })
+  landmarks[1] = { x: noseX, y: noseY, z: 0 }
+  return landmarks
+}
+
+describe('writing on a pad beside the keyboard', () => {
+  // What the 3D editor stores: a pad and the mouse to the right, near the user.
+  // Before the fix this row (= scene.z) was read as "far back", the pad was
+  // invisible to the layout, and the head-down, head-turn and eyes-off
+  // penalties all applied while writing.
+  const devices = [
+    { id: 'screen', type: 'monitor', role: 'primary_screen', col: 0.5, row: 0.28 },
+    { id: 'camera', type: 'camera', role: 'neutral', col: 0.5, row: 0.08 },
+    { id: 'padRight', type: 'notebook', role: 'writing_surface', col: 0.8, row: 0.15 },
+    { id: 'mouse', type: 'mouse', role: 'input_area', col: 0.72, row: 0.2 },
+  ]
+  const calibrationFrames = Math.ceil(CALIBRATION_SECS * 1000 / PARITY_FRAME_INTERVAL_MS)
+  const writingFrames = Math.ceil(60_000 / PARITY_FRAME_INTERVAL_MS)
+
+  function replayWriting(pose, workspace = null) {
+    const records = [
+      ...Array.from({ length: calibrationFrames }, () => measuredFrame(poseLandmarks())),
+      ...Array.from({ length: writingFrames }, () => measuredFrame(poseLandmarks(pose))),
+    ]
+    return replayCameraScores(records, { devices, workspace }).slice(calibrationFrames)
+  }
+
+  it('stays focused for a minute of writing with the head down and turned toward the pad', () => {
+    const scores = replayWriting({ pitchDeg: 32, yawDeg: -22, irisShift: 0.8 })
+    expect(Math.min(...scores.slice(-300))).toBeGreaterThanOrEqual(65)
+  })
+
+  it('still treats the same posture as distraction when no work object is there', () => {
+    const scores = replayWriting({ pitchDeg: 32, yawDeg: 22, irisShift: -0.8 })
+    // Head-turn, head-down and eyes-off penalties all still apply: "distracted".
+    expect(Math.max(...scores.slice(-300))).toBeLessThan(GOOD_STREAK_SCORE)
   })
 })

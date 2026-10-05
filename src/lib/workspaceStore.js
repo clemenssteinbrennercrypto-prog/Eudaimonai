@@ -1,4 +1,4 @@
-import { defaultRoleForType, normalizeWorkspaceObjects } from './workspaceObjects'
+import { defaultRoleForType, isHeightPlacedType, normalizeWorkspaceObjects } from './workspaceObjects'
 import { normalizeWorkspaceSize } from './workspaceSizePresets'
 import { cameraPositionFromMount, normalizeCameraMount, resolveCameraMount } from './workspaceCameraMount'
 
@@ -18,14 +18,31 @@ function finite(value, fallback) {
   return Number.isFinite(Number(value)) ? Number(value) : fallback
 }
 
+const clamp01 = value => Math.max(0, Math.min(1, value))
+
+// Legacy row → 3D scene. Height-placed objects (screens, webcam) keep their
+// original mapping. Desk objects store DEPTH in row (0 = nearest the user),
+// while scene.z = 1 is nearest the user, so depth is mirrored here and a desk
+// object rests on the desk (y = 0) instead of floating at a height derived
+// from its depth. See isHeightPlacedType for the convention.
 export function sceneFromLegacy(object = {}) {
+  const row = finite(object.row, 0.5)
+  const heightPlaced = isHeightPlacedType(object.type)
   return {
     x: Math.max(-1, Math.min(1, finite(object.col, 0.5) * 2 - 1)),
-    y: Math.max(-1, Math.min(1, 1 - finite(object.row, 0.5) * 2)),
-    z: Math.max(0, Math.min(1, finite(object.row, 0.5))),
+    y: heightPlaced ? Math.max(-1, Math.min(1, 1 - row * 2)) : 0,
+    z: clamp01(heightPlaced ? row : 1 - row),
     scale: Math.max(0.4, Math.min(2.4, finite(object.scale, 1))),
     rotation: finite(object.rotation, 0),
   }
+}
+
+/** The inverse of sceneFromLegacy for the row coordinate: what the scoring
+ *  geometry reads after the user places an object in the 3D editor. */
+export function rowFromScene(object, scene) {
+  return isHeightPlacedType(object?.type)
+    ? (1 - finite(scene?.y, 0)) / 2
+    : 1 - clamp01(finite(scene?.z, 0.5))
 }
 
 export function normalizeWorkspaceItem(object, index = 0) {
@@ -43,6 +60,12 @@ export function normalizeWorkspaceItem(object, index = 0) {
     : sceneFromLegacy(legacy)
   const normalized = {
     ...legacy,
+    // The scene is what the user sees and arranges, so it is the source of
+    // truth for a desk object's depth. Earlier editor builds copied scene.z
+    // into row verbatim, which mirrored every desk object for scoring.
+    ...(object.scene && typeof object.scene === 'object' && !isHeightPlacedType(legacy.type)
+      ? { row: rowFromScene(legacy, scene) }
+      : {}),
     id: String(object.id || `${legacy.type}_${index}`),
     role: object.role || defaultRoleForType(legacy.type),
     scene: { ...scene, scale: size.sizePreset ? 1 : scene.scale },

@@ -40,12 +40,11 @@ import {
   PHONE_PITCH_THRESH,
   RECOVERY_WINDOW_MS,
   analyzeFrame,
-  classifyCalibratedWorkspace,
-  classifyDownwardAttention,
-  classifyHorizontalAttention,
   computeThresholds,
   getCircadianFactor,
   headVariance,
+  resolveGazeContext,
+  smoothDownwardContext,
 } from '../lib/attention'
 import { TIMER_THROTTLING_EVIDENCE_VERSION } from '../lib/focusMetric'
 import {
@@ -431,6 +430,7 @@ export default function SessionScreen({
   const yawnStartRef           = useRef(null)
   const phoneStartRef          = useRef(null)
   const distractionDownStartRef = useRef(null)
+  const downwardContextHistRef  = useRef([])   // last second of downward classifications (majority vote)
   const lookingUpStartRef      = useRef(null)
   const faceAbsentSinceRef     = useRef(null)
   const nosePtHistRef          = useRef([])
@@ -682,6 +682,7 @@ export default function SessionScreen({
     yawnStartRef.current = null
     phoneStartRef.current = null
     distractionDownStartRef.current = null
+    downwardContextHistRef.current = []
     lookingUpStartRef.current = null
     faceAbsentSinceRef.current = null
     eyesOffStartRef.current = null
@@ -1394,13 +1395,6 @@ export default function SessionScreen({
     }
     const yawnMs = yawnStartRef.current ? now - yawnStartRef.current : 0
 
-    if (hasFace && pitchDeg >= PHONE_PITCH_THRESH) {
-      if (!phoneStartRef.current) phoneStartRef.current = now
-    } else {
-      phoneStartRef.current = null
-    }
-    const phoneMs = phoneStartRef.current ? now - phoneStartRef.current : 0
-
     if (hasFace && pitchUpDeg >= pitchUpDT) {
       if (!lookingUpStartRef.current) lookingUpStartRef.current = now
     } else {
@@ -1474,45 +1468,47 @@ export default function SessionScreen({
       (now - lowConfSinceRef.current) >= UNCERTAIN_HOLD_MS
 
     const eyesRolledUp   = hasFace && irisV > 0.25
-    const calibratedTarget = hasFace && !calibrating
-      ? classifyCalibratedWorkspace(
-          workspace,
-          { yawSigned, pitchDeg: pitchDeg - pitchUpDeg, irisH },
-          workspaceNeutralRef.current,
-        )
-      : null
-    const calibratedRole = calibratedTarget?.role
-    const calibratedDownward = calibratedRole === 'reference_material' ||
-      calibratedRole === 'writing_surface' || calibratedRole === 'input_area'
-    const calibratedDistraction = calibratedRole === 'distraction_device' || calibratedTarget?.object?.type === 'phone'
-    const downwardContext = calibratedDistraction
-      ? { kind: 'distraction', object: calibratedTarget.object, role: calibratedRole }
-      : calibratedDownward
-        ? { kind: 'productive', object: calibratedTarget.object, role: calibratedRole }
-        : hasFace
-          ? classifyDownwardAttention(devices, pitchDeg, adjustedYawSigned)
-          : { kind: 'none' }
-    const calibratedScreen = calibratedRole === 'primary_screen' || calibratedRole === 'secondary_screen'
-    const calibratedCol = calibratedTarget?.object?.col ?? 0.5
-    const horizontalContext = calibratedScreen && calibratedRole === 'secondary_screen'
-      ? { kind: calibratedCol < 0.5 ? 'productive_left' : 'productive_right' }
-      : calibratedScreen
-        ? { kind: 'center' }
-        : hasFace
-          ? classifyHorizontalAttention(devices, adjustedYawSigned)
-          : { kind: 'center' }
+    const gazeContext = resolveGazeContext({
+      workspace,
+      devices,
+      hasFace,
+      calibrating,
+      yawSigned,
+      adjustedYawSigned,
+      pitchDeg,
+      pitchUpDeg,
+      irisH,
+      neutral: workspaceNeutralRef.current,
+    })
+    const smoothedDownward = smoothDownwardContext(
+      downwardContextHistRef.current, gazeContext.downwardContext, now, hasFace,
+    )
+    downwardContextHistRef.current = smoothedDownward.history
+    const downwardContext = smoothedDownward.context
+    const { horizontalContext } = gazeContext
     const productiveDownward = downwardContext.kind === 'productive'
     const unknownPhoneDownward = downwardContext.kind === 'unknown_phone'
     const productiveHorizontal = horizontalContext.kind === 'productive_left' ||
       horizontalContext.kind === 'productive_right'
     const unknownHorizontal = horizontalContext.kind === 'unknown_horizontal'
 
+    // The phone timer measures continuous steep head-down time that NO work
+    // object explains. It used to run on pitch alone and was only gated at the
+    // moment of scoring, so one frame without a productive match after 4 s of
+    // writing on a pad fired the full -45 at once.
+    if (hasFace && pitchDeg >= PHONE_PITCH_THRESH && !productiveDownward) {
+      if (!phoneStartRef.current) phoneStartRef.current = now
+    } else {
+      phoneStartRef.current = null
+    }
+    const phoneMs = phoneStartRef.current ? now - phoneStartRef.current : 0
+
     penaltyFramesRef.current = advancePenaltyFrameState(penaltyFramesRef.current, {
       faceAbsent: !hasFace,
       unknownPhoneDownward,
       softHeadDown: hasFace && pitchDeg >= pitchDT * 0.75,
-      softHeadLeft: hasFace && !productiveHorizontal && adjustedYawSigned >= yawLT * 0.6,
-      softHeadRight: hasFace && !productiveHorizontal && -adjustedYawSigned >= yawRT * 0.6,
+      softHeadLeft: hasFace && !productiveHorizontal && !productiveDownward && adjustedYawSigned >= yawLT * 0.6,
+      softHeadRight: hasFace && !productiveHorizontal && !productiveDownward && -adjustedYawSigned >= yawRT * 0.6,
       eyesRolledUp,
     })
     const faceAbsentConfirmed = penaltySignalConfirmed(penaltyFramesRef.current, 'faceAbsent')
@@ -1529,7 +1525,10 @@ export default function SessionScreen({
     // absent via the else branch (R4).
     const adjustedIrisH = hasFace ? irisH - irisHNeutralRef.current : 0
     let eyesOffScreen = false
-    if (hasFace) {
+    // Eyes-off is measured against the PRIMARY screen's iris neutral. While the
+    // pose is explained by a pad, book or mouse on the desk, the eyes are on that
+    // object by definition, so the screen-relative offset says nothing.
+    if (hasFace && !productiveDownward) {
       if (productiveHorizontal) {
         // Facing a side monitor. yaw and iris use OPPOSITE mirror conventions here
         // (yaw+ = head to user's LEFT; iris+ = eyes to user's RIGHT — both confirmed
@@ -1814,7 +1813,7 @@ export default function SessionScreen({
     const unstableHead = hasFace &&
       fidgetVariance > HEAD_DRIFT_THRESH &&
       fidgetVariance <= HEAD_DRIFT_THRESH * 2.2
-    const softHeadTurn = hasFace && !productiveHorizontal && (
+    const softHeadTurn = hasFace && !productiveHorizontal && !productiveDownward && (
       (adjustedYawSigned >= yawLT * 0.6 && headTurnLeftFramesRef.current >= 3 && headTurnLeftSecs < HEAD_TURN_HOLD) ||
       (-adjustedYawSigned >= yawRT * 0.6 && headTurnRightFramesRef.current >= 3 && headTurnRightSecs < HEAD_TURN_HOLD)
     )

@@ -3,7 +3,9 @@ import WorkspaceSetup from './WorkspaceSetup'
 import DsSelect from './DsSelect'
 import WorkspaceCalibration from './WorkspaceCalibration'
 import WorkspaceAttentionMap from './WorkspaceAttentionMap'
-import { WORKSPACE_OBJECT_TYPES, WORKSPACE_ROLE_LABELS, WORKSPACE_ROLES, defaultRoleForType } from '../lib/workspaceObjects'
+import { WORKSPACE_OBJECT_TYPES, WORKSPACE_ROLE_LABELS, WORKSPACE_ROLES, attentionMeaning, defaultRoleForType } from '../lib/workspaceObjects'
+import { isUsableCalibrationTarget } from '../lib/attention'
+import { DISTRACTION_DOWN_HOLD_MS } from '../lib/cameraScoringConstants'
 import {
   customScreenConfig,
   defaultWorkspaceSize,
@@ -20,6 +22,7 @@ import {
   getActiveWorkspace,
   invalidateObjectCalibration,
   saveWorkspaceDraft,
+  rowFromScene,
   sceneFromLegacy,
 } from '../lib/workspaceStore'
 
@@ -44,19 +47,20 @@ const TEMPLATE_OBJECTS = {
   laptop: [
     { id: 'laptop_main', type: 'laptop', role: 'primary_screen', col: .5, row: .52 },
     { id: 'camera_main', type: 'camera', role: 'neutral', col: .5, row: .1, cameraMount: { targetId: 'laptop_main', style: 'integrated', offsetX: 0 } },
-    { id: 'phone_main', type: 'phone', role: 'distraction_device', col: .82, row: .35 },
+    // Desk objects use the depth convention: row 0 = desk edge nearest the user.
+    { id: 'phone_main', type: 'phone', role: 'distraction_device', col: .82, row: .65 },
   ],
   desktop: [
     { id: 'monitor_main', type: 'monitor', role: 'primary_screen', col: .5, row: .28 },
     { id: 'camera_main', type: 'camera', role: 'neutral', col: .5, row: .08, cameraMount: { targetId: 'monitor_main', style: 'integrated', offsetX: 0 } },
-    { id: 'keyboard_main', type: 'keyboard', role: 'input_area', col: .5, row: .68 },
-    { id: 'mouse_main', type: 'mouse', role: 'input_area', col: .75, row: .68 },
+    { id: 'keyboard_main', type: 'keyboard', role: 'input_area', col: .5, row: .32 },
+    { id: 'mouse_main', type: 'mouse', role: 'input_area', col: .75, row: .32 },
   ],
   dual: [
     { id: 'monitor_main', type: 'monitor', role: 'primary_screen', col: .38, row: .28 },
     { id: 'monitor_side', type: 'monitor', role: 'secondary_screen', col: .72, row: .3 },
     { id: 'camera_main', type: 'camera', role: 'neutral', col: .38, row: .08, cameraMount: { targetId: 'monitor_main', style: 'integrated', offsetX: 0 } },
-    { id: 'keyboard_main', type: 'keyboard', role: 'input_area', col: .48, row: .68 },
+    { id: 'keyboard_main', type: 'keyboard', role: 'input_area', col: .48, row: .32 },
   ],
 }
 
@@ -114,12 +118,6 @@ function templateWorkspace(kind, index) {
   return createWorkspace({ name: index ? `${labels[kind]} ${index + 1}` : labels[kind], objects })
 }
 
-function legacyRowFor(object, scene) {
-  return object.type === 'monitor' || object.type === 'laptop' || object.type === 'camera'
-    ? (1 - scene.y) / 2
-    : scene.z
-}
-
 function deviceGlyph(type) {
   // SF Symbols-style line glyphs (16px grid, 1.5px stroke) instead of text
   // characters, which rendered at different sizes and weights per font.
@@ -136,6 +134,20 @@ function deviceGlyph(type) {
     book: <><path d="M8 4.25C6.5 3 4 2.75 1.75 3.25v9.5C4 12.25 6.5 12.5 8 13.75 9.5 12.5 12 12.25 14.25 12.75v-9.5C12 2.75 9.5 3 8 4.25z" /><path d="M8 4.25v9.5" /></>,
   }
   return <svg className="ds-icon" viewBox="0 0 16 16">{paths[type] || <rect x="3" y="3" width="10" height="10" rx="2" />}</svg>
+}
+
+// One sentence on what looking at the object does to the score, and whether
+// the session recognises it from a measurement or from its placement.
+function roleEffect(object, calibration) {
+  const meaning = attentionMeaning(object)
+  if (meaning === 'neutral') return 'No effect of its own: looking here counts like looking at empty space.'
+  const effect = meaning === 'focus'
+    ? 'Counts as focus: looking at it keeps your score up.'
+    : `Counts as distraction after ${DISTRACTION_DOWN_HOLD_MS / 1000} s of looking at it.`
+  const recognised = isUsableCalibrationTarget(calibration?.targets?.[object.id])
+    ? 'Recognised from your calibration.'
+    : 'Estimated from where you placed it until you calibrate.'
+  return `${effect} ${recognised}`
 }
 
 function WorkspaceMiniature({ workspace }) {
@@ -193,7 +205,7 @@ function Editor({ initial, onSave, onCancel }) {
     const next = { ...current, objects: current.objects.map(object => {
       if (object.id !== selectedId) return object
       const scene = { ...object.scene, ...patch }
-      return { ...object, scene, col: (scene.x + 1) / 2, row: legacyRowFor(object, scene) }
+      return { ...object, scene, col: (scene.x + 1) / 2, row: rowFromScene(object, scene) }
     }) }
     return invalidateObjectCalibration(next, selectedId, selected?.type === 'camera' || selected?.role === 'primary_screen')
   })
@@ -257,7 +269,7 @@ function Editor({ initial, onSave, onCancel }) {
     let next = {
       ...current,
       objects: current.objects.map(item => item.id === id
-        ? { ...item, scene, col: (scene.x + 1) / 2, row: legacyRowFor(item, scene) }
+        ? { ...item, scene, col: (scene.x + 1) / 2, row: rowFromScene(item, scene) }
         : item),
     }
     next = invalidateObjectCalibration(next, id, object.type === 'camera' || object.role === 'primary_screen')
@@ -281,11 +293,11 @@ function Editor({ initial, onSave, onCancel }) {
         <Suspense fallback={<div className="workspace-3d-loading">Preparing 3D workspace…</div>}>
           <Workspace3DScene objects={draft.objects} view={view} selectedId={selectedId} onSelect={setSelectedId} onMove={moveObject}/>
         </Suspense>
-        <div className="workspace-quality"><strong>{calibrated}/{draft.objects.length} calibrated</strong><span>{hasPrimary ? 'Primary screen set' : 'Primary screen missing'} · {hasCamera ? 'Camera set' : 'Camera missing'}</span>{error && <em>{error}</em>}<button disabled={!hasPrimary || !hasCamera} onClick={() => setCalibrating(true)}>Calibrate every object</button></div>
+        <div className="workspace-quality"><strong>{calibrated}/{draft.objects.length} calibrated</strong><span>{hasPrimary ? 'Primary screen set' : 'Primary screen missing'} · {hasCamera ? 'Camera set' : 'Camera missing'}</span><div className="attention-legend" aria-label="Ring colours under each object"><span className="is-strong">Counts as focus</span><span className="is-drift">Counts as distraction</span></div>{error && <em>{error}</em>}<button disabled={!hasPrimary || !hasCamera} onClick={() => setCalibrating(true)}>Calibrate every object</button></div>
       </section>
       <aside className="workspace-properties"><h3>Properties</h3>{selected ? <>
         <div className="workspace-object-kind"><span aria-hidden="true">{deviceGlyph(selected.type)}</span><div><strong>{selectedType?.label || selected.type}</strong><small>{selected.sizePreset ? 'Standard proportions' : selected.physicalSize ? 'Custom physical size' : 'Existing custom proportions'}</small></div></div>
-        <div className="workspace-field"><span>Role</span><DsSelect label="Role" value={selected.role} options={WORKSPACE_ROLES.map(role => ({ value: role.id, label: role.label }))} onChange={updateRole}/></div>
+        <div className="workspace-field"><span>Role</span><DsSelect label="Role" value={selected.role} options={WORKSPACE_ROLES.map(role => ({ value: role.id, label: role.label }))} onChange={updateRole}/><small className="workspace-role-effect" data-meaning={attentionMeaning(selected)}>{roleEffect(selected, draft.calibration)}</small></div>
         <div className="workspace-property-section">Size</div>
         {selectedSizePresets.length > 1 ? <>
           <div className="workspace-field"><span>Device size</span><DsSelect label="Device size" value={selected.sizePreset || 'custom'} options={[

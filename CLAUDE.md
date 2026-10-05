@@ -119,6 +119,17 @@ been fixed. Check this list before and after editing scoring/detection logic.
    "eyes wandered off it" means SAME sign — don't "simplify" the eyes-off
    check without re-deriving this from data.
 
+8. **Workspace row convention and calibration authority.** For desk objects
+   (pad, book, phone, keyboard, mouse) `row` is DEPTH: 0 = desk edge nearest
+   the user. For screens and the webcam it is HEIGHT. The 3D editor's
+   `scene.z` runs the other way (1 = nearest), so convert only through
+   `rowFromScene` / `sceneFromLegacy` — copying z into row once made every
+   near pad invisible to scoring. Objects with a usable calibration target are
+   judged by `classifyCalibratedWorkspace` alone; the layout heuristic must not
+   re-admit or accuse them (`resolveGazeContext`). Any change to how a
+   productive desk object is recognised must be checked against a look into
+   the lap: it has to stay a phone posture, not "writing on the pad".
+
 ## GitHub
 
 https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai
