@@ -137,4 +137,22 @@ describe('pure attention score and trace', () => {
     expect(onPad.components.head_right_sustained).toBeUndefined()
     expect(onPad.components.head_right_soft).toBeUndefined()
   })
+
+  it('scales the whole score by the off-target factor and leaves it alone inside a work zone', () => {
+    const inside = calculateBaseAttentionScore(input({ hasBlinkData: true, blinkRate: 15 }))
+    const away = calculateBaseAttentionScore(input({ hasBlinkData: true, blinkRate: 15, offTargetFactor: 0.75 }))
+    expect(inside.components.off_target).toBeUndefined()
+    expect(away.score).toBeCloseTo(inside.score * 0.25)
+    expect(away.components.off_target).toBeCloseTo(-inside.score * 0.75)
+    // the focus ramp cannot prop up a look away
+    const final = finalizeAttentionScore({ base: away, rampBonus: 15, previousScore: away.score, trackingUncertain: false })
+    expect(final.trace.components.sustained_focus_ramp).toBeCloseTo(15 * 0.25)
+    expect(final.trace.offTargetFactor).toBe(0.75)
+  })
+
+  it('names looking away once it costs a quarter of the score, without overriding a specific reason', () => {
+    expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.2 })).primaryReason).toBe('focused')
+    expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.3 })).primaryReason).toBe('looking_away')
+    expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.9, yawnMs: 2000 })).primaryReason).toBe('yawn')
+  })
 })

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { formatDuration, formatTimer } from '../lib/durationFormat'
 
 const REASON_LABELS = {
-  away: '→ looking away',
+  away: '→ left the camera',
+  looking_away: '→ looking away',
   phone: '→ phone detected',
   distraction_app: '→ wrong app open',
   prolonged: '→ eyes tired',

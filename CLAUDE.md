@@ -130,6 +130,17 @@ been fixed. Check this list before and after editing scoring/detection logic.
    productive desk object is recognised must be checked against a look into
    the lap: it has to stay a phone posture, not "writing on the pad".
 
+9. **Looking away is priced by distance, not by a fixed amount.** The fixed
+   head-turn/eyes-off penalties could not tell 31° from 90°, and the focus
+   bonuses outweighed them: a full turn aside held ~71. `offTargetAttention.js`
+   scales the whole score (ramp included) by a factor that is exactly 0 inside
+   every work zone (screen tolerance box or a recognised work object), grows
+   convexly with the degrees outside it (30° = clearly away), and is time
+   filtered (second order, 75 % at 4 s like face-absent). Don't add a new
+   "looking away" penalty as a fixed amount, and don't widen a work zone
+   without an upper bound — an unbounded zone (side screen accepted any yaw
+   past 15°) silently disables this.
+
 ## GitHub
 
 https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai

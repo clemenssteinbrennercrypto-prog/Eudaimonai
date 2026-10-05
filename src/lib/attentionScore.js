@@ -11,7 +11,7 @@ import {
   YAWN_HOLD_MS,
 } from './cameraScoringConstants.js'
 
-export const SCORE_TRACE_VERSION = 1
+export const SCORE_TRACE_VERSION = 2
 
 export const SCORE_COMPONENT_LABELS = Object.freeze({
   face_present_base: 'Face present base',
@@ -47,6 +47,7 @@ export const SCORE_COMPONENT_LABELS = Object.freeze({
   activity_distraction: 'Distracting app/site',
   activity_focus_app: 'Focus app',
   sustained_focus_ramp: 'Sustained-focus ramp',
+  off_target: 'Looking away from every work zone',
 })
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
@@ -169,10 +170,24 @@ export function calculateBaseAttentionScore(input) {
     record.add('activity_focus_app', score - before)
   }
 
+  // Distance outside every work zone (offTargetAttention.js) scales the whole
+  // score, bonuses included, so no bonus can outweigh looking fully away. It is
+  // exactly 0 inside a work zone, so on-target scoring is untouched.
+  const offTargetFactor = input.hasFace ? clamp(Number(input.offTargetFactor) || 0, 0, 1) : 0
+  if (offTargetFactor > 0) {
+    const before = score
+    score *= 1 - offTargetFactor
+    record.add('off_target', score - before)
+    // Name it once it costs a quarter of the score, unless a more specific
+    // reason (phone, eyes closed, …) already explains the drop.
+    if (offTargetFactor >= 0.25 && primaryReason === 'focused') primaryReason = 'looking_away'
+  }
+
   return {
     score,
     cameraScore,
     primaryReason,
+    offTargetFactor,
     components: record.components,
     signals: {
       blinkRate: input.hasBlinkData ? input.blinkRate : null,
@@ -184,11 +199,16 @@ export function calculateBaseAttentionScore(input) {
       headDownSeconds: input.headDownSecs,
       headTurnLeftSeconds: input.headTurnLeftSecs,
       headTurnRightSeconds: input.headTurnRightSecs,
+      offTargetExcessDeg: Number.isFinite(input.offTargetExcessDeg) ? input.offTargetExcessDeg : null,
+      gazeTarget: input.gazeTarget ?? null,
     },
   }
 }
 
-export function finalizeAttentionScore({ base, rampBonus, previousScore, trackingUncertain, holdForDebounce = false }) {
+export function finalizeAttentionScore({ base, rampBonus: rawRampBonus, previousScore, trackingUncertain, holdForDebounce = false }) {
+  // The ramp is a reward for focus, so looking away attenuates it like the
+  // rest of the score instead of propping the number up for ~40 s.
+  const rampBonus = rawRampBonus * (1 - (base.offTargetFactor || 0))
   const rawFinal = Math.min(100, base.score + rampBonus)
   const smoothedCandidate = clamp(rawFinal * 0.3 + previousScore * 0.7, 0, 100)
   const finalScore = trackingUncertain || holdForDebounce ? previousScore : smoothedCandidate
@@ -203,6 +223,7 @@ export function finalizeAttentionScore({ base, rampBonus, previousScore, trackin
       },
       primaryReason: base.primaryReason,
       cameraScore: base.cameraScore,
+      offTargetFactor: base.offTargetFactor || 0,
       preRampScore: base.score,
       rampBonus,
       rawFinal,

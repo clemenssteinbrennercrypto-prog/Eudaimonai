@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CALIBRATION_SECS, GOOD_STREAK_SCORE } from './attention'
+import { CALIBRATION_SECS, FOCUSED_SCORE, GOOD_STREAK_SCORE } from './attention'
 import {
   PARITY_FRAME_INTERVAL_MS,
   createCameraScoreReplay,
@@ -122,5 +122,36 @@ describe('writing on a pad beside the keyboard', () => {
     const scores = replayWriting({ pitchDeg: 32, yawDeg: 22, irisShift: -0.8 })
     // Head-turn, head-down and eyes-off penalties all still apply: "distracted".
     expect(Math.max(...scores.slice(-300))).toBeLessThan(GOOD_STREAK_SCORE)
+  })
+})
+
+describe('looking away from every work zone', () => {
+  const devices = [
+    { id: 'screen', type: 'monitor', role: 'primary_screen', col: 0.5, row: 0.28 },
+    { id: 'camera', type: 'camera', role: 'neutral', col: 0.5, row: 0.08 },
+  ]
+  const calibrationFrames = Math.ceil(CALIBRATION_SECS * 1000 / PARITY_FRAME_INTERVAL_MS)
+  const frames = seconds => Math.ceil(seconds * 1000 / PARITY_FRAME_INTERVAL_MS)
+
+  function replayAway(pose, seconds) {
+    const focused = frames(120)
+    const records = [
+      ...Array.from({ length: calibrationFrames + focused }, () => measuredFrame(poseLandmarks())),
+      ...Array.from({ length: frames(seconds) }, () => measuredFrame(poseLandmarks(pose))),
+    ]
+    return replayCameraScores(records, { devices }).slice(calibrationFrames + focused)
+  }
+
+  it('drops below the focused band within seconds when the head turns fully aside or down', () => {
+    for (const pose of [{ yawDeg: -85 }, { yawDeg: 85 }, { pitchDeg: 70 }, { pitchDeg: -45 }]) {
+      const scores = replayAway(pose, 10)
+      expect(scores[frames(5)]).toBeLessThan(FOCUSED_SCORE)
+      expect(scores.at(-1)).toBeLessThan(10)
+    }
+  })
+
+  it('lets a short glance pass without leaving the focused band', () => {
+    const scores = replayAway({ yawDeg: -60 }, 1.5)
+    expect(Math.min(...scores)).toBeGreaterThanOrEqual(FOCUSED_SCORE)
   })
 })

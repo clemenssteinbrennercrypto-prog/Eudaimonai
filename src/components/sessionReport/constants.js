@@ -4,6 +4,7 @@ export const DISTRACTION_LABELS = {
   phone: 'Phone check',
   yawn: 'Fatigue',
   away: 'Left camera',
+  looking_away: 'Looked away',
   lookingup: 'Daydreaming',
   prolonged: 'Eyes closed',
   distraction_app: 'Distracting app',
