@@ -128,4 +128,13 @@ describe('pure attention score and trace', () => {
     expect(unconfirmed.components).not.toHaveProperty(component)
     expect(debounced.components[component]).toBeLessThan(0)
   })
+
+  it('does not charge a head turn that a pad or mouse on the desk explains', () => {
+    const turnedRight = { adjustedYawSigned: -35, headTurnRightSecs: 6, softHeadRightConfirmed: true, pitchDeg: 35 }
+    const unexplained = calculateBaseAttentionScore(input(turnedRight))
+    const onPad = calculateBaseAttentionScore(input({ ...turnedRight, productiveDownward: true }))
+    expect(unexplained.components.head_right_sustained).toBe(-25)
+    expect(onPad.components.head_right_sustained).toBeUndefined()
+    expect(onPad.components.head_right_soft).toBeUndefined()
+  })
 })

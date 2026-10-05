@@ -8,6 +8,7 @@
 
 import {
   defaultRoleForType,
+  isHeightPlacedType,
   isProductiveDownwardRole,
   isScreenRole,
   normalizeWorkspaceObjects,
@@ -145,13 +146,31 @@ export function classifyFocusPhase({
 }
 
 // ── Where the user is looking ────────────────────────────────────────────────
+// Head yaw inside this band is "straight ahead" — the same band
+// classifyHorizontalAttention calls 'center'. Expressed in desk columns
+// (gazeCol = 0.5 - yaw / 90).
+const STRAIGHT_AHEAD_YAW_DEG = 10
+const STRAIGHT_AHEAD_COLS = STRAIGHT_AHEAD_YAW_DEG / 90
+
 export function classifyDownwardAttention(devices = [], pitchDeg = 0, yawSigned = 0) {
   if (pitchDeg < 18) return { kind: 'none' }
 
   const workspaceObjects = normalizeWorkspaceObjects(devices)
   const gazeCol = clamp01(0.5 - yawSigned / 90)
+  const gazeOffset = gazeCol - 0.5
   const downwardObjects = workspaceObjects
     .filter(d => (d.row ?? 0.5) <= 0.58)
+    // A head pointing straight down is looking at whatever lies straight
+    // ahead — or at the lap. It is not evidence for a pad or mouse off to the
+    // side, however wide the column window below is; otherwise a phone held in
+    // the lap reads as "writing on the pad to the right". Side objects need the
+    // head turned toward their side, past the straight-ahead band.
+    .filter(d => {
+      const objectOffset = (d.col ?? 0.5) - 0.5
+      if (Math.abs(objectOffset) <= STRAIGHT_AHEAD_COLS) return true
+      return Math.sign(gazeOffset) === Math.sign(objectOffset) &&
+        Math.abs(gazeOffset) > STRAIGHT_AHEAD_COLS
+    })
     .map(d => ({
       object: d,
       role: d.role || defaultRoleForType(d.type),
@@ -164,7 +183,14 @@ export function classifyDownwardAttention(devices = [], pitchDeg = 0, yawSigned 
   const distraction = downwardObjects.find(item =>
     item.object.type === 'phone' || item.role === 'distraction_device'
   )
-  const productive = downwardObjects.find(item => isProductiveDownwardRole(item.role))
+  // Keyboard and mouse are glanced at, never studied at a phone-steep angle;
+  // pads and books are read and written on that steeply. Without measured
+  // evidence (calibration), a steep look is not excused by an input device —
+  // otherwise a centred keyboard would excuse every phone held in the lap.
+  const productive = downwardObjects.find(item =>
+    isProductiveDownwardRole(item.role) &&
+    !(item.role === 'input_area' && pitchDeg >= PHONE_PITCH_THRESH)
+  )
 
   if (distraction && (pitchDeg >= PHONE_PITCH_THRESH * 0.85 || !productive || distraction.colDistance <= productive.colDistance + 0.08)) {
     return { kind: 'distraction', object: distraction.object, role: distraction.role }
@@ -206,6 +232,25 @@ export function classifyHorizontalAttention(devices = [], yawSigned = 0) {
   return { kind: 'center' }
 }
 
+// The calibration anchor is a short glance at the CENTRE of an object. A pad,
+// book or mouse lies flat on the desk below eye level, and working on it moves
+// the head further DOWN than that glance, never up: with the eyes ~40 cm above
+// the desk and the pad ~40 cm away, its centre sits ~45° below the horizon and
+// the near edge of an A4 sheet ~58° (+13°), and leaning in to write adds about
+// as much again. The symmetric reach of 1.5 × 10° = 15° cuts that off, so the
+// writing posture fell out of its own calibrated target. Surfaces you read or
+// write on get twice the reach (30°) below their anchor only; up, sideways,
+// screens and input devices are unchanged — a keyboard or mouse is glanced at,
+// and stretching one close to centre would swallow a look into the lap. Yaw and
+// iris still have to agree, so a phone in the lap (head straight) does not
+// match a pad that sits to the side.
+export const DESK_SURFACE_DOWNWARD_STRETCH = 2
+const STUDIED_SURFACE_ROLES = new Set(['writing_surface', 'reference_material'])
+
+export function isUsableCalibrationTarget(target) {
+  return Boolean(target) && target.quality >= 0.35 && target.sampleCount >= 20
+}
+
 // Calibration identifies a configured object; it never changes score bands or
 // penalties. Anchors are relative to the primary screen and translated by the
 // current session's neutral pose, so everyday seating drift is not mistaken for
@@ -219,21 +264,104 @@ export function classifyCalibratedWorkspace(workspace, signal, neutral = {}) {
   let best = null
   for (const object of workspace.objects) {
     const target = targets[object.id]
-    if (!target || target.quality < 0.35 || target.sampleCount < 20) continue
+    if (!isUsableCalibrationTarget(target)) continue
     // Calibration anchors the object's centre. Preset attention bounds define
     // the useful face around it; legacy dimensions remain the compatibility
     // fallback. Physical model depth is visual only.
     const widthFactor = Math.max(0.4, Math.min(2.8, Number(object.attentionBounds?.width ?? object.dimensions?.width) || 1))
     const heightFactor = Math.max(0.4, Math.min(2.8, Number(object.attentionBounds?.height ?? object.dimensions?.height) || 1))
     const yawDistance = Math.abs(signal.yawSigned - (yawNeutral + target.deltaYaw)) / (12 * widthFactor)
-    const pitchDistance = Math.abs(signal.pitchDeg - (pitchNeutral + target.deltaPitch)) / (10 * heightFactor)
+    const pitchOffset = signal.pitchDeg - (pitchNeutral + target.deltaPitch)
+    const role = object.role || defaultRoleForType(object.type)
+    const studiedSurface = STUDIED_SURFACE_ROLES.has(role) && !isHeightPlacedType(object.type)
+    const pitchReach = 10 * heightFactor *
+      (pitchOffset > 0 && studiedSurface ? DESK_SURFACE_DOWNWARD_STRETCH : 1)
+    const pitchDistance = Math.abs(pitchOffset) / pitchReach
     const irisDistance = Math.abs(signal.irisH - (irisNeutral + target.deltaIrisH)) / (0.12 * widthFactor)
     const distance = Math.sqrt(yawDistance ** 2 + pitchDistance ** 2 + irisDistance ** 2)
     if (!best || distance < best.distance) {
-      best = { object, role: object.role || defaultRoleForType(object.type), distance }
+      best = { object, role, distance }
     }
   }
   return best && best.distance <= 1.5 ? best : null
+}
+
+/**
+ * Which configured object explains the current pose. A calibrated match wins;
+ * without one, the layout geometry decides. Shared by SessionScreen and the
+ * parity replay so the two can never classify the same frame differently.
+ */
+export function resolveGazeContext({
+  workspace = null,
+  devices = [],
+  hasFace,
+  calibrating,
+  yawSigned,
+  adjustedYawSigned,
+  pitchDeg,
+  pitchUpDeg,
+  irisH,
+  neutral,
+}) {
+  const calibratedTarget = hasFace && !calibrating
+    ? classifyCalibratedWorkspace(workspace, { yawSigned, pitchDeg: pitchDeg - pitchUpDeg, irisH }, neutral)
+    : null
+  const calibratedRole = calibratedTarget?.role
+  const calibratedDistraction = calibratedRole === 'distraction_device' || calibratedTarget?.object?.type === 'phone'
+  // Objects with a usable calibration target are judged by that measurement
+  // alone. When the calibrated match says "not this object", the layout guess
+  // must not overrule it in either direction — neither excuse a look into the
+  // lap as the calibrated pad nor accuse a look at a pad as the phone.
+  const calibratedIds = new Set(
+    Object.entries(workspace?.calibration?.targets || {})
+      .filter(([, target]) => isUsableCalibrationTarget(target))
+      .map(([id]) => id),
+  )
+  const layoutDevices = calibratedIds.size
+    ? devices.filter(device => !calibratedIds.has(device.id))
+    : devices
+  const downwardContext = calibratedDistraction
+    ? { kind: 'distraction', object: calibratedTarget.object, role: calibratedRole }
+    : isProductiveDownwardRole(calibratedRole)
+      ? { kind: 'productive', object: calibratedTarget.object, role: calibratedRole }
+      : hasFace
+        ? classifyDownwardAttention(layoutDevices, pitchDeg, adjustedYawSigned)
+        : { kind: 'none' }
+  const calibratedScreen = isScreenRole(calibratedRole)
+  const calibratedCol = calibratedTarget?.object?.col ?? 0.5
+  const horizontalContext = calibratedScreen && calibratedRole === 'secondary_screen'
+    ? { kind: calibratedCol < 0.5 ? 'productive_left' : 'productive_right' }
+    : calibratedScreen
+      ? { kind: 'center' }
+      : hasFace
+        ? classifyHorizontalAttention(devices, adjustedYawSigned)
+        : { kind: 'center' }
+  return { calibratedTarget, downwardContext, horizontalContext }
+}
+
+// Writing on a pad or reaching for the mouse moves the head continuously, and a
+// pose near the edge of an object's gaze region drops in and out of it from
+// frame to frame. Taken frame by frame, each dropout swaps a productive
+// head-down (-3) for a sustained one (-25) and lets a running phone timer fire.
+// A one-sided hold would fix that but bias the result: a pose that only
+// occasionally grazes a target (a look into the lap next to a pad) would be
+// held "productive" almost all the time. A majority vote over the last second
+// is unbiased — it removes isolated frames in BOTH directions, and a sustained
+// move takes effect after ~half the window (shorter than every downstream
+// penalty hold: eyes-off 1.5 s, distraction 2.5 s, phone 4 s). A confirmed
+// distraction or a lost face passes through and clears the history at once.
+export const PRODUCTIVE_CONTEXT_WINDOW_MS = 1000
+
+export function smoothDownwardContext(history = [], context, now, hasFace) {
+  if (!hasFace || context.kind === 'distraction') return { context, history: [] }
+  const recent = [...history.filter(entry => now - entry.at < PRODUCTIVE_CONTEXT_WINDOW_MS), { at: now, context }]
+  const productive = recent.filter(entry => entry.context.kind === 'productive')
+  const majorityProductive = productive.length * 2 >= recent.length
+  const latest = kind => [...recent].reverse().find(entry => (entry.context.kind === 'productive') === kind)?.context
+  return {
+    context: majorityProductive ? latest(true) : latest(false),
+    history: recent,
+  }
 }
 
 // ── Landmark geometry ────────────────────────────────────────────────────────

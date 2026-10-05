@@ -29,4 +29,19 @@ describe('WorkspaceManager', () => {
     expect(html).toContain('data-device-type="monitor"')
     expect(html).toContain('data-device-type="camera"')
   })
+
+  it('marks pads and the mouse as focus and the phone as distraction, nothing by fixed zones', () => {
+    const state = migrateLegacyDevices([
+      { id: 'monitor', type: 'monitor', col: .5, row: .3, role: 'primary_screen' },
+      { id: 'camera', type: 'camera', col: .5, row: .1, role: 'neutral' },
+      { id: 'pad', type: 'notebook', col: .8, row: .15, role: 'writing_surface' },
+      { id: 'mouse', type: 'mouse', col: .7, row: .2, role: 'input_area' },
+      { id: 'phone', type: 'phone', col: .2, row: .2, role: 'distraction_device' },
+    ])
+    const html = renderToStaticMarkup(<WorkspaceManager state={state} onChange={() => ({ ok: true })} onContinue={() => {}} />)
+    // monitor, pad and mouse: focus; phone: distraction; camera: no halo
+    expect(html.match(/data-attention-zone="focus"/g)).toHaveLength(3)
+    expect(html.match(/data-attention-zone="distraction"/g)).toHaveLength(1)
+    expect(html).not.toContain('ambiguous')
+  })
 })

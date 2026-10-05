@@ -216,7 +216,7 @@ export default function WorkspacePreview({ devices, onConfirm, onEditSetup, onFi
         <WorkspaceAttentionMap
           devices={workspaceDevices}
           showLabels
-          ariaLabel="Top-down workspace preview with productive, ambiguous, and distraction gaze zones"
+          ariaLabel="Top-down workspace preview: green objects count as focus, yellow as distraction"
           style={{
             width: '100%',
             maxWidth: 420,
@@ -236,9 +236,8 @@ export default function WorkspacePreview({ devices, onConfirm, onEditSetup, onFi
           background: '#070B1A',
           borderRadius: 12,
         }}>
-          <LegendItem color={green}>Productive gaze</LegendItem>
-          <LegendItem color={amber}>Ambiguous</LegendItem>
-          <LegendItem color={red}>Distraction zone</LegendItem>
+          <LegendItem color="var(--ds-attn-high)">Counts as focus</LegendItem>
+          <LegendItem color="var(--ds-attn-low)">Counts as distraction</LegendItem>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
             <svg width="15" height="15" viewBox="-15 -15 30 30" aria-hidden="true">
               <circle cx="0" cy="0" r="12" fill="#141C42" stroke={navy} strokeWidth="3" />

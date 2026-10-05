@@ -5,8 +5,11 @@ import {
   getActiveWorkspace,
   invalidateObjectCalibration,
   migrateLegacyDevices,
+  normalizeWorkspace,
   normalizeWorkspaceState,
+  rowFromScene,
   saveWorkspaceDraft,
+  sceneFromLegacy,
   saveWorkspaceState,
   workspaceSnapshot,
 } from './workspaceStore'
@@ -117,5 +120,40 @@ describe('workspace storage', () => {
     }
     expect(Object.keys(invalidateObjectCalibration(workspace, 'screen').calibration.targets)).toEqual(['camera'])
     expect(invalidateObjectCalibration(workspace, 'camera', true).calibration.targets).toEqual({})
+  })
+})
+
+describe('desk depth convention', () => {
+  it('reads a desk object\'s depth from the 3D scene, where z = 1 is nearest the user', () => {
+    // Exactly what earlier editor builds stored: row copied verbatim from scene.z.
+    const workspace = normalizeWorkspace({
+      id: 'desk',
+      objects: [
+        { id: 'screen', type: 'monitor', role: 'primary_screen', col: .5, row: .28, scene: { x: 0, y: .44, z: .28 } },
+        { id: 'pad', type: 'notebook', role: 'writing_surface', col: .8, row: .85, scene: { x: .6, y: 0, z: .85 } },
+      ],
+    })
+    const pad = workspace.objects.find(object => object.id === 'pad')
+    const screen = workspace.objects.find(object => object.id === 'screen')
+    expect(pad.row).toBeCloseTo(.15) // near the user → depth row near 0
+    expect(screen.row).toBe(.28) // screens keep their height coordinate untouched
+  })
+
+  it('round-trips legacy rows through the scene for desk and height-placed objects', () => {
+    for (const object of [
+      { type: 'notebook', col: .2, row: .1 },
+      { type: 'mouse', col: .75, row: .32 },
+      { type: 'monitor', col: .5, row: .28 },
+      { type: 'camera', col: .5, row: .08 },
+    ]) {
+      const scene = sceneFromLegacy(object)
+      expect(rowFromScene(object, scene)).toBeCloseTo(object.row)
+    }
+  })
+
+  it('places a near desk object near the user in the 3D scene and on the desk surface', () => {
+    const scene = sceneFromLegacy({ type: 'notebook', col: .8, row: .1 })
+    expect(scene.z).toBeCloseTo(.9)
+    expect(scene.y).toBe(0)
   })
 })
