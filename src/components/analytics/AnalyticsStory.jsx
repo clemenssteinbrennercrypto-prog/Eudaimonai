@@ -127,7 +127,7 @@ function RecentOverview({ sessions }) {
       <div className="analytics-overview-grid">
         <div className="analytics-overview-metric is-time">
           <strong><CountedDuration seconds={snapshot.focusSeconds} /></strong>
-          <span>Focus time</span>
+          <span>Session time</span>
         </div>
         <div className="analytics-overview-metric is-attention">
           <AttentionRing value={snapshot.averageAttention} />

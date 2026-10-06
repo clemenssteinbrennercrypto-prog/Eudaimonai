@@ -183,7 +183,7 @@ describe('Analytics Details', () => {
     })
     renderExplorer(rows)
 
-    expect(screen.getByRole('heading', { name: 'Focus time vs attention' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Session time vs attention' })).toBeTruthy()
     expect(screen.getByText('+15 points / 30 min')).toBeTruthy()
     expect(document.querySelector('.analytics-duration-reference')).toBeTruthy()
     expect(document.querySelector('.analytics-duration-trend')).toBeTruthy()
@@ -198,7 +198,7 @@ describe('Analytics Details', () => {
       session(3, { avgFocusScore: 60, actualSeconds: 45 * 60, measuredSeconds: 45 * 60, focusedSeconds: 30 * 60, scoreSum: 60 * 45 * 60 }),
     ])
 
-    const plot = screen.getByLabelText('Focus time and average attention across 3 sessions')
+    const plot = screen.getByLabelText('Session time and average attention across 3 sessions')
     expect(plot.querySelectorAll('.analytics-duration-point')).toHaveLength(2)
     expect(within(plot).getByText('×2')).toBeTruthy()
   })
@@ -210,7 +210,7 @@ describe('Analytics Details', () => {
       session(3, { actualSeconds: 195 * 60, measuredSeconds: 195 * 60 }),
     ])
 
-    const plot = screen.getByLabelText('Focus time and average attention across 3 sessions')
+    const plot = screen.getByLabelText('Session time and average attention across 3 sessions')
     expect(within(plot).getByText('180m')).toBeTruthy()
     expect(within(plot).queryByText('195m')).toBeNull()
     expect(within(plot).queryByText('210m')).toBeNull()

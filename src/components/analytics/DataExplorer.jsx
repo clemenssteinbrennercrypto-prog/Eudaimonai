@@ -284,13 +284,13 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
               <SectionHeading
                 kicker="Work rhythm"
                 title="How your sessions behave"
-                description="Compare focus time with measured attention and inspect how measured time divides into attention phases."
+                description="Compare session time with measured attention and inspect how measured time divides into attention phases."
                 id="rhythm-heading"
               />
               <div className="analytics-rhythm-grid">
                 {durationReady && (
                   <div>
-                    <h3>Focus time vs attention</h3>
+                    <h3>Session time vs attention</h3>
                     <DurationPlot key={`duration-${filterKey}`} rows={details.duration} analysis={details.durationAnalysis} onSelect={onSelectSession} />
                   </div>
                 )}

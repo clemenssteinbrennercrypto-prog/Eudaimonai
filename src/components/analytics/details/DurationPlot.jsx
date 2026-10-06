@@ -100,7 +100,7 @@ export default function DurationPlot({ rows, analysis, onSelect }) {
           height={HEIGHT}
           viewBox={`0 0 ${width} ${HEIGHT}`}
           role="group"
-          aria-label={`Focus time and average attention across ${sessionLabel(rows.length)}`}
+          aria-label={`Session time and average attention across ${sessionLabel(rows.length)}`}
         >
           <defs>
             <linearGradient id={trendId} x1="0" x2="1" y1="0" y2="0">

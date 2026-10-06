@@ -154,6 +154,18 @@ function matchProfileScores(tokens) {
 // comparable history is the whole point of measuring at all. Energy belongs in
 // the interpretation ("your tired sessions run 12 points lower"), never in the
 // ruler.
+// Sessions saved since 6 Oct 2026 carry this marker: their energy is a real
+// answer or null (not asked). Before it, quick start stored 'medium' for
+// everyone and reused setups copied old answers, so an unmarked value cannot
+// be told apart from a default. Energy analysis reads marked sessions only;
+// unmarked ones are never rewritten. See AGENTS.md §11.
+export const ENERGY_LEVEL_VERSION = 2
+
+export function hasReportedEnergy(session) {
+  return session?.energyLevelVersion === ENERGY_LEVEL_VERSION &&
+    ['fresh', 'medium', 'tired'].includes(session?.energyLevel)
+}
+
 export function deriveSessionIntent({ task = '', goal = '', energyLevel = null, tags = [] } = {}) {
   const tagText = Array.isArray(tags) ? tags.join(' ') : ''
   const text = [task, goal, tagText].filter(Boolean).join(' ')

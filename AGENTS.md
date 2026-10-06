@@ -278,7 +278,7 @@ scoring or detection.**
     it does not substitute Lock-in or weighted phase time. The Lab does
     not show a partial Deep Focus subtotal: every session in the selected period
     must carry valid V2 exact time, otherwise the period value is unavailable.
-    `Focus time` is instead the sum of active session `actualSeconds`, excluding
+    `Session time` (labelled "Focus time" until 6 Oct 2026) is the sum of active session `actualSeconds`, excluding
     pauses. Measurement coverage stays internal unless it falls below 90%, when
     the UI warns that the score used measured time only.
     A selected single historical day may render on its own camera generation;

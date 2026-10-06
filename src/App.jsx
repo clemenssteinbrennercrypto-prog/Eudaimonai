@@ -33,6 +33,7 @@ import { playSessionEndChime } from './lib/signatureSound'
 import { useCompanionStatus } from './lib/useCompanionStatus'
 import { getProtectionReadiness } from './lib/protectionReadiness'
 import { useNativeAppMenu } from './lib/nativeAppMenu'
+import { ENERGY_LEVEL_VERSION } from './lib/sessionIntent'
 
 const isNativeRuntime = () => Boolean(window.__TAURI__?.core?.invoke)
 
@@ -235,6 +236,7 @@ export default function App() {
       task,
       goal,
       energyLevel,
+      energyLevelVersion: ENERGY_LEVEL_VERSION,
       tags,
       workspace: workspaceSnapshot(activeWorkspace),
     })

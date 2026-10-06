@@ -190,19 +190,19 @@ const PHASE_INTERVENTION_POLICY = {
     alertDelayMult: 0.8,
     gentleDelayMs: 35_000,
     preDriftNudge: true,
-    cue: 'Protect the ramp: close the detour now.',
+    cue: 'Close the detour now, before it takes over.',
   },
   lock_in: {
     alertDelayMult: 1.25,
     gentleDelayMs: 150_000,
     preDriftNudge: false,
-    cue: 'Lock-in is stable; only major breaks interrupt it.',
+    cue: 'Attention is slipping. A short reset keeps this block going.',
   },
   fade: {
     alertDelayMult: 0.85,
     gentleDelayMs: 30_000,
     preDriftNudge: true,
-    cue: 'Fade is starting. Reset posture or close the off-goal window.',
+    cue: 'Attention is fading. Reset posture or close the off-goal window.',
   },
   recovery: {
     alertDelayMult: 1.4,
@@ -214,7 +214,7 @@ const PHASE_INTERVENTION_POLICY = {
     alertDelayMult: 0.75,
     gentleDelayMs: 25_000,
     preDriftNudge: true,
-    cue: 'Drift is active. Switch back or take a break.',
+    cue: 'Attention has drifted. Switch back or take a break.',
   },
 }
 
@@ -2595,23 +2595,10 @@ export default function SessionScreen({
           />
         </div>
 
-        {!isCalibrating && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-            marginTop: 8,
-          }}>
-            <div style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: FOCUS_PHASES[focusPhase]?.tone || 'var(--text-secondary)',
-              boxShadow: `0 0 0 3px ${(FOCUS_PHASES[focusPhase]?.tone || 'var(--text-secondary)')}22`,
-            }} />
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.04em' }}>
-              Phase: {FOCUS_PHASES[focusPhase]?.label || 'Arrival'}
-            </span>
-          </div>
-        )}
+        {/* No phase name here: Lock-in and Deep Focus are two different
+            "locked in" rules, and showing both live left people asking which
+            one counts. Deep Focus is the live measure; phases stay in the
+            debrief (AGENTS.md §11). */}
 
         {/* Literal Deep Focus time stays visible so the user can verify that
             the strict Flow gate is actually earning seconds. */}

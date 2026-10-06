@@ -268,12 +268,22 @@ describe('new Patterns axes', () => {
 
   it('energyFit compares self-reported energy levels', () => {
     const sessions = [
-      ...Array.from({ length: 5 }, () => sessionAt(Date.now(), 85, { energyLevel: 'fresh' })),
-      ...Array.from({ length: 5 }, () => sessionAt(Date.now(), 40, { energyLevel: 'tired' })),
+      ...Array.from({ length: 5 }, () => sessionAt(Date.now(), 85, { energyLevel: 'fresh', energyLevelVersion: 2 })),
+      ...Array.from({ length: 5 }, () => sessionAt(Date.now(), 40, { energyLevel: 'tired', energyLevelVersion: 2 })),
     ]
     const { best, worst } = energyFit(sessions)
     expect(best.label).toBe('fresh energy')
     expect(worst.label).toBe('tired energy')
+  })
+
+  it('energyFit ignores energy saved before answers were trustworthy', () => {
+    // Before the marker, quick start stored 'medium' for everyone: a pattern
+    // built on those values would be a pattern in a default.
+    const sessions = [
+      ...Array.from({ length: 5 }, () => sessionAt(Date.now(), 85, { energyLevel: 'fresh' })),
+      ...Array.from({ length: 5 }, () => sessionAt(Date.now(), 40, { energyLevel: 'medium' })),
+    ]
+    expect(energyFit(sessions).best).toBeNull()
   })
 
   it('driftRecoveryFit compares sessions with and without drift-risk cues', () => {
