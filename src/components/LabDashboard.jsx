@@ -7,6 +7,7 @@ import { useCurrentTime } from '../lib/useCurrentTime'
 import FocusScoreExplanation, { FocusScoreMethod, focusScoreLabel } from './FocusScoreExplanation'
 import { formatDurationCompact } from '../lib/durationFormat'
 import { FOCUS_SCORE } from '../lib/focusScore'
+import { buildDayBaseline } from '../lib/personalBaseline'
 
 const PERIOD_RANGES = [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']]
 
@@ -91,15 +92,43 @@ function fractionOf(value, whole) {
   return Number.isFinite(value) && Number.isFinite(whole) && whole > 0 && value >= 0 ? value / whole : null
 }
 
-function Metric({ label, value, suffix, detail, tone }) {
+function Metric({ label, value, suffix, detail, tone, compare = null }) {
   return (
-    <div className={`lab-metric lab-metric-${tone}`}>
+    <div className={`lab-metric lab-metric-${tone}${compare ? ' has-compare' : ''}`}>
       <span>{label}</span>
       <strong>{value ?? '—'}{value != null && suffix ? <small>{suffix}</small> : null}</strong>
       {detail ? <small className="lab-metric-detail">{detail}</small> : null}
+      {compare}
     </div>
   )
 }
+
+// A day against the user's own usual (personalBaseline.js). Today is still
+// running, so cumulative values show the usual as a reference instead of a
+// gap that would look like a deficit every morning. Average attention is not
+// cumulative and can be compared at any time.
+function BaselineNote({ value, usual, format, unit = 1, cumulative, isToday, days }) {
+  if (usual == null) return null
+  // Round both sides to the unit shown before subtracting, so "+4 · 70"
+  // never reads 74 against a median of 69.5 as "+5".
+  const shown = number => Math.round(number / unit) * unit
+  const title = `Your usual: the median of your last ${days} scored days`
+  if (value == null || (cumulative && isToday)) {
+    return <small className="lab-baseline" title={title}>Usual day {format(shown(usual))}</small>
+  }
+  const delta = shown(value) - shown(usual)
+  const text = delta === 0
+    ? 'Same as usual'
+    : `${delta > 0 ? '+' : '−'}${format(Math.abs(delta))} vs usual`
+  return (
+    <small className="lab-baseline" title={title}>
+      <b className={delta > 0 ? 'is-up' : delta < 0 ? 'is-down' : ''}>{text}</b> · {format(shown(usual))}
+    </small>
+  )
+}
+
+const formatPoints = value => String(Math.round(value))
+const formatSeconds = value => formatDurationCompact(Math.round(value))
 
 // Every other screen formats dates in en-US; the system locale here put
 // German weekdays ("MO., 28.") between English labels.
@@ -275,6 +304,16 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
     { key: 'attention', fraction: fractionOf(period.averageAttention, 100) },
     { key: 'deep', fraction: fractionOf(time.deepFocusSeconds, time.measuredSeconds) },
   ]
+  const isToday = periodSelection.periodStart == null
+  const baseline = useMemo(() => periodSelection.range === 'day'
+    ? buildDayBaseline({
+      ledger: source.ledger,
+      sessions: source.sessions,
+      dayStart: period.start instanceof Date ? period.start.getTime() : undefined,
+      now: dashboardNow,
+      metricVersion: FOCUS_SCORE.metricVersion,
+    })
+    : null, [source, period.start, periodSelection.range, dashboardNow])
   const hasAttentionSignal = data.attention.some(bin => !['inactive', 'no-signal', 'paused', 'future'].includes(bin.state))
   const selectRange = range => setPeriodSelection({ range, periodStart: null })
   const movePeriod = delta => setPeriodSelection(current => {
@@ -318,13 +357,21 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
           <h2 id="lab-title">Focus Score</h2>
           <ScoreInfo />
         </div>
-        <ScoreRings score={period.score} caption={period.score == null ? focusScoreLabel(period) : 'of 100'} rings={rings} />
+        <div className="lab-ring-column">
+          <ScoreRings score={period.score} caption={period.score == null ? focusScoreLabel(period) : 'of 100'} rings={rings} />
+          {baseline && (
+            <BaselineNote value={period.score} usual={baseline.focusScore} format={formatPoints} cumulative isToday={isToday} days={baseline.days} />
+          )}
+        </div>
         <div className="lab-metric-row">
           <Metric
             tone="time"
             label="Session time"
             value={time.focusSeconds == null ? null : formatDurationCompact(time.focusSeconds)}
             detail="Time in sessions, without breaks"
+            // Session time has no usual on purpose (more hours is not better
+            // work), but keeps the line's height so the three columns align.
+            compare={baseline && <small className="lab-baseline is-spacer" aria-hidden="true">&nbsp;</small>}
           />
           <Metric
             tone="attention"
@@ -332,12 +379,18 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
             value={period.averageAttention == null ? null : Math.round(period.averageAttention)}
             suffix="/100"
             detail="Average while the camera could see you"
+            compare={baseline && (
+              <BaselineNote value={period.averageAttention} usual={baseline.averageAttention} format={formatPoints} isToday={isToday} days={baseline.days} />
+            )}
           />
           <Metric
             tone="deep"
             label="Deep Focus"
             value={time.deepFocusSeconds == null ? null : formatDurationCompact(time.deepFocusSeconds)}
             detail={deepFocusDetail}
+            compare={baseline && (
+              <BaselineNote value={time.deepFocusSeconds} usual={baseline.deepFocusSeconds} format={formatSeconds} unit={60} cumulative isToday={isToday} days={baseline.days} />
+            )}
           />
         </div>
       </section>

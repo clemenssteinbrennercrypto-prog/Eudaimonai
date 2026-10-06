@@ -546,3 +546,71 @@ describe('LabDashboard score notes', () => {
     expect(view.container).toBeEmptyDOMElement()
   })
 })
+
+describe('LabDashboard personal baseline', () => {
+  // Same pipeline as App: derive the session metric, then add it to the ledger.
+  function day(id, date, { minutes = 60, attention = 70, flowMinutes = 30 } = {}) {
+    const startedAt = date.getTime()
+    const measuredSeconds = minutes * 60
+    return {
+      id,
+      task: id,
+      startedAt,
+      timestamp: startedAt + (measuredSeconds + 120) * 1000,
+      endedAt: startedAt + (measuredSeconds + 120) * 1000,
+      actualSeconds: measuredSeconds + 120,
+      measuredSeconds,
+      scoreSum: measuredSeconds * attention,
+      focusedSeconds: measuredSeconds,
+      avgFocusScore: attention,
+      finalScore: attention,
+      attentionScoringVersion: NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
+      deepFocusTimeVersion: 2,
+      flowSeconds: flowMinutes * 60,
+      focusPhases: { seconds: { lock_in: measuredSeconds } },
+      timeline: [{ second: 5, score: attention }],
+    }
+  }
+
+  async function renderWithDays(count) {
+    vi.setSystemTime(new Date(2026, 9, 20, 16))
+    const { addSessionToFocusLedger, emptyFocusLedger, withSessionFocusMetric } = await import('../lib/focusMetric')
+    const sessions = [
+      ...Array.from({ length: count }, (_, i) => withSessionFocusMetric(day(`past${i}`, new Date(2026, 9, 10 + i, 9), { flowMinutes: 30, attention: 70 }))),
+      withSessionFocusMetric(day('today', new Date(2026, 9, 20, 9), { flowMinutes: 45, attention: 74 })),
+    ]
+    const ledger = sessions.reduce((current, item) => addSessionToFocusLedger(current, item), emptyFocusLedger())
+    render(<LabDashboard focusModeEnabled={false} sessions={[...sessions].reverse()} ledger={ledger} />)
+  }
+
+  it('says nothing until five scored days exist', async () => {
+    await renderWithDays(4)
+    expect(screen.queryByText(/usual/i)).not.toBeInTheDocument()
+  })
+
+  it('compares attention today but shows cumulative values only as the usual', async () => {
+    await renderWithDays(5)
+    // Today is still running: Deep Focus and the score show the usual, not a gap.
+    expect(screen.getByText('Usual day 30m')).toBeInTheDocument()
+    expect(screen.getByText(/^Usual day \d+$/)).toBeInTheDocument()
+    // Attention is not cumulative, so it is compared.
+    expect(screen.getByText('+4 vs usual')).toBeInTheDocument()
+  })
+
+  it('compares every value on a finished day', async () => {
+    vi.setSystemTime(new Date(2026, 9, 20, 16))
+    const { addSessionToFocusLedger, emptyFocusLedger, withSessionFocusMetric } = await import('../lib/focusMetric')
+    const sessions = [
+      ...Array.from({ length: 5 }, (_, i) => withSessionFocusMetric(day(`past${i}`, new Date(2026, 9, 10 + i, 9), { flowMinutes: 30, attention: 70 }))),
+      withSessionFocusMetric(day('yesterday', new Date(2026, 9, 19, 9), { flowMinutes: 45, attention: 66 })),
+    ]
+    const ledger = sessions.reduce((current, item) => addSessionToFocusLedger(current, item), emptyFocusLedger())
+    render(<LabDashboard focusModeEnabled={false} sessions={[...sessions].reverse()} ledger={ledger} />)
+    fireEvent.click(screen.getByLabelText('Show previous day'))
+    expect(screen.getByText('+15m vs usual')).toBeInTheDocument()
+    // A shortfall is stated, not alarmed: no green, no red.
+    const attention = screen.getByText('−4 vs usual')
+    expect(attention).not.toHaveClass('is-up')
+    expect(screen.queryByText(/^Usual day/)).not.toBeInTheDocument()
+  })
+})
