@@ -91,6 +91,9 @@ export function calculateBaseAttentionScore(input) {
     score = input.previousScore * 0.88
     record.add('face_transition_decay', score - input.previousScore)
   } else if (input.hasFace) {
+    // Absolute blink bands are a product heuristic (grade C). Within a person,
+    // blink rate falls with attentional load and rises with fatigue and mind
+    // wandering (Maffei & Angrilli 2018; Smilek et al. 2010).
     if (input.hasBlinkData && input.blinkRate >= 12 && input.blinkRate <= 20) add('blink_optimal', 7)
     else if (input.hasBlinkData && input.blinkRate >= 5 && input.blinkRate < 12) add('blink_focus_suppression', 4)
     else if (input.hasBlinkData && input.blinkRate >= 8 && input.blinkRate <= 28) add('blink_normal', 3)

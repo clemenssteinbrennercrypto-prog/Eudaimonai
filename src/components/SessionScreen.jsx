@@ -111,16 +111,21 @@ import {
 import { playSessionStartChime } from '../lib/signatureSound'
 
 // ── Thresholds ────────────────────────────────────────────────────────────────
-// Science sources:
-//  • EAR blink/heavy: Soukupová & Čech (2016), dlib 68-pt model, EAR < 0.20 = blink
-//  • PROLONGED_CLOSE_MS: fatigue eye closure > 500ms (PMC3836343), microsleep ≥ 1000ms
-//    → 800ms = early fatigue warning; 1500ms = confirmed impairment (kept for penalty trigger)
-//  • MAR_YAWN: 0.50 per Weng et al. (MDPI 2022) — threshold in 20-frame sequence
+// Sources and grades: docs/focus-score-evidence-2026-10-06.md. None of these
+// cut-offs is validated against an attention ground truth; most are product
+// choices (grade C) informed by the research below.
+//  • Blink / "heavy" closure: personal thresholds, 0.72× and 0.55× the calibrated
+//    open-eye EAR. Soukupová & Čech (2016) found the best fixed EAR threshold
+//    varies by dataset (0.08–0.27), so a per-person baseline is used, not 0.20.
+//  • PROLONGED_CLOSE_MS 1500 / EARLY_MICROSLEEP_MS 800: product cut-offs. Longer
+//    average eye closure tracks drowsiness (Wilkinson et al. 2013, PMC3836343,
+//    IR oculography); the ms values themselves are unverified.
+//  • MAR_YAWN 0.50: common landmark heuristic; no primary source located, and
+//    yawning is not an established arousal signal (Guggisberg et al. 2010).
 //  • BLINK_WIN_MS: 20s window gives ~4 blinks minimum at 12/min — adequate signal
-//  • PERCLOS_WIN_MS: 30s (shortened from 60s) — office/study use responds faster than driving;
-//    Wierwille (1994) 60s was for highway driving. 30s validated in PMC10108649.
-const EAR_BLINK              = 0.20
-const EAR_HEAVY              = 0.15
+//  • PERCLOS_WIN_MS 30s: product choice. Classic PERCLOS (Wierwille 1994; Dinges
+//    1998) is the share of a minute with lids ≥80 % closed; ours counts frames
+//    below 0.55× baseline EAR — an "eye-closure share", not P80 PERCLOS.
 const PITCH_UP_THRESH     = 15
 const ALERT_COOLDOWN_MS      = 60_000
 const GENTLE_REMINDER_DELAY_MS = 60_000
@@ -261,10 +266,6 @@ function getPhaseAlertMessage(reason, phase) {
   const phaseCopy = PHASE_ALERT_COPY[phase]?.[reason] || PHASE_ALERT_COPY[phase]?.default
   return phaseCopy ? { ...base, ...phaseCopy } : base
 }
-
-// ── Circadian thresholds ───────────────────────────────────────────────────────
-// Research: post-lunch dip 13:00–15:00 (Monk 2005); night fatigue 23:00–06:00 (Czeisler 1999)
-// We lenient-shift PROLONGED_CLOSE_MS and ALERT delay in these windows.
 
 // ── Alert messages ────────────────────────────────────────────────────────────
 const ALERT_MESSAGES = {
@@ -1385,8 +1386,8 @@ export default function SessionScreen({
       eyesClosedSinceRef.current = null
     }
     const eyesClosedMs = eyesClosedSinceRef.current ? now - eyesClosedSinceRef.current : 0
-    // Early microsleep warning: research shows >500ms slow closure = drowsiness signal
-    // (PMC3836343: sleep-deprived pilots showed increased 500ms+ closures with performance errors)
+    // Early eye-closure warning: longer average closure tracks drowsiness
+    // (Wilkinson et al. 2013, PMC3836343); the 800 ms cut-off is a product choice.
     // earlyMicrosleepMs uses EAR_PROLONGED_CLOSE threshold (held below 0.18)
     // but a shorter time window than PROLONGED_CLOSE_MS to catch onset earlier
     const earlyMicrosleepMs = hasFace && avgEar < EAR_PROLONGED_CLOSE ? eyesClosedMs : 0
@@ -1792,10 +1793,10 @@ export default function SessionScreen({
     const holdForPenaltyDebounce = !hasFace && !faceAbsentConfirmed
 
     // ── Sustained-focus ramp (+0 to +15 over ~2 min) ──────────────────────
-    // Attention Restoration Theory (Kaplan 1995; Mark et al. 2008):
-    // After a distraction, directed attention recovers gradually — ~2 min to re-engage.
-    // We model this by building the ramp at 40% speed for 2 min post-distraction,
-    // then full speed once recovery window has passed.
+    // Product heuristic (grade C): after a distraction the ramp builds at 40%
+    // speed for 2 min, then full speed. No located study measures a 2-min
+    // re-engagement time — Kaplan (1995) is restoration theory, and the
+    // "2 minutes" in Mark et al. (2008) is their interruption interval.
     const msSinceDistraction = lastDistractionRef.current ? now - lastDistractionRef.current : Infinity
     const inRecovery = msSinceDistraction < RECOVERY_WINDOW_MS
     const rampRate = inRecovery ? 0.4 : 1.0  // 40% speed while recovering
