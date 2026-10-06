@@ -397,13 +397,10 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# Local only: invitation emails go to the local mail catcher, never to Resend.
-# Staging/production set their own values with `supabase secrets set`.
-[edge_runtime.secrets]
-MAIL_TRANSPORT = "mailpit"
-MAILPIT_SEND_URL = "http://supabase_inbucket_eudaimonai:8025/api/v1/send"
-MAIL_FROM = "Eudaimonai (local) <noreply@mail.eudaimonai.app>"
-SITE_URL = "http://127.0.0.1:4173"
+# Function settings for LOCAL runs live in supabase/functions/.env, not in a
+# [edge_runtime.secrets] block here: `supabase secrets set` pushes that block
+# to the hosted project too, which once sent local mail-catcher values to
+# staging. Hosted projects get their own values with `supabase secrets set`.
 
 [analytics]
 enabled = false

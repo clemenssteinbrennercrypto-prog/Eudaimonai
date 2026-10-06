@@ -142,6 +142,19 @@ Step 0b.
 - `join_waitlist` has no rate limit of its own. A form flood would insert
   junk emails; mitigation (CAPTCHA or an edge check) is a Step 0b decision.
 
+## Accepted advisor findings (staging, 6 October 2026)
+
+`supabase db advisors` reports these on purpose; each was reviewed:
+
+| Finding | Why it is accepted |
+|---|---|
+| `anon_security_definer_function_executable`: `join_waitlist` | The anonymous waitlist must be callable; it validates input, rate-limits, and reveals nothing. |
+| `authenticated_security_definer_function_executable`: `admin_*`, `claim_beta_invitation`, `get_my_access`, `join_waitlist` | Each function authorizes the caller itself (`private.require_admin()` or `auth.uid()`); tests prove non-admins are refused. |
+| `*_security_definer_function_executable`: `rls_auto_enable` | Supabase's own "enable RLS automatically" event trigger. It returns `event_trigger`, which Postgres refuses to run as a normal call. |
+| `auth_leaked_password_protection` | Not applicable: the beta is passwordless (8-digit email codes only). No website or app flow sets or uses a password, and the invite-only signup hook refuses any new account without a live invitation, so Supabase's password endpoints cannot create one either. The setting needs a paid plan; not enabled. Revisit only if passwords are ever introduced. |
+
+A new finding outside this list is a stop-and-review event.
+
 ## Step 0b additions
 
 ### Website (`src/web/`)
