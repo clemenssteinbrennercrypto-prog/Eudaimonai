@@ -4,6 +4,7 @@ import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
 import { formatDurationCompact } from '../../lib/durationFormat'
 import { useCountUp } from './chart/hooks'
 import Sessions from './Sessions'
+import { PersonalRecordsPanel } from '../PersonalRecords'
 
 const OUTCOMES = [
   { value: 'yes', label: 'Reached', className: 'is-good' },
@@ -162,6 +163,7 @@ export default function AnalyticsStory({
   return (
     <div className="analytics-story">
       <RecentOverview sessions={sessions} />
+      <PersonalRecordsPanel sessions={sessions} />
       <OutcomeInbox sessions={story.unratedSessions} onRate={onUpdateSession} />
       <section className="analytics-history" aria-labelledby="session-history-heading">
         <div className="analytics-section-heading">

@@ -2,6 +2,7 @@ import MeasuredFacts from './sessionReport/MeasuredFacts'
 import CheckIn from './sessionReport/CheckIn'
 import SessionRead from './sessionReport/SessionRead'
 import SessionDetails from './sessionReport/SessionDetails'
+import { NewRecordNote } from './PersonalRecords'
 
 /**
  * The post-session debrief. Four ordered sections: Measured facts, Quick
@@ -12,6 +13,7 @@ import SessionDetails from './sessionReport/SessionDetails'
 export default function SessionReport({
   session,
   analysis,
+  records = [],
   onOutcomeChange,
   onPrimaryAction,
   onSecondaryAction,
@@ -22,6 +24,7 @@ export default function SessionReport({
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <MeasuredFacts session={session} analysis={analysis} />
+      <NewRecordNote records={records} />
       <CheckIn session={session} analysis={analysis} onOutcomeChange={onOutcomeChange} />
       {showRead && <SessionRead analysis={analysis} />}
       <SessionDetails session={session} analysis={analysis} />

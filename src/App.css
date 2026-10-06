@@ -5048,3 +5048,14 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .lab-baseline b { font-weight: 600; color: var(--ds-label-2); }
 .lab-baseline b.is-up { color: var(--ds-good); }
 .lab-baseline.is-spacer { visibility: hidden; }
+
+/* Personal records (PersonalRecords.jsx). The debrief note uses the check-in's
+   glass card; Analytics reuses the overview metric tiles. */
+.report-records { width: 100%; box-sizing: border-box; padding: var(--ds-space-4) var(--ds-space-5); border: 1px solid var(--ds-silver-line); border-radius: var(--ds-radius-lg); background: var(--ds-glass); box-shadow: var(--ds-glass-shadow); display: flex; flex-direction: column; gap: var(--ds-space-2); }
+.report-records-kicker { margin: 0 0 var(--ds-space-1); color: var(--ds-good); font: 600 11px/1.2 var(--ds-font); letter-spacing: 0.14em; text-transform: uppercase; }
+.report-records-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'label value' 'previous value'; align-items: center; column-gap: var(--ds-space-4); }
+.report-records-row span { grid-area: label; color: var(--ds-label); font-size: 14px; font-weight: 600; }
+.report-records-row strong { grid-area: value; color: var(--ds-label); font: 300 28px/1 var(--ds-font); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.report-records-row small { grid-area: previous; color: var(--ds-label-3); font-size: 12px; }
+.analytics-records { margin-top: 0; }
+.analytics-record-date { display: block; margin-top: 4px; color: var(--text-muted); font-size: 12px; }

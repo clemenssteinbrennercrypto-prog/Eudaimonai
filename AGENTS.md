@@ -139,6 +139,7 @@ src/
     focusMetric.js     (+test)  focus ledger, periods, versioned history
     sessionAnalysis.js (+test)  debrief facts, conclusion, one next action
     personalBaseline.js (+test) the user's usual day (median of 28 days)
+    personalRecords.js (+test)  personal records and the debrief's new-record note
     sessionMeasures.js (+test)  lapses, recovery, switches, longest Deep Focus
                                 block — derived from the stored 5 s timeline
     analyticsModel.js  (+test)  Analytics overview/details aggregations
@@ -743,10 +744,16 @@ never rewritten.
   compared at any time. Gains are green, shortfalls stay neutral. Session
   time gets no usual: more hours is not better work. Never against other
   people.
-- **Personal records**: longest Deep Focus block, most Deep Focus in a day,
-  best Focus Score day. Announced only after 10 qualifying sessions on the
-  current generation; before that nearly every session is a "record" and the
-  word stops meaning anything.
+- **Personal records** (`personalRecords.js`): longest Deep Focus block, most
+  Deep Focus in a day, best Focus Score day. A qualifying session is on the
+  current generation, not faulted, ≥ 5 measured minutes, with exact Deep
+  Focus. Nothing is claimed below 10 qualifying sessions — before that nearly
+  every session is a "record" and the word stops meaning anything. The
+  debrief announces a record only from the session that set it (a day record
+  only from the session that pushed the day past the previous best), and only
+  once history has loaded. Day scores are ranked unrounded but announced only
+  when the shown number rises. Analytics → Overview lists the standing
+  records, or "n of 10" progress.
 - **Weekly review**: the week against the previous one and the baseline, with
   any new records. Reached from the Lab; one native notification when a new
   week's review is ready. It never fires during a session.

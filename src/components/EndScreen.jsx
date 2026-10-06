@@ -3,6 +3,7 @@ import { sessionRepository } from '../lib/sessionRepository'
 import { analyzeSession } from '../lib/sessionAnalysis'
 import { durationFromSession } from '../lib/sessionDuration'
 import SessionReport from './SessionReport'
+import { newRecordsForSession } from '../lib/personalRecords'
 
 /**
  * Thin wrapper: analyse the session App hands down and render the shared
@@ -17,6 +18,9 @@ import SessionReport from './SessionReport'
  */
 export default function EndScreen({ sessionData, onOutcomeChange, onRestart, onPrimaryAction }) {
   const [priorSessions, setPriorSessions] = useState([])
+  // null until history has loaded: a record is never claimed against an
+  // empty list that only looks like "no previous best".
+  const [historyLoaded, setHistoryLoaded] = useState(false)
 
   // History is only needed for the personal-baseline sample size, which is a
   // secondary detail — so the report renders immediately with an empty
@@ -26,7 +30,10 @@ export default function EndScreen({ sessionData, onOutcomeChange, onRestart, onP
     let cancelled = false
     sessionRepository.loadAll()
       .then(all => {
-        if (!cancelled) setPriorSessions(all.filter(s => s.id !== sessionData.id))
+        if (!cancelled) {
+          setPriorSessions(all.filter(s => s.id !== sessionData.id))
+          setHistoryLoaded(true)
+        }
       })
       .catch(() => {})
     return () => { cancelled = true }
@@ -37,12 +44,18 @@ export default function EndScreen({ sessionData, onOutcomeChange, onRestart, onP
     [sessionData, priorSessions]
   )
 
+  const records = useMemo(
+    () => (historyLoaded ? newRecordsForSession(sessionData, priorSessions) : []),
+    [historyLoaded, sessionData, priorSessions]
+  )
+
   return (
     <div className="screen-center">
       <div className="end-content">
         <SessionReport
           session={sessionData}
           analysis={analysis}
+          records={records}
           onOutcomeChange={onOutcomeChange}
           onPrimaryAction={onPrimaryAction}
           onSecondaryAction={() => onRestart()}
