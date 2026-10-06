@@ -5039,3 +5039,12 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .session-measures dd { margin: 0; display: flex; align-items: baseline; gap: 6px; }
 .session-measures strong { font-size: 17px; font-weight: 600; color: var(--ds-label, var(--text)); font-variant-numeric: tabular-nums; }
 .session-measures small { font-size: 11px; color: var(--ds-label-3, var(--text-muted)); }
+
+/* Personal baseline on the Lab (personalBaseline.js): one quiet line under
+   the ring and under each comparable metric. A gain is marked green; a
+   shortfall stays neutral — an instrument reports, it does not scold. */
+.lab-ring-column { display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-3); min-width: 0; }
+.lab-baseline { color: var(--ds-label-3); font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.lab-baseline b { font-weight: 600; color: var(--ds-label-2); }
+.lab-baseline b.is-up { color: var(--ds-good); }
+.lab-baseline.is-spacer { visibility: hidden; }

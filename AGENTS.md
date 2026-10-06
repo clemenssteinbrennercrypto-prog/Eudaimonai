@@ -138,6 +138,7 @@ src/
     focusScore.js      (+test)  the current daily Focus Score (metricVersion 4)
     focusMetric.js     (+test)  focus ledger, periods, versioned history
     sessionAnalysis.js (+test)  debrief facts, conclusion, one next action
+    personalBaseline.js (+test) the user's usual day (median of 28 days)
     sessionMeasures.js (+test)  lapses, recovery, switches, longest Deep Focus
                                 block — derived from the stored 5 s timeline
     analyticsModel.js  (+test)  Analytics overview/details aggregations
@@ -733,9 +734,15 @@ never rewritten.
 
 ### Comparison layer
 
-- **Personal baseline**: today against the user's own usual — the median of
-  the previous 28 days that had a measured session, same camera generation,
-  silent below 5 such days. Never against other people.
+- **Personal baseline** (`personalBaseline.js`, Lab day view): a day against
+  the user's own usual — the median of the previous 28 days that have a
+  current Focus Score on the current camera generation, silent below 5 such
+  days. Rest days are left out, not counted as zero. Today is still running,
+  so cumulative values (score, Deep Focus) show the usual as a reference, not
+  a gap that would read as a deficit every morning; average attention is
+  compared at any time. Gains are green, shortfalls stay neutral. Session
+  time gets no usual: more hours is not better work. Never against other
+  people.
 - **Personal records**: longest Deep Focus block, most Deep Focus in a day,
   best Focus Score day. Announced only after 10 qualifying sessions on the
   current generation; before that nearly every session is a "record" and the
