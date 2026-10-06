@@ -15,7 +15,8 @@ import AnalyticsShell from './components/analytics/AnalyticsShell'
 import HistoryStorageAlerts from './components/HistoryStorageAlerts'
 import { loadFocusModeEnabled, loadProtectionSetups, saveFocusModeEnabled, saveProtectionSetups, disableOptionalModelProviders, loadOutputFolder, saveOutputFolder, pickOutputFolder } from './lib/storage'
 import { activateProtectionSetup, getActiveProtectionSetup } from './lib/protectionSetups'
-import { deleteCloudApiKey } from './lib/nativeCompanion'
+import { deleteCloudApiKey, sendNativeNotification } from './lib/nativeCompanion'
+import { dueWeekReviewNotification } from './lib/weeklyReview'
 import LegalModal from './components/LegalModal'
 import { sessionRepository } from './lib/sessionRepository'
 import { createSessionPersister } from './lib/sessionPersistence'
@@ -146,6 +147,36 @@ export default function App() {
       })
     return () => { cancelled = true }
   }, [])
+
+  // One notification a week, when last week's review is ready (weeklyReview.js
+  // decides when). Checked on launch and every half hour; never while a
+  // session runs. The week is remembered only once the native side accepted
+  // the notification, so a failed send is retried.
+  const screenRef = useRef(screen)
+  screenRef.current = screen
+  useEffect(() => {
+    if (flow !== 'app' || !isNativeRuntime()) return undefined
+    const NOTIFIED_KEY = 'eudaimonai_week_review_notified'
+    const check = () => {
+      let lastNotifiedWeekKey = null
+      try { lastNotifiedWeekKey = localStorage.getItem(NOTIFIED_KEY) } catch { /* treat as never */ }
+      const due = dueWeekReviewNotification({
+        ledger: history.ledger,
+        sessions: history.sessions,
+        now: Date.now(),
+        lastNotifiedWeekKey,
+        sessionRunning: screenRef.current === 'session',
+      })
+      if (!due) return
+      sendNativeNotification(due).then(sent => {
+        if (!sent) return
+        try { localStorage.setItem(NOTIFIED_KEY, due.weekKey) } catch { /* may repeat once */ }
+      })
+    }
+    check()
+    const timer = setInterval(check, 30 * 60 * 1000)
+    return () => clearInterval(timer)
+  }, [flow, history])
 
   const activeWorkspace = getActiveWorkspace(workspaceState)
   const devices = workspaceDevices(activeWorkspace)

@@ -201,3 +201,16 @@ export async function fetchOutputDelta() {
     return null
   }
 }
+
+// The weekly review notification, through the official notification plugin
+// so it is sent as the app (clicking it opens Eudaimonai). Resolves true only
+// when the native side accepted it; outside the app there is nothing to send.
+export async function sendNativeNotification({ title, body }) {
+  try {
+    if (!getNativeApi()?.core?.invoke) return false
+    await invokeNative('plugin:notification|notify', { options: { title, body } })
+    return true
+  } catch {
+    return false
+  }
+}

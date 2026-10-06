@@ -252,6 +252,10 @@ fn main() {
                 .build(),
         )
         .plugin(tauri_plugin_dialog::init())
+        // The weekly review notification (src/lib/weeklyReview.js). Sent as
+        // the app itself, so clicking it opens Eudaimonai; the AppleScript
+        // notifications in activity.rs open Script Editor instead.
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             check_native_update,
             native::get_activity_status,

@@ -3,7 +3,7 @@ import React from 'react'
 import '@testing-library/jest-dom/vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToString } from 'react-dom/server'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import LabDashboard from './LabDashboard'
 import { FOCUS_METRIC_V1 } from '../lib/focusMetric'
 import { NATIVE_CAMERA_MEASUREMENT_V2 } from '../lib/cameraMeasurement'
@@ -124,12 +124,14 @@ describe('LabDashboard metric labels', () => {
     expect(focusTime).toHaveTextContent('2h')
     expect(focusTime).toHaveTextContent('Time in sessions, without breaks')
     expect(focusTime).not.toHaveTextContent('2m')
-    expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Missing for some sessions')
+    // The Weekly view adds a week review below; these are the hero's metrics.
+    const hero = within(document.querySelector('.lab-hero'))
+    expect(hero.getByText('Deep Focus').parentElement).toHaveTextContent('Missing for some sessions')
     // The Lab shows warnings only; the routine "uses X of Y" note lives in
     // Analytics. Both numbers stay visible as separate metrics above.
     expect(screen.queryByText(/Focus Score uses 1h of 2h 40s session time/)).not.toBeInTheDocument()
     expect(screen.queryByText('Measured days')).not.toBeInTheDocument()
-    expect(screen.getByText('Average attention').parentElement).toHaveTextContent('80/100')
+    expect(hero.getByText('Average attention').parentElement).toHaveTextContent('80/100')
     expect(screen.queryByText('Time credit')).not.toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/\b(?:V1|V2|ruler|phase-weighted)\b|time \+ attention/i)
     expect(loadFocusLedger()).toEqual(originalLedger)

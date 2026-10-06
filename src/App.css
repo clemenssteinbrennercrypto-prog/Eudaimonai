@@ -5059,3 +5059,20 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .report-records-row small { grid-area: previous; color: var(--ds-label-3); font-size: 12px; }
 .analytics-records { margin-top: 0; }
 .analytics-record-date { display: block; margin-top: 4px; color: var(--text-muted); font-size: 12px; }
+
+/* Weekly review (WeekReview.jsx) and the Lab's offer to open last week. */
+.lab-week-ready { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-4); padding: var(--ds-space-3) var(--ds-space-5); border: 1px solid var(--ds-hairline); border-radius: var(--ds-radius-lg); background: var(--ds-glass); color: var(--ds-label-2); font-size: 13px; }
+.lab-week-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: var(--ds-space-4) 0 0; }
+.lab-week-grid > div { display: flex; flex-direction: column; gap: var(--ds-space-2); padding: var(--ds-space-2) var(--ds-space-5); border-left: 1px solid var(--ds-hairline); }
+.lab-week-grid > div:first-child { border-left: 0; padding-left: 0; }
+.lab-week-grid dt { color: var(--ds-label-2); font: 600 11px/1.2 var(--ds-font); letter-spacing: 0.14em; text-transform: uppercase; }
+.lab-week-grid dd { margin: 0; display: flex; flex-direction: column; gap: var(--ds-space-1); }
+.lab-week-grid strong { color: var(--ds-label); font: 300 32px/1.05 var(--ds-font); letter-spacing: -0.03em; white-space: nowrap; }
+.lab-week-grid small { color: var(--ds-label-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.lab-week-grid small b { font-weight: 600; color: var(--ds-label-2); }
+.lab-week-grid small b.is-up { color: var(--ds-good); }
+.lab-week-records { margin: var(--ds-space-4) 0 0; color: var(--ds-label-2); font-size: 13px; }
+@media (max-width: 760px) {
+  .lab-week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--ds-space-4); }
+  .lab-week-grid > div:nth-child(3) { border-left: 0; padding-left: 0; }
+}

@@ -140,6 +140,7 @@ src/
     sessionAnalysis.js (+test)  debrief facts, conclusion, one next action
     personalBaseline.js (+test) the user's usual day (median of 28 days)
     personalRecords.js (+test)  personal records and the debrief's new-record note
+    weeklyReview.js    (+test)  week vs week, and when the weekly notification is due
     sessionMeasures.js (+test)  lapses, recovery, switches, longest Deep Focus
                                 block — derived from the stored 5 s timeline
     analyticsModel.js  (+test)  Analytics overview/details aggregations
@@ -468,9 +469,9 @@ the comparison layer in §11 (baseline, records, weekly review):
 - **The differentiator ships off.** A new user sees "0 focus apps · 0 blocked".
   Blocking is the one thing competitors lack, and it is empty by default, behind
   a config screen and an admin password. Most users will never see it work.
-- **Nothing brings the user back.** There is no notification, reminder or
-  scheduling anywhere in the codebase. A focus tracker without re-engagement is
-  a one-week app.
+- **Nothing brings the user back.** There was no notification, reminder or
+  scheduling anywhere in the codebase. Addressed 6 Oct 2026 by the comparison
+  layer and the weekly notification (§11).
 
 ---
 
@@ -754,6 +755,17 @@ never rewritten.
   once history has loaded. Day scores are ranked unrounded but announced only
   when the shown number rises. Analytics → Overview lists the standing
   records, or "n of 10" progress.
-- **Weekly review**: the week against the previous one and the baseline, with
-  any new records. Reached from the Lab; one native notification when a new
-  week's review is ready. It never fires during a session.
+- **Weekly review** (`weeklyReview.js`, `WeekReview.jsx`): the Lab's Weekly
+  view shows the week against the one before — Deep Focus, average attention,
+  lapses per hour, best day — and any records set that week. A running week
+  shows last week beside cumulative values, never a gap. Weeks on different
+  camera generations are not compared. The day view offers last week's review
+  once ("Your review of last week is ready"), until the user opens it.
+- **The one notification** (`App.jsx`, `tauri-plugin-notification`): "Your
+  week in review" with a one-line Deep Focus summary, once per week, only when
+  last week had a qualifying session, from 08:00 Monday to the end of
+  Wednesday, never during a session. The week is remembered only after the
+  native side accepted the send. It goes through the plugin, not AppleScript:
+  an AppleScript notification opens Script Editor when clicked. The plugin is
+  pinned to `~2.4` because 2.5 requires tauri 2.12; move it with the next
+  deliberate tauri update, not as a side effect.
