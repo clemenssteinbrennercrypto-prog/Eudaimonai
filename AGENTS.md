@@ -393,6 +393,14 @@ All three providers are async, return the identical shape, and **fall back to
 `keywords`** on any failure. A model that is absent, slow or talking nonsense
 degrades the result; it never breaks a session.
 
+**The closed-beta backend is a second, separate boundary.** Since October 2026
+the public website (`src/web/`, rendered from `main.jsx`, never inside the
+native app) talks to Supabase for the waitlist, invitations, sign-in codes and
+beta access. Supabase holds account and access records only — no session,
+history, camera or activity data, and none may be added. The native app does
+not contact it yet; when it does (the access check), it must keep that rule.
+Schema, rules and tests: `docs/beta-access-backend.md`, `supabase/`.
+
 ---
 
 ## 6. Already tried and rejected — do not rebuild

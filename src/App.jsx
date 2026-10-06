@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ErrorBoundary from './components/ErrorBoundary'
-import LandingPage from './components/LandingPage'
 import Onboarding from './components/Onboarding'
 import SessionIntentScreen from './components/SessionIntentScreen'
 import LabDashboard from './components/LabDashboard'
@@ -39,9 +38,8 @@ import { ENERGY_LEVEL_VERSION } from './lib/sessionIntent'
 const isNativeRuntime = () => Boolean(window.__TAURI__?.core?.invoke)
 
 function getInitialFlow() {
-  // Public web stays marketing/download only. This check comes first so the
-  // ?onboarding switch below cannot open the app on the public website.
-  if (!isNativeRuntime() && !import.meta.env.DEV) return 'landing'
+  // The public website renders from main.jsx (src/web) and never reaches App,
+  // so ?onboarding cannot open the app there (see src/web/routes.js).
   // ?onboarding=1 forces the intro flow — lets you re-experience the first-run
   // moment even after you've onboarded (handy for demos/testing).
   if (new URLSearchParams(window.location.search).has('onboarding')) return 'onboarding'
@@ -60,7 +58,7 @@ export default function App() {
     disableOptionalModelProviders()
     deleteCloudApiKey().catch(() => {})
   }, [])
-  // Public web stays marketing/download only. Native and local dev expose the app.
+  // The public website renders from main.jsx (src/web); App is the app only.
   const [flow, setFlow] = useState(getInitialFlow)
   const [screen,   setScreen]   = useState(() => getActiveWorkspace(loadWorkspaceState()) ? 'lab' : 'setup')
   const [task,     setTask]     = useState('')
@@ -286,10 +284,6 @@ export default function App() {
     setTags(prefill?.tags ?? [])
     setSessionData(null)
     setScreen('session-setup')
-  }
-
-  if (flow === 'landing') {
-    return <LandingPage />
   }
 
   if (flow === 'onboarding') {
