@@ -983,6 +983,11 @@ export default function SessionScreen({
         kind: activityClassification.kind,
         label: activityClassification.label,
         basis: activityClassification.basis,
+        // The work context for context-switch counting (sessionMeasures.js).
+        // The label above is the window title, which changes with every file
+        // or page and would count edits as switches.
+        app: activityClassification.app || '',
+        domain: activityClassification.domain || '',
       },
     })
     if (!result) return null

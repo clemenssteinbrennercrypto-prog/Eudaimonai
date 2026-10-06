@@ -1,5 +1,6 @@
 import CheckIn from '../../sessionReport/CheckIn'
 import TimelineBar from '../../sessionReport/TimelineBar'
+import SessionMeasures from '../../sessionReport/SessionMeasures'
 import AttentionCurve from './AttentionCurve'
 import { attentionTimelineBand, sampledAttentionBandSeconds } from '../../../lib/attentionTimeline'
 import { fmtDuration } from '../../../lib/sessionAnalysisPresentation'
@@ -166,6 +167,8 @@ export default function SessionOverview({ session, analysis, onUpdateSession }) 
       </section>
 
       <AttentionTime session={session} entries={entries} />
+
+      <SessionMeasures session={session} />
 
       <CheckIn
         session={session}
