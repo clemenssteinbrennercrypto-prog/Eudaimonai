@@ -1,57 +1,55 @@
-# Eudaimonai — Focus Tracker
+# Eudaimonai — measured focus sessions for macOS
 
-A minimal focus-session tracker that uses webcam-based attention detection (MediaPipe FaceMesh) to measure how focused you are during a work session.
+**Read `AGENTS.md` first.** It is the full briefing: what the product is for
+(§1), the file map (§3), the scoring invariants (§4), the design principles
+(§5), rejected ideas (§6) and the metric system (§11). This file is the short
+version plus the invariants every scoring change must re-check.
 
-## What it does
+## What it is
 
-1. **Home screen** — user sets task name, duration (15/30/60/90 min), and monitor layout
-2. **Session screen** — countdown timer + live FaceMesh analysis via webcam
-3. **End screen** — session stats (focus %, longest streak, alerts, timeline bar)
+A native macOS app (Tauri 2 + Rust, React UI in the WebView) that measures how
+well you actually work — "the WHOOP for cognitive performance". Camera
+attention (native AVFoundation + MediaPipe) is infrastructure, not the selling
+point; blocking ("Protection") is an optional per-session tool. The voice is an
+instrument's, not a guardian's: neutral readouts, no emoji, no scolding, and
+never a question during a running session.
 
-The attention engine tracks:
-- **Blink rate** (via Eye Aspect Ratio) — too few or too many blinks signals distraction
-- **PERCLOS** — % of time eyes are 80%+ closed over a 60-s window
-- **Head pitch** — head tilted down for >10 s = penalty
-- **Head yaw** — head turned left/right for >5 s = penalty (thresholds raised for monitors in that direction)
-
-When focus score drops below 40 for >90 s (or >120 s with extra monitors), a full-screen overlay + audio alert fires.
+Screens (sidebar, ⌘1–⌘5): **Lab** (daily Focus Score ring, attention strip,
+quick start) · **Session** (planner) · **Workspace** (desk layout that shapes
+gaze scoring) · **Protection** (blocking setups) · **Analytics** (Overview and
+Details). A session ends in a debrief with a required outcome check-in.
 
 ## Tech stack
 
-- **React 18** + **Vite**
-- **MediaPipe FaceMesh** loaded via CDN (`@mediapipe/face_mesh@0.4`) in `index.html`
-- No backend — all state is in-memory per session; monitor count/positions persisted in `localStorage`
+- **UI:** React 18 + Vite, plain JSX (no TypeScript), bundled into `companion/webui`
+- **Native:** Tauri 2 + Rust in `companion/src-tauri` — camera capture and
+  landmark inference, frontmost app/tab, blocking, output evidence, SQLite history
+- **Persistence:** SQLite in the native app (`db.rs`); localStorage only for
+  settings and in dev
+- **Marketing site:** the same Vite build on Vercel shows only `LandingPage`
 
 ## Dev commands
 
 ```bash
 npm install
-npm run dev      # localhost:5173
-npm run build    # output to dist/
-npm run preview  # preview built dist/
+npm run dev            # isolated UI only — native features unavailable
+npm test -- --run      # vitest
+npm run lint
+npm run build
+cargo test --manifest-path companion/src-tauri/Cargo.toml
 ```
 
-## Project structure
-
-```
-src/
-  App.jsx                 # Screen router + shared state (task, duration, monitors)
-  components/
-    HomeScreen.jsx        # Setup form (task, duration, monitor layout)
-    SessionScreen.jsx     # FaceMesh loop, scoring, alert logic, countdown
-    EndScreen.jsx         # Stats display
-  App.css                 # All styles
-index.html                # Loads MediaPipe + Camera via CDN scripts
-```
+`main` is protected: work lands through a PR, which runs CI.
 
 ## Key conventions
 
 - No TypeScript — plain JSX throughout
-- All attention logic lives in `SessionScreen.jsx`; keep it self-contained
-- Scoring constants at the top of `SessionScreen.jsx` (EAR thresholds, window sizes, etc.)
-- Monitor positions affect yaw thresholds via `computeThresholds()` — left/right monitors get 55° threshold instead of 30°
-- `useRef` for all per-frame state to avoid stale closures in the MediaPipe callback
-- Session stats accumulate in refs, only passed to `onEnd()` at session close
+- `SessionScreen.jsx` is ~2800 lines; prefer extracting pure logic into
+  `src/lib/` (with tests) over adding to it
+- Scoring constants and score bands live in `src/lib/attention.js`
+- `useRef` for all per-frame state to avoid stale closures in the camera callback
+- Never report what was not measured: missing camera data is absent, not 0
+- One ruler, every day: nothing self-reported may shift a scoring threshold
 - No external state management — keep it simple
 
 ## Critical invariants — read before touching SessionScreen.jsx
