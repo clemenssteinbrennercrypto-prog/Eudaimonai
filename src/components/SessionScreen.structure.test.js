@@ -204,3 +204,12 @@ describe('SessionScreen accumulation wiring', () => {
     expect(source).toContain('{goal.trim() || task}')
   })
 })
+
+describe('SessionScreen output evidence', () => {
+  it('always resets the native baseline, including when no folder is chosen', () => {
+    // Skipping the call for an empty folder left an earlier session's
+    // snapshot live, so its changes were reported as this session's work.
+    expect(source).toContain('setOutputWatchFolder(loadOutputFolder())')
+    expect(source).not.toMatch(/if \(folder\) \{\s*setOutputWatchFolder/)
+  })
+})

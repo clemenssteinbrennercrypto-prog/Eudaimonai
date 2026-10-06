@@ -330,7 +330,7 @@ function OverlayIcon({ type }) {
 export default function SessionScreen({
   task,
   goal = '',
-  energyLevel = 'medium',
+  energyLevel = null,
   tags = [],
   duration,
   devices = [],
@@ -1239,12 +1239,10 @@ export default function SessionScreen({
     }
     // Baseline the nominated folder first — a delta measured against no
     // baseline would report the whole folder as this session's work.
-    const folder = loadOutputFolder()
-    if (folder) {
-      setOutputWatchFolder(folder).then(() => { if (!cancelled) poll() })
-    } else {
-      poll()
-    }
+    // An empty folder is sent too: it clears the native baseline, which
+    // otherwise survives from an earlier session in this app run and would
+    // report that session's changes as this one's.
+    setOutputWatchFolder(loadOutputFolder()).then(() => { if (!cancelled) poll() })
     const id = setInterval(poll, 15_000)
     return () => { cancelled = true; clearInterval(id) }
   }, [])

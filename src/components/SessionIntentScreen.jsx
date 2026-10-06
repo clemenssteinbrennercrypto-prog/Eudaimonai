@@ -9,6 +9,13 @@ import DsSelect from './DsSelect'
 
 const DURATIONS = [15, 30, 60, 90]
 
+// The last path component is what people recognise; the full path stays in
+// the tooltip.
+function folderName(path) {
+  const parts = String(path).split('/').filter(Boolean)
+  return parts.at(-1) || path
+}
+
 export function ProtectionStartDialog({ protection, onClose, onConfigure, onContinue }) {
   const configureRef = useRef(null)
 
@@ -108,6 +115,10 @@ export default function SessionIntentScreen({
   onEditProtection,
   onWorkspaceChange,
   onEditWorkspaces,
+  // Project folder for output evidence. Omitted outside the native app.
+  outputFolder = null,
+  onChooseOutputFolder = null,
+  onClearOutputFolder = null,
   onStart,
 }) {
   const [customTag, setCustomTag] = useState('')
@@ -184,7 +195,6 @@ export default function SessionIntentScreen({
     setGoal(setup.goal)
     setDuration(setup.duration)
     setCustomDurationOpen(isCustomDuration(setup.duration, DURATIONS))
-    setEnergyLevel(setup.energyLevel)
     setTags(setup.tags)
   }
 
@@ -210,6 +220,24 @@ export default function SessionIntentScreen({
         />
         <button type="button" onClick={onEditWorkspaces}>Manage</button>
       </div>
+
+      {onChooseOutputFolder && (
+        <div className="session-workspace-selector session-output-folder">
+          <div className="session-workspace-copy">
+            <span>Project folder</span>
+            <small id="session-output-folder-help">Optional · shows what changed, never reads file contents</small>
+          </div>
+          <span className="session-output-folder-path" title={outputFolder || undefined}>
+            {outputFolder ? folderName(outputFolder) : 'None chosen'}
+          </span>
+          <button type="button" aria-describedby="session-output-folder-help" onClick={onChooseOutputFolder}>
+            {outputFolder ? 'Change' : 'Choose'}
+          </button>
+          {outputFolder && onClearOutputFolder && (
+            <button type="button" onClick={onClearOutputFolder}>Remove</button>
+          )}
+        </div>
+      )}
 
       <div className="session-intent-grid">
         <section className="session-intent-form" aria-label="Session intent">
@@ -316,7 +344,9 @@ export default function SessionIntentScreen({
             <legend>Energy <em>for your notes, never changes the score</em></legend>
             <div>
               {['fresh', 'medium', 'tired'].map(value => (
-                <button key={value} type="button" className={energyLevel === value ? 'is-selected' : ''} onClick={() => setEnergyLevel(value)}>
+                // Clicking the chosen level again clears it: "not recorded"
+                // must stay reachable, or a misclick becomes a stored answer.
+                <button key={value} type="button" aria-pressed={energyLevel === value} className={energyLevel === value ? 'is-selected' : ''} onClick={() => setEnergyLevel(energyLevel === value ? null : value)}>
                   {value[0].toUpperCase() + value.slice(1)}
                 </button>
               ))}

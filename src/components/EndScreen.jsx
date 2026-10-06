@@ -49,7 +49,8 @@ export default function EndScreen({ sessionData, onOutcomeChange, onRestart, onP
           onRepeat={() => onRestart({
             task: sessionData.task,
             goal: sessionData.goal,
-            energyLevel: sessionData.energyLevel,
+            // Energy is how you feel now, not part of the brief: repeating
+            // yesterday's "tired" would record an answer nobody gave today.
             duration: durationFromSession(sessionData),
             tags: sessionData.tags,
           })}

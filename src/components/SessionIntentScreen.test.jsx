@@ -244,6 +244,89 @@ describe('SessionIntentScreen', () => {
     })
   })
 
+  describe('energy', () => {
+    const renderEnergy = (overrides = {}) => {
+      const setEnergyLevel = vi.fn()
+      const noop = () => {}
+      render(React.createElement(SessionIntentScreen, {
+        task: 'Current task', setTask: noop,
+        goal: '', setGoal: noop,
+        duration: 30, setDuration: noop,
+        energyLevel: null, setEnergyLevel,
+        tags: [], setTags: noop,
+        onStart: noop,
+        ...overrides,
+      }))
+      return { setEnergyLevel }
+    }
+
+    it('shows no level as chosen until the user picks one', () => {
+      renderEnergy()
+      for (const name of ['Fresh', 'Medium', 'Tired']) {
+        expect(screen.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'false')
+      }
+    })
+
+    it('clears the chosen level when it is clicked again', () => {
+      const { setEnergyLevel } = renderEnergy({ energyLevel: 'tired' })
+      fireEvent.click(screen.getByRole('button', { name: 'Tired' }))
+      expect(setEnergyLevel).toHaveBeenLastCalledWith(null)
+      fireEvent.click(screen.getByRole('button', { name: 'Fresh' }))
+      expect(setEnergyLevel).toHaveBeenLastCalledWith('fresh')
+    })
+
+    it('does not copy energy from a reused setup', () => {
+      const { setEnergyLevel } = renderEnergy({
+        recentSessions: [{ task: 'Draft essay', goal: '', duration: 60, tags: [], energyLevel: 'tired' }],
+      })
+      fireEvent.click(screen.getByRole('button', { name: /Draft essay/ }))
+      expect(setEnergyLevel).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('project folder', () => {
+    const renderFolder = (overrides = {}) => {
+      const noop = () => {}
+      const onChooseOutputFolder = vi.fn()
+      const onClearOutputFolder = vi.fn()
+      render(React.createElement(SessionIntentScreen, {
+        task: 'Current task', setTask: noop,
+        goal: '', setGoal: noop,
+        duration: 30, setDuration: noop,
+        energyLevel: null, setEnergyLevel: noop,
+        tags: [], setTags: noop,
+        onStart: noop,
+        onChooseOutputFolder,
+        onClearOutputFolder,
+        ...overrides,
+      }))
+      return { onChooseOutputFolder, onClearOutputFolder }
+    }
+
+    it('is not offered where no folder picker exists', () => {
+      renderFolder({ onChooseOutputFolder: null })
+      expect(screen.queryByText('Project folder')).not.toBeInTheDocument()
+    })
+
+    it('offers a choice and says that contents are never read', () => {
+      const { onChooseOutputFolder } = renderFolder({ outputFolder: '' })
+      expect(screen.getByText('None chosen')).toBeInTheDocument()
+      expect(screen.getByText(/never reads file contents/)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Choose' }))
+      expect(onChooseOutputFolder).toHaveBeenCalledOnce()
+    })
+
+    it('names the chosen folder and lets it be changed or removed', () => {
+      const { onChooseOutputFolder, onClearOutputFolder } = renderFolder({ outputFolder: '/Users/me/Code/thesis/' })
+      expect(screen.getByText('thesis')).toHaveAttribute('title', '/Users/me/Code/thesis/')
+      fireEvent.click(screen.getByRole('button', { name: 'Change' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+      expect(onChooseOutputFolder).toHaveBeenCalledOnce()
+      expect(onClearOutputFolder).toHaveBeenCalledOnce()
+    })
+  })
+
   it('reuses honest fields from recent session history', () => {
     // History arrives as a prop — App owns loading it from the repository.
     const html = renderIntent({

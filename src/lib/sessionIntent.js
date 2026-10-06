@@ -154,7 +154,7 @@ function matchProfileScores(tokens) {
 // comparable history is the whole point of measuring at all. Energy belongs in
 // the interpretation ("your tired sessions run 12 points lower"), never in the
 // ruler.
-export function deriveSessionIntent({ task = '', goal = '', energyLevel = 'medium', tags = [] } = {}) {
+export function deriveSessionIntent({ task = '', goal = '', energyLevel = null, tags = [] } = {}) {
   const tagText = Array.isArray(tags) ? tags.join(' ') : ''
   const text = [task, goal, tagText].filter(Boolean).join(' ')
   const tokens = unique(tokenize(text))
@@ -181,7 +181,7 @@ export function deriveSessionIntent({ task = '', goal = '', energyLevel = 'mediu
     primaryKind: primaryProfile?.id || 'general',
     primaryLabel: primaryProfile?.label || 'General work',
     confidence,
-    energyLevel: String(energyLevel || 'medium'),
+    energyLevel: energyLevel ? String(energyLevel) : null,
     toolHints,
     domainHints,
   }

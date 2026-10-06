@@ -14,6 +14,8 @@ describe('energy is context, never calibration', () => {
     const intent = deriveSessionIntent({ task: 'Review React component', energyLevel: 'tired' })
     expect(intent.primaryKind).toBe('software')
     expect(intent.energyLevel).toBe('tired')
+    // Unasked stays unasked: no default may pass for the user's answer.
+    expect(deriveSessionIntent({ task: 'Review React component' }).energyLevel).toBeNull()
 
     // The scoring profile is gone on purpose: shifting thresholds by
     // self-reported mood made the same behaviour score differently day to day,

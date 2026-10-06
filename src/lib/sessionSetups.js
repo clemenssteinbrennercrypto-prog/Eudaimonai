@@ -39,14 +39,13 @@ export function buildRecentSessionSetups(sessions, limit = 4) {
       : Number.isFinite(Number(storedDuration))
         ? Math.min(720, Math.max(1, Math.round(Number(storedDuration))))
         : 30
-    const energyLevel = ['fresh', 'medium', 'tired'].includes(session?.energyLevel)
-      ? session.energyLevel
-      : 'medium'
     const key = JSON.stringify([task.toLocaleLowerCase(), goal.toLocaleLowerCase(), tags.map(tag => tag.toLocaleLowerCase()), duration])
 
     if (seen.has(key)) continue
     seen.add(key)
-    setups.push({ task, goal, tags, duration, energyLevel })
+    // No energy: it describes the day, not the brief, so a reused setup
+    // must not carry an old answer into a new session.
+    setups.push({ task, goal, tags, duration })
     if (setups.length >= limit) break
   }
 

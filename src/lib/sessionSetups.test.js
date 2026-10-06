@@ -15,7 +15,6 @@ describe('normalizeSessionTags', () => {
       task: 'Open-ended research',
       goal: 'Follow the evidence',
       duration: null,
-      energyLevel: 'medium',
       tags: [],
     }])
   })
@@ -34,9 +33,18 @@ describe('buildRecentSessionSetups', () => {
     ]
 
     expect(buildRecentSessionSetups(sessions)).toEqual([
-      { task: 'Draft essay', goal: 'Write 800 words', duration: 60, energyLevel: 'fresh', tags: ['Writing'] },
-      { task: 'Read chapter', goal: 'Notes complete', duration: 30, energyLevel: 'medium', tags: ['Study'] },
+      { task: 'Draft essay', goal: 'Write 800 words', duration: 60, tags: ['Writing'] },
+      { task: 'Read chapter', goal: 'Notes complete', duration: 30, tags: ['Study'] },
     ])
+  })
+
+  it('never carries an old energy answer into a reused setup', () => {
+    // Energy describes the day it was given. A reused brief that brought it
+    // along would store yesterday's "tired" as today's answer.
+    const [setup] = buildRecentSessionSetups([
+      { task: 'Draft essay', goal: '', duration: 60, energyLevel: 'tired', tags: [] },
+    ])
+    expect(setup).not.toHaveProperty('energyLevel')
   })
 
   it('stays silent when history has no named sessions', () => {
