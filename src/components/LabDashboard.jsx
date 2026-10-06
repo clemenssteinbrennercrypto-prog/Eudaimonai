@@ -8,6 +8,17 @@ import FocusScoreExplanation, { FocusScoreMethod, focusScoreLabel } from './Focu
 import { formatDurationCompact } from '../lib/durationFormat'
 import { FOCUS_SCORE } from '../lib/focusScore'
 import { buildDayBaseline } from '../lib/personalBaseline'
+import { buildWeekReview, lastCompletedWeekStart } from '../lib/weeklyReview'
+import WeekReview from './WeekReview'
+
+// Which finished week's review the user has opened, so the Lab offers it once.
+const WEEK_REVIEW_SEEN_KEY = 'eudaimonai_week_review_seen'
+function readSeenWeek() {
+  try { return localStorage.getItem(WEEK_REVIEW_SEEN_KEY) } catch { return null }
+}
+function writeSeenWeek(weekKey) {
+  try { localStorage.setItem(WEEK_REVIEW_SEEN_KEY, weekKey) } catch { /* offered again next time */ }
+}
 
 const PERIOD_RANGES = [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']]
 
@@ -314,6 +325,26 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
       metricVersion: FOCUS_SCORE.metricVersion,
     })
     : null, [source, period.start, periodSelection.range, dashboardNow])
+  const weekReview = useMemo(() => periodSelection.range === 'week'
+    ? buildWeekReview({ ledger: source.ledger, sessions: source.sessions, weekStart: period.start instanceof Date ? period.start.getTime() : undefined, now: dashboardNow })
+    : null, [source, period.start, periodSelection.range, dashboardNow])
+  const lastWeekStart = lastCompletedWeekStart(dashboardNow)
+  const lastWeekReview = useMemo(
+    () => buildWeekReview({ ledger: source.ledger, sessions: source.sessions, weekStart: lastWeekStart.getTime(), now: dashboardNow }),
+    // Recomputed when the week turns over, not on every clock tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [source, lastWeekStart.getTime()]
+  )
+  const [seenWeek, setSeenWeek] = useState(readSeenWeek)
+  const offerLastWeek = periodSelection.range === 'day' && lastWeekReview.current.qualifyingCount > 0 &&
+    seenWeek !== lastWeekReview.weekKey
+  useEffect(() => {
+    if (weekReview && weekReview.weekKey === lastWeekReview.weekKey && seenWeek !== weekReview.weekKey) {
+      writeSeenWeek(weekReview.weekKey)
+      setSeenWeek(weekReview.weekKey)
+    }
+  }, [weekReview, lastWeekReview.weekKey, seenWeek])
+  const openLastWeek = () => setPeriodSelection({ range: 'week', periodStart: lastWeekStart.getTime() })
   const hasAttentionSignal = data.attention.some(bin => !['inactive', 'no-signal', 'paused', 'future'].includes(bin.state))
   const selectRange = range => setPeriodSelection({ range, periodStart: null })
   const movePeriod = delta => setPeriodSelection(current => {
@@ -351,6 +382,13 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
       </header>
 
       {quickStart}
+
+      {offerLastWeek && (
+        <div className="lab-week-ready" role="status">
+          <span>Your review of last week is ready.</span>
+          <button type="button" className="lab-text-action" onClick={openLastWeek}>View week<Chevron direction="right" /></button>
+        </div>
+      )}
 
       <section className="lab-panel lab-hero" aria-labelledby="lab-title">
         <div className="lab-hero-head">
@@ -396,6 +434,8 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
       </section>
 
       <FocusScoreExplanation period={period} time={time} warningsOnly />
+
+      {weekReview && <WeekReview review={weekReview} title={period.title} />}
 
       <section className="lab-panel lab-attention-section">
         <div className="lab-panel-head">

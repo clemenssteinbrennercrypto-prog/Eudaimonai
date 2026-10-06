@@ -16,6 +16,9 @@ sha2 = "0.10"
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-updater = "2"
 tauri-plugin-dialog = "2"
+# ~2.4: 2.5 requires tauri 2.12, which would pull a framework upgrade into
+# this change. Move with the next deliberate tauri update.
+tauri-plugin-notification = "~2.4"
 ureq = { version = "3.4.0", features = ["json"] }
 tokio = { version = "1", features = ["sync"] }
 serde = { version = "1", features = ["derive"] }
