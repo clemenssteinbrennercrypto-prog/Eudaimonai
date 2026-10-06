@@ -138,6 +138,8 @@ src/
     focusScore.js      (+test)  the current daily Focus Score (metricVersion 4)
     focusMetric.js     (+test)  focus ledger, periods, versioned history
     sessionAnalysis.js (+test)  debrief facts, conclusion, one next action
+    sessionMeasures.js (+test)  lapses, recovery, switches, longest Deep Focus
+                                block — derived from the stored 5 s timeline
     analyticsModel.js  (+test)  Analytics overview/details aggregations
     calibration.js     (+test)  what YOUR history says about how you work
     sessionIntent.js   (+test)  activity classification, artifacts
@@ -690,8 +692,8 @@ pose), not covert thought, so nothing user-facing may claim more than that.
 |---|---|---|
 | **Deep Focus** (volume) | Exact Flow time, `flowSeconds` with `deepFocusTimeVersion: 2` | live Flow gate |
 | **Lapses per hour** (stability) | Entries into a stretch of ≥ 10 s (two consecutive 5 s timeline samples) below `FOCUSED_SCORE`, per measured hour | timeline |
-| **Recovery time** (stability) | Median time from a lapse's end back to a sample ≥ `FOCUSED_SCORE` held for ≥ 10 s | timeline |
-| **Context switches per hour** | Changes of the frontmost app that hold for ≥ 10 s (two samples), per measured hour | timeline `activity` |
+| **Recovery time** (stability) | Median time from the start of a lapse until attention is back at ≥ `FOCUSED_SCORE` for ≥ 10 s; a lapse cut off by a break, gap or the session end is left out | timeline |
+| **Context switches per hour** | Changes of work context (app, plus site in a browser) where each side holds ≥ 10 s, per measured hour. Needs `activity.app` on every sample, recorded since 6 Oct 2026; the older `label` is the window title and changes with every file or page | timeline `activity` |
 | **Longest Deep Focus block** | Longest run of consecutive `deepFocused` timeline samples | timeline |
 | **Average attention** | Mean score over measured seconds — a supporting number and the Focus Score's quality input, not a headline | ledger |
 | **Session time** | Active session time without breaks (was labelled "Focus time"; it is not focused time) | `actualSeconds` |
@@ -707,8 +709,9 @@ Rules:
   interruption debounce. The Focus Score pays a 25 % bonus on it, so changing
   the gate silently re-rules every score. If longer blocks matter later, add a
   derived count ("Deep Focus blocks ≥ 20 min") from the timeline instead.
-- **Derived measures come from the stored 5 s timeline**, never from new live
-  logic. They need no new ruler version and can be computed for every V2
+- **Derived measures come from the stored 5 s timeline** (`sessionMeasures.js`),
+  never from new live logic. Nothing is counted across a break or camera gap,
+  and per-hour rates need 5 measured minutes. They need no new ruler version and can be computed for every V2
   session already stored. Their 5 s granularity is stated, not hidden; the
   longest block excludes the 90 s warm-up because warm-up samples are not
   stamped `deepFocused`.

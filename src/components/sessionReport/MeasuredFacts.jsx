@@ -1,6 +1,7 @@
 import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
 import { describeFocusMetricRejection } from '../../lib/focusMetric'
 import TimelineBar from './TimelineBar'
+import SessionMeasures from './SessionMeasures'
 import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt } from '../../lib/sessionTiming'
 
 function fmtTime(timestamp) {
@@ -108,6 +109,8 @@ export default function MeasuredFacts({ session, analysis }) {
       })()}
 
       <TimelineBar timeline={session.timeline} session={session} />
+
+      <SessionMeasures session={session} />
 
       <p style={{ fontSize: 12.5, color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
         {activityOutputLine(facts)}

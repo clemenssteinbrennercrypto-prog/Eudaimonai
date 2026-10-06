@@ -5030,3 +5030,12 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   .session-output-folder { grid-template-columns: 1fr auto auto; }
   .session-output-folder > .session-output-folder-path { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* Session measures (sessionReport/SessionMeasures.jsx): a quiet readout row
+   under the timeline, label over number like the stat cards above it. */
+.session-measures { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; margin: 0; width: 100%; border: 1px solid var(--ds-hairline, var(--line)); border-radius: var(--ds-radius-lg, 12px); overflow: hidden; background: var(--ds-hairline, var(--line)); }
+.session-measures > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; background: var(--ds-surface, var(--surface)); }
+.session-measures dt { font-size: 11px; color: var(--ds-label-3, var(--text-muted)); }
+.session-measures dd { margin: 0; display: flex; align-items: baseline; gap: 6px; }
+.session-measures strong { font-size: 17px; font-weight: 600; color: var(--ds-label, var(--text)); font-variant-numeric: tabular-nums; }
+.session-measures small { font-size: 11px; color: var(--ds-label-3, var(--text-muted)); }
