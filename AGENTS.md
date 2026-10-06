@@ -12,7 +12,8 @@ pull` before you start and before you push.**
 
 ## 1. What this is
 
-A focus tracker with teeth. It is one native macOS product with two layers:
+A measurement instrument for focused work — the aim is "the WHOOP for cognitive
+performance". It is one native macOS product with two layers:
 
 - **Embedded UI** (`src/`) — React 18 + Vite, plain JSX, no TypeScript. Bundled
   into the Tauri WebView; it is not a standalone browser product. Receives
@@ -24,8 +25,19 @@ A focus tracker with teeth. It is one native macOS product with two layers:
   session. Rust and React communicate only through Tauri commands and events;
   there is no local HTTP service.
 
-The differentiator is that last word. Every competitor measures. This one
-intervenes. Keep that asymmetry in mind when weighing features.
+**What the product is for (decided 6 Oct 2026).** Help an ambitious,
+data-driven knowledge worker see how well they actually work, why some days are
+better, and how to improve. Camera attention is infrastructure, not the selling
+point. The long-term model is attention data + computer activity + work context
++ history. Blocking (Protection) is an optional per-session tool, not the
+differentiator — an earlier version of this file said "Every competitor
+measures. This one intervenes"; that is no longer the direction. When weighing a
+feature, ask whether it makes the user's own performance more measurable,
+comparable or explainable. The metric system it is built on is in §11.
+
+Voice: an instrument, not a guardian. Neutral readouts, no emoji, no scolding,
+no cute gamification. And never interrupt a running session with a question —
+any self-report happens after the session ends (§6).
 
 **Who it is for:** Clemens, 18, Austria. Launching around September 2026,
 starting civil service the same month, so he has roughly 10–15 h/week from then.
@@ -105,28 +117,42 @@ npm run build:companion
 
 ```
 src/
-  App.jsx                    screen router + shared session state
+  App.jsx                    screen router + shared session state + history load
   components/
+    Onboarding.jsx           first run: three slides + live camera check
+    AppShell.jsx             macOS sidebar window (Lab, Session, Workspace,
+                             Protection, Analytics; ⌘1–⌘5)
+    LabDashboard.jsx         home: Focus Score rings, attention strip, recent
+    LabQuickStart.jsx        name + length + start, above the Lab
+    SessionIntentScreen.jsx  "New Session" planner: plan, tags, energy, folder
+    WorkspaceManager.jsx     desk layout editor (screens, pads, phone, camera)
+    FocusAppsScreen.jsx      Protection: per-session app/site blocking setups
     SessionScreen.jsx        2800 lines. Camera, scoring, alerts, blocking sync.
-    HistoryDashboard.jsx     stats, weekly view, personal calibration
-    EndScreen.jsx            post-session debrief
-    HomeScreen.jsx           session setup form
-    FocusAppsScreen.jsx      companion config, blocking, model provider switch
+    EndScreen.jsx            debrief → SessionReport.jsx + sessionReport/*
+    analytics/               AnalyticsShell: Overview (AnalyticsStory) and
+                             Details (DataExplorer); Overview.jsx/Patterns.jsx
+                             are not mounted anywhere at present
   lib/
     attention.js       (+test)  PURE scoring/gaze maths — the invariants live here
-    sessionIntent.js   (+test)  activity classification, artifacts
-    modelClient.js              the ONLY place that talks to a model (transport)
-    intentContract.js  (+test)  goal → expectations, switchable model providers
-    sessionVerdict.js  (+test)  did the work match the intention? (after a session)
+    attentionSampling.js        per-tick accumulation, Flow gate, 5 s timeline
+    focusScore.js      (+test)  the current daily Focus Score (metricVersion 4)
+    focusMetric.js     (+test)  focus ledger, periods, versioned history
+    sessionAnalysis.js (+test)  debrief facts, conclusion, one next action
+    analyticsModel.js  (+test)  Analytics overview/details aggregations
     calibration.js     (+test)  what YOUR history says about how you work
-    activityReceiver.js         consumes native activity commands/events
+    sessionIntent.js   (+test)  activity classification, artifacts
+    modelClient.js              the ONLY place that talks to a model (transport;
+                                optional providers are disabled at launch)
+    sessionRepository*.js       SQLite (native) / localStorage (dev) history
     nativeCompanion.js   (+test) the only React ↔ Rust IPC boundary
-    storage.js                  localStorage
+    storage.js                  localStorage settings
 companion/src-tauri/src/
     activity.rs        frontmost app/tab via AppleScript, app hiding
     blocking.rs        website blocking via /etc/hosts + privileged helper
     native.rs          Tauri commands, events and shared native state
+    native_camera*     AVFoundation capture + MediaPipe inference (§10)
     output.rs          output evidence — did the work actually move
+    db.rs              SQLite session store + focus ledger
 ```
 
 **`SessionScreen.jsx` is 2800 lines with ~125 pieces of state.** It is the known
@@ -345,6 +371,11 @@ degrades the result; it never breaks a session.
 - **A camera pre-flight before MediaPipe.** Acquiring and releasing a stream just
   before MediaPipe reacquires it risks a `NotReadableError` race on real
   hardware. Reverted.
+- **Questions during a session** (thought probes, "were you on task?",
+  in-session check-ins). Rejected 6 Oct 2026, even as a way to validate the
+  score: a running session is never interrupted with a prompt. Validation uses
+  the post-session check-in or data already collected. The existing alerts for
+  real distraction are separate behaviour.
 
 ---
 
@@ -426,8 +457,9 @@ Open, in rough priority order:
    macOS-specific only at the edges; the hosts-file technique is identical). The
    hard part is reading browser URLs without AppleScript. Wait for demand.
 
-Product weaknesses found 11 Aug 2026 and NOT yet addressed — these are
-decisions for Clemens, not bugs to fix unasked:
+Product weaknesses found 11 Aug 2026. Both were decided on 6 Oct 2026: blocking
+is no longer treated as the differentiator (§1), and re-engagement is built on
+the comparison layer in §11 (baseline, records, weekly review):
 
 - **The differentiator ships off.** A new user sees "0 focus apps · 0 blocked".
   Blocking is the one thing competitors lack, and it is empty by default, behind
@@ -642,3 +674,69 @@ may still use WebView camera/FaceMesh code; they are not session measurement.
   assets under the `internal-test` tag are actually new and that Clemens sees
   the matching build id. Testing against the wrong build has happened more than
   once (§2).
+
+---
+
+## 11. The metric system — decided 6 Oct 2026
+
+What the user is shown, and the rules that keep it honest. Names matter: a
+metric's name is a promise about what it measures. The camera sees overt visual
+attention and alertness (eyes on the work, eyelid closure, blinking, head
+pose), not covert thought, so nothing user-facing may claim more than that.
+
+### Measures
+
+| Measure | Definition | Source |
+|---|---|---|
+| **Deep Focus** (volume) | Exact Flow time, `flowSeconds` with `deepFocusTimeVersion: 2` | live Flow gate |
+| **Lapses per hour** (stability) | Entries into a stretch of ≥ 10 s (two consecutive 5 s timeline samples) below `FOCUSED_SCORE`, per measured hour | timeline |
+| **Recovery time** (stability) | Median time from a lapse's end back to a sample ≥ `FOCUSED_SCORE` held for ≥ 10 s | timeline |
+| **Context switches per hour** | Changes of the frontmost app that hold for ≥ 10 s (two samples), per measured hour | timeline `activity` |
+| **Longest Deep Focus block** | Longest run of consecutive `deepFocused` timeline samples | timeline |
+| **Average attention** | Mean score over measured seconds — a supporting number and the Focus Score's quality input, not a headline | ledger |
+| **Session time** | Active session time without breaks (was labelled "Focus time"; it is not focused time) | `actualSeconds` |
+| **Focus Score** | The daily ring, unchanged (§4.9): volume × attention quality | ledger |
+
+Removed from user-facing screens (still stored and in the CSV): "Focused time"
+and "Time above threshold". They duplicated average attention and Deep Focus
+under confusingly similar names.
+
+Rules:
+
+- **The Flow gate is frozen**: 90 s qualified entry, score ≥ `FLOW_SCORE`, 5 s
+  interruption debounce. The Focus Score pays a 25 % bonus on it, so changing
+  the gate silently re-rules every score. If longer blocks matter later, add a
+  derived count ("Deep Focus blocks ≥ 20 min") from the timeline instead.
+- **Derived measures come from the stored 5 s timeline**, never from new live
+  logic. They need no new ruler version and can be computed for every V2
+  session already stored. Their 5 s granularity is stated, not hidden; the
+  longest block excludes the 90 s warm-up because warm-up samples are not
+  stamped `deepFocused`.
+- **Every count has a hold time** (invariant 2): one 5 s sample never makes a
+  lapse or a switch.
+- **The live session shows Deep Focus, not phase names.** Lock-in (a 4-minute
+  streak at the focused threshold) and Deep Focus (score ≥ 72 after the gate)
+  are two different "locked in" ideas; showing both live made users ask which
+  one counts. Phases stay as an analysis lens in the debrief.
+
+### Energy
+
+Before #64 (6 Oct 2026) quick start silently stored `energyLevel: 'medium'`
+and reused setups copied old answers. Those values cannot be told apart from
+real ones. Sessions saved since carry `energyLevelVersion: 2`, meaning energy
+is either a real answer or `null` (not asked). **Energy analysis uses only
+sessions with that marker.** Older sessions keep their stored value and are
+never rewritten.
+
+### Comparison layer
+
+- **Personal baseline**: today against the user's own usual — the median of
+  the previous 28 days that had a measured session, same camera generation,
+  silent below 5 such days. Never against other people.
+- **Personal records**: longest Deep Focus block, most Deep Focus in a day,
+  best Focus Score day. Announced only after 10 qualifying sessions on the
+  current generation; before that nearly every session is a "record" and the
+  word stops meaning anything.
+- **Weekly review**: the week against the previous one and the baseline, with
+  any new records. Reached from the Lab; one native notification when a new
+  week's review is ready. It never fires during a session.
