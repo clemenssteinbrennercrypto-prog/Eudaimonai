@@ -397,9 +397,12 @@ degrades the result; it never breaks a session.
 the public website (`src/web/`, rendered from `main.jsx`, never inside the
 native app) talks to Supabase for the waitlist, invitations, sign-in codes and
 beta access. Supabase holds account and access records only — no session,
-history, camera or activity data, and none may be added. The native app does
-not contact it yet; when it does (the access check), it must keep that rule.
-Schema, rules and tests: `docs/beta-access-backend.md`, `supabase/`.
+history, camera or activity data, and none may be added. The native app's
+access check (`companion/src-tauri/src/access/`) keeps that rule: Rust owns
+the sign-in, keeps it in the Keychain, gates only the START of a session or
+the camera (never a running session, never ending one, never history), and a
+test fails if the module references the session database. Schema, rules and
+tests: `docs/beta-access-backend.md`, `supabase/`.
 
 ---
 

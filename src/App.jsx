@@ -17,6 +17,11 @@ import { activateProtectionSetup, getActiveProtectionSetup } from './lib/protect
 import { deleteCloudApiKey, sendNativeNotification } from './lib/nativeCompanion'
 import { dueWeekReviewNotification } from './lib/weeklyReview'
 import LegalModal from './components/LegalModal'
+import BetaAccess from './components/access/BetaAccess'
+import AccessScreen from './components/access/AccessScreen'
+import AccessBanner from './components/access/AccessBanner'
+import { useBetaAccess } from './lib/betaAccess'
+import { LOCKED_WHEN_READ_ONLY, accessView, confirmSessionAccess, mayNavigate } from './lib/accessGate'
 import { sessionRepository } from './lib/sessionRepository'
 import { createSessionPersister } from './lib/sessionPersistence'
 import {
@@ -80,6 +85,11 @@ export default function App() {
   const [protectionReturnScreen, setProtectionReturnScreen] = useState('lab')
   const [outputFolder, setOutputFolder] = useState(loadOutputFolder)
   const updateStatus = useAppUpdateStatus()
+  // Beta access (native app only; Rust decides and also gates session and
+  // camera start itself). Without access the app shows the access step, or,
+  // when chosen, a strictly read-only history view.
+  const access = useBetaAccess()
+  const [viewingHistory, setViewingHistory] = useState(false)
 
   // Session history lives here rather than inside each screen: App already
   // owned `sessionRevision` to tell the dashboard when to re-read, so it is
@@ -202,7 +212,14 @@ export default function App() {
     setSessionRevision(value => value + 1)
   }, [])
 
-  const handleStart = () => activeWorkspace ? setScreen('session') : setScreen('setup')
+  const handleStart = async () => {
+    if (!(await confirmSessionAccess(access))) {
+      setViewingHistory(false)
+      return
+    }
+    if (activeWorkspace) setScreen('session')
+    else setScreen('setup')
+  }
 
   const openProtection = (returnScreen) => {
     setProtectionReturnScreen(returnScreen)
@@ -290,6 +307,13 @@ export default function App() {
     return (
       <>
         <Onboarding
+          renderAccessStep={access.native ? ({ onDone }) => (
+            <BetaAccess
+              access={access}
+              onContinue={onDone}
+              onOpenPrivacy={() => setLegalTab('datenschutz')}
+            />
+          ) : null}
           onComplete={() => {
             setFlow('app')
             if (!getActiveWorkspace(loadWorkspaceState())) setScreen('setup')
@@ -305,6 +329,32 @@ export default function App() {
             from the sidebar once the app is open. The build identity stays so
             testers can say which build they saw; it is drawn above the intro
             and after it in tab order. */}
+        <div className="onboarding-chrome">
+          <BuildIdentity />
+        </div>
+        <LegalModal
+          open={legalTab !== null}
+          onClose={() => setLegalTab(null)}
+          initialTab={legalTab ?? 'datenschutz'}
+        />
+      </>
+    )
+  }
+
+  // Without beta access, and never in the middle of a running session (it is
+  // never interrupted): the access step, or the strictly read-only history
+  // view chosen from it. Rust refuses session and camera start regardless.
+  const view = accessView({ native: access.native, status: access.status, screen, viewingHistory })
+  const readOnly = view === 'read_only'
+  if (view === 'access') {
+    return (
+      <>
+        <AccessScreen
+          access={access}
+          hasHistory={history.sessions.length > 0}
+          onViewHistory={() => { setViewingHistory(true); setScreen('analytics') }}
+          onOpenPrivacy={() => setLegalTab('datenschutz')}
+        />
         <div className="onboarding-chrome">
           <BuildIdentity />
         </div>
@@ -438,6 +488,7 @@ export default function App() {
       {screen === 'analytics' && (
         <AnalyticsShell
           onHistoryCleared={handleHistoryCleared}
+          readOnly={readOnly}
         />
       )}
     </div>
@@ -445,6 +496,8 @@ export default function App() {
 
   const navigate = (destination) => {
     if (!['lab', 'session-setup', 'setup', 'focus-apps', 'analytics'].includes(destination)) return
+    // Read-only history: analytics (view and export) is the only destination.
+    if (!mayNavigate(view, destination)) return
     // A running session owns the window; menu shortcuts must never end it.
     if (screen === 'session' || destination === screen) return
     if (screen === 'focus-apps' && protectionLeaveGuardRef.current && !protectionLeaveGuardRef.current()) {
@@ -500,9 +553,25 @@ export default function App() {
             onNavigate={navigate}
             onLegal={() => setLegalTab('datenschutz')}
             utility={<AppRefreshControl updateStatus={updateStatus} />}
-            footer={<BuildIdentity />}
+            footer={(
+              <>
+                {access.native && access.status?.signedIn && (
+                  <button
+                    type="button"
+                    className="app-sidebar-link"
+                    title={access.status.email ? `Signed in as ${access.status.email}` : undefined}
+                    onClick={() => access.signOut()}
+                  >
+                    Sign out of beta
+                  </button>
+                )}
+                <BuildIdentity />
+              </>
+            )}
             protectionStatus={protectionStatus}
+            lockedItems={readOnly ? LOCKED_WHEN_READ_ONLY : []}
           >
+            <AccessBanner status={access.status} readOnly={readOnly} onSignIn={() => setViewingHistory(false)} />
             {content}
           </AppShell>
         )}

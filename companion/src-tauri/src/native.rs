@@ -286,8 +286,18 @@ pub fn get_companion_session(state: tauri::State<'_, NativeState>) -> CompanionS
 pub fn set_companion_session(
     app: AppHandle,
     state: tauri::State<'_, NativeState>,
+    access: tauri::State<'_, crate::access::SharedAccess>,
     payload: SessionPayload,
 ) -> CompanionSession {
+    // Beta access gates only the start of a session. Lease renewals of a
+    // running session and every deactivation (which also lifts blocking) are
+    // never refused, so an expiry mid-session cannot strand a block.
+    let running = crate::access::session_running(&state);
+    if !crate::access::gate::may_apply_session(payload.active, running, access.may_start()) {
+        let mut refused = session_snapshot(&state);
+        refused.ok = false;
+        return refused;
+    }
     let session = apply_session_payload(&state, payload, now_ms());
     let _ = app.emit(SESSION_STATE_CHANGED_EVENT, &session);
     session

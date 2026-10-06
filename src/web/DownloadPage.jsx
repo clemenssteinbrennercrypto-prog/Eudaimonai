@@ -58,8 +58,8 @@ export default function DownloadPage() {
       <div className="web-card">
         <p className="web-note" style={{ marginTop: 0 }}>
           Your focus sessions, session history and everything from the camera stay on your Mac and are never
-          uploaded. Our server only knows your email address and your beta access. The app checks GitHub
-          for updates.
+          uploaded. Our server only knows your email address and your beta access. The app checks that access and
+          looks for updates on GitHub.
         </p>
       </div>
 

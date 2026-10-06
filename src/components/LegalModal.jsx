@@ -31,8 +31,8 @@ Email: clemenssteinbrenner.crypto@gmail.com`,
 //   Beta records          supabase/migrations/ (what the tables hold)
 //   Waitlist rate limit   supabase/migrations/20261006090000_beta_web_funnel.sql
 //   Erasure on deletion   same migration, erase_beta_records_for_deleted_account
-//   App network use       the native app does not contact the beta backend yet;
-//                         update "Principle" when the app gains its access check.
+//   App access check      companion/src-tauri/src/access/ (what the app sends,
+//                         when it checks, what it keeps in the Keychain)
 //
 // TODO(legal): Clemens to confirm before the first external beta user:
 //   – the legal bases named below (Art. 6(1)(b) for beta records, 6(1)(f) for
@@ -50,7 +50,7 @@ export const DATENSCHUTZ = [
     heading: 'Principle',
     body: `Eudaimonai processes your focus data on your Mac. Focus sessions, session history, camera measurements and activity data are stored only on your device and are not uploaded.
 
-To run the closed beta, we process a small amount of account data on servers: your email address, your invitation and your access status (see “Closed beta”). The macOS app itself currently connects to the internet only for the update check described below.`,
+To run the closed beta, we process a small amount of account data on servers: your email address, your invitation and your access status (see “Closed beta”). The macOS app connects to the internet for two things only: the beta access check and the update check, both described below.`,
   },
   {
     heading: 'Camera',
@@ -95,6 +95,14 @@ We use this only to run the closed beta: to manage the waitlist, send invitation
 Your focus sessions, session history, camera data, activity data, window titles and files are not part of this and are never uploaded.
 
 Joining the waitlist does not create an account and does not grant access. An account is created only when you activate an invitation. The legal basis is carrying out the steps you request and your participation in the beta (Art. 6(1)(b) GDPR).`,
+  },
+  {
+    heading: 'Beta access check in the app (leaves the device)',
+    body: `When you request access or sign in inside the macOS app, it sends the email address you enter, and the one-time code you type, to our beta backend. The code is not stored. Your sign-in is kept in your Mac's Keychain, not in the app's other storage.
+
+While you are signed in, the app asks the beta backend whether your access is still valid: when it starts, about once an hour while it runs, and before a session starts. It sends only your sign-in, and receives your access status and the server's time. If the Mac is offline, a previous confirmation keeps working for up to 72 hours, never beyond the end of your access.
+
+No session, history, camera, activity or file data is part of this. Signing out, or losing access, removes only the sign-in from the Keychain; your local history stays on your Mac.`,
   },
   {
     heading: 'Emails',

@@ -1,8 +1,7 @@
 # Beta access backend (Supabase)
 
-Status: Steps 0a (backend) and 0b (website funnel and admin console). The
-macOS sign-in and the in-app access gate (Step 0c) are not built yet, so
-nothing in the shipped app talks to this backend; only the website does.
+Status: Steps 0a (backend), 0b (website funnel and admin console) and 0c
+(sign-in and access gate in the macOS app, see the end of this document).
 
 ## What lives here, and what never does
 
@@ -228,3 +227,42 @@ in `config.toml`); it can never reach Resend from a local run.
 3. `supabase functions deploy send-invitation --project-ref <ref> --no-verify-jwt`.
 4. Auth → URL configuration: Site URL = the website origin.
 5. Vercel: set the three `VITE_` variables for the environment that should talk to staging.
+
+## Step 0c: the macOS app
+
+Rust owns the beta identity (`companion/src-tauri/src/access/`):
+
+| File | Role |
+|---|---|
+| `config.rs` | backend URL + publishable key (**staging**), grace constants. A build with `EUDONOMIA_BUILD_CHANNEL=release` refuses to compile while this names staging. |
+| `client.rs` | the same Auth/RPC calls as the website, over HTTPS (`ureq`); every failure becomes a short code, never server text |
+| `store.rs` | Keychain items `beta-auth-session` (tokens) and `beta-access-cache` (last verification, pending waitlist email, clock high-water mark), service `ai.eudonomia.companion` |
+| `grace.rs` | the access decision from the last server answer and the clock (pure, tested) |
+| `gate.rs` | which native actions need access (pure, tested) |
+| `mod.rs` | `AccessManager`, Tauri commands `access_*`, the gated `start_native_camera_prototype`, background checks |
+
+- **One identity.** Request access calls `join_waitlist` (source `macos_app`);
+  "I already have access" sends an 8-digit code; an invited person is
+  activated (`claim_beta_invitation`) during sign-in. The founder uses the
+  same flow.
+- **Gate.** `set_companion_session` refuses only the switch from "no session"
+  to "session" without access; lease renewals and every deactivation pass.
+  The camera starts with access, or inside a running session (restarts after
+  sleep or a fault). History, export and stop commands are never gated.
+- **Checks.** At launch, hourly, after a network failure every 2 minutes, and
+  in the UI right before a session starts when the last verification is older
+  than 15 minutes.
+- **Offline grace.** Up to 72 h after the last server answer, never past the
+  entitlement's end. Time since that answer is measured on the Mac's clock;
+  a clock more than 5 minutes behind the answer or behind the highest time the
+  app has seen is a rollback and requires going online. A server "no" or a
+  rejected session applies at once, with no grace.
+- **Without access** the app shows the access step; an install with local
+  history can open it strictly read-only (Analytics: view and export; writes
+  are refused in `AnalyticsShell`).
+- **Data boundary.** The access module never references the session database
+  (source-checked test), and `access_history_tests.rs` runs every access
+  transition over a real on-disk database and compares it byte for byte.
+
+Tests: `cargo test` (unit, gate, history), `npm run test:app-access` (the real
+client against the local stack), `npm test` (screens and gate rules).

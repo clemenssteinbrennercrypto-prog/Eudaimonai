@@ -106,8 +106,11 @@ function RingMark({ size = 88, active = false }) {
   )
 }
 
-export default function Onboarding({ onComplete, onOpenPrivacy }) {
+// `renderAccessStep({ onDone })`, when given, is shown before the camera
+// slide: nobody is asked for the camera before their beta access is settled.
+export default function Onboarding({ onComplete, onOpenPrivacy, renderAccessStep = null }) {
   const [step, setStep] = useState(0)        // 0..2 slides, 3 = awakening
+  const [accessSettled, setAccessSettled] = useState(!renderAccessStep)
   const [visible, setVisible] = useState(true)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -248,6 +251,7 @@ export default function Onboarding({ onComplete, onOpenPrivacy }) {
   }
 
   const slide = SLIDES[step] || SLIDES[0]
+  const showAccessStep = step === 2 && !accessSettled
 
   const goodGlow = alpha => `color-mix(in srgb, var(--ds-good) ${alpha}%, transparent)`
 
@@ -284,7 +288,12 @@ export default function Onboarding({ onComplete, onOpenPrivacy }) {
         }} />
       </div>
 
-      {!isAwakening ? (
+      {showAccessStep ? (
+        // ── Beta access, before the camera is asked for ───────────────────────
+        <div style={{ position: 'relative', width: '100%', margin: 'auto', display: 'flex', justifyContent: 'center', opacity: visible ? 1 : 0, transition: 'opacity .22s ease' }}>
+          {renderAccessStep({ onDone: () => setAccessSettled(true) })}
+        </div>
+      ) : !isAwakening ? (
         // ── Slides ────────────────────────────────────────────────────────────
         <div style={{ position: 'relative', width: '100%', maxWidth: 440, margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 34 }}>
           <div aria-hidden="true" style={{ opacity: visible ? 1 : 0, transition: 'opacity .22s ease' }}>

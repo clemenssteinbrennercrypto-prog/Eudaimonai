@@ -283,7 +283,7 @@ export default function LandingPage({ api }) {
             away. Your sessions and history stay in a local database you can
             delete at any time; they are never uploaded. Our server only keeps
             what runs the beta: your email address and your access. Besides
-            that, the app only checks for updates.
+            that, the app only checks your beta access and looks for updates.
           </p>
           <a
             href="#request-access"
