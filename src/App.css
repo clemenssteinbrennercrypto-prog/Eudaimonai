@@ -5021,3 +5021,12 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .workspace-card-preview { width: 168px; height: 109px; }
 /* Distraction is marked red in the workspace (editor rings, legend). */
 .workspace-quality .attention-legend .is-distraction::before { background: var(--ds-bad); }
+
+/* Project folder row: the workspace row's shape, with the folder name in the
+   control column and up to two quiet actions. */
+.session-output-folder { grid-template-columns: 1fr minmax(0, 260px) auto auto; margin-top: -10px; }
+.session-output-folder-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--ds-label-2, var(--text-secondary)); }
+@media (max-width: 650px) {
+  .session-output-folder { grid-template-columns: 1fr auto auto; }
+  .session-output-folder > .session-output-folder-path { grid-column: 1 / -1; grid-row: 2; }
+}

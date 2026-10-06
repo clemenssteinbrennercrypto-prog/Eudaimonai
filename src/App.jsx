@@ -13,7 +13,7 @@ import SessionScreen from './components/SessionScreen'
 import EndScreen from './components/EndScreen'
 import AnalyticsShell from './components/analytics/AnalyticsShell'
 import HistoryStorageAlerts from './components/HistoryStorageAlerts'
-import { loadFocusModeEnabled, loadProtectionSetups, saveFocusModeEnabled, saveProtectionSetups, disableOptionalModelProviders } from './lib/storage'
+import { loadFocusModeEnabled, loadProtectionSetups, saveFocusModeEnabled, saveProtectionSetups, disableOptionalModelProviders, loadOutputFolder, saveOutputFolder, pickOutputFolder } from './lib/storage'
 import { activateProtectionSetup, getActiveProtectionSetup } from './lib/protectionSetups'
 import { deleteCloudApiKey } from './lib/nativeCompanion'
 import LegalModal from './components/LegalModal'
@@ -63,7 +63,9 @@ export default function App() {
   const [screen,   setScreen]   = useState(() => getActiveWorkspace(loadWorkspaceState()) ? 'lab' : 'setup')
   const [task,     setTask]     = useState('')
   const [goal,     setGoal]     = useState('')
-  const [energyLevel, setEnergyLevel] = useState('medium')
+  // null = not asked. A default here was stored as the user's answer: every
+  // quick-start session recorded "medium" energy nobody reported.
+  const [energyLevel, setEnergyLevel] = useState(null)
   const [duration, setDuration] = useState(30)
   const [tags,     setTags]     = useState([])
   const [sessionData, setSessionData] = useState(null)
@@ -76,6 +78,7 @@ export default function App() {
   const [focusModeEnabled, setFocusModeEnabledRaw] = useState(loadFocusModeEnabled)
   const [protectionState, setProtectionState] = useState(loadProtectionSetups)
   const [protectionReturnScreen, setProtectionReturnScreen] = useState('lab')
+  const [outputFolder, setOutputFolder] = useState(loadOutputFolder)
   const updateStatus = useAppUpdateStatus()
 
   // Session history lives here rather than inside each screen: App already
@@ -245,7 +248,7 @@ export default function App() {
   const handleRestart = (prefill = null) => {
     setTask(prefill?.task ?? '')
     setGoal(prefill?.goal ?? '')
-    setEnergyLevel(prefill?.energyLevel ?? 'medium')
+    setEnergyLevel(prefill?.energyLevel ?? null)
     setDuration(durationFromSetup(prefill))
     setTags(prefill?.tags ?? [])
     setSessionData(null)
@@ -306,6 +309,7 @@ export default function App() {
                 setTask(quickTask)
                 setGoal('')
                 setTags([])
+                setEnergyLevel(null)
                 setDuration(quickDuration)
                 handleStart()
               }}
@@ -339,6 +343,14 @@ export default function App() {
           onEditProtection={() => openProtection('session-setup')}
           onWorkspaceChange={(id) => setWorkspaceState({ ...workspaceState, activeWorkspaceId: id })}
           onEditWorkspaces={() => setScreen('setup')}
+          // The picker is a native dialog; outside the app there is nothing
+          // to open, so the row is not offered at all.
+          outputFolder={isNativeRuntime() ? outputFolder : null}
+          onChooseOutputFolder={isNativeRuntime() ? async () => {
+            const picked = await pickOutputFolder()
+            if (picked) setOutputFolder(saveOutputFolder(picked))
+          } : null}
+          onClearOutputFolder={() => setOutputFolder(saveOutputFolder(''))}
           onStart={handleStart}
         />
       )}
