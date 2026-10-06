@@ -89,7 +89,7 @@ export default function FocusScorePanel({ ledger, sessions }) {
       {time.sessionCount > 0 && (
         <div className="history-stats-grid" style={{ display: 'grid', gap: 10, marginTop: 22 }}>
           {[
-            { label: 'Focus time', value: time.focusSeconds == null ? '--' : fmtDuration(time.focusSeconds), detail: 'Breaks excluded' },
+            { label: 'Session time', value: time.focusSeconds == null ? '--' : fmtDuration(time.focusSeconds), detail: 'Breaks excluded' },
             {
               label: 'Deep Focus',
               value: time.deepFocusSeconds == null ? '--' : fmtDuration(time.deepFocusSeconds),

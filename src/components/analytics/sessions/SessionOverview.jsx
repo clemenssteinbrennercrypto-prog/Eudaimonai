@@ -154,9 +154,9 @@ export default function SessionOverview({ session, analysis, onUpdateSession }) 
           <small>{measurement.measuredSeconds == null ? 'Not measured' : `${fmtDuration(measurement.measuredSeconds)} measured`}</small>
         </div>
         <div>
-          <span>Focused time</span>
-          <strong>{measurement.focusedSeconds == null ? '—' : fmtDuration(measurement.focusedSeconds)}</strong>
-          <small>Score 40 or higher</small>
+          <span>Deep Focus</span>
+          <strong>{measurement.deepFocusSeconds == null ? '—' : fmtDuration(measurement.deepFocusSeconds)}</strong>
+          <small>{measurement.deepFocusSeconds == null ? 'Not measured' : 'Steady attention after 90 s'}</small>
         </div>
         <div className={outcomeTone(analysis.goalOutcome)}>
           <span>Goal</span>

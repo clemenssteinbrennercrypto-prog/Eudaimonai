@@ -52,7 +52,7 @@ describe('LabDashboard metric labels', () => {
         today: null, days: [], partialMetricPeriod: false, referenceWorkdays: 1,
       },
     }))
-    expect(screen.getByText(/Historical Focus Time remains visible/)).toBeInTheDocument()
+    expect(screen.getByText(/Historical session time remains visible/)).toBeInTheDocument()
   })
 
   it('describes a weekend-only score against one fixed reference weekday', () => {
@@ -78,8 +78,8 @@ describe('LabDashboard metric labels', () => {
       },
     }))
 
-    expect(screen.getByText(/Focus Score uses 1h of 2h Focus Time/)).toBeInTheDocument()
-    expect(screen.getByText(/Camera coverage is unavailable for part of this Focus Time/)).toBeInTheDocument()
+    expect(screen.getByText(/Focus Score uses 1h of 2h session time/)).toBeInTheDocument()
+    expect(screen.getByText(/Camera coverage is unavailable for part of this session time/)).toBeInTheDocument()
   })
 
   it('says that V4 is waiting when no exact Deep Focus session exists yet', () => {
@@ -120,14 +120,14 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByText('41')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Focus Score' })).toBeInTheDocument()
     expect(screen.getByText('of 100')).toBeInTheDocument()
-    const focusTime = screen.getByText('Focus time').parentElement
+    const focusTime = screen.getByText('Session time').parentElement
     expect(focusTime).toHaveTextContent('2h')
     expect(focusTime).toHaveTextContent('Time in sessions, without breaks')
     expect(focusTime).not.toHaveTextContent('2m')
     expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Missing for some sessions')
     // The Lab shows warnings only; the routine "uses X of Y" note lives in
     // Analytics. Both numbers stay visible as separate metrics above.
-    expect(screen.queryByText(/Focus Score uses 1h of 2h 40s Focus Time/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Focus Score uses 1h of 2h 40s session time/)).not.toBeInTheDocument()
     expect(screen.queryByText('Measured days')).not.toBeInTheDocument()
     expect(screen.getByText('Average attention').parentElement).toHaveTextContent('80/100')
     expect(screen.queryByText('Time credit')).not.toBeInTheDocument()
@@ -147,7 +147,7 @@ describe('LabDashboard metric labels', () => {
 
     render(React.createElement(LabDashboard, { sessions: [saved], ledger: loadFocusLedger() }))
 
-    const metric = screen.getByText('Focus time').parentElement
+    const metric = screen.getByText('Session time').parentElement
     expect(metric).toHaveTextContent('2h')
     expect(metric).toHaveTextContent('Time in sessions, without breaks')
     expect(metric).not.toHaveTextContent('—')
@@ -343,7 +343,7 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByRole('img', { name: 'Attention field for July 2026' })).toBeInTheDocument()
     expect(view.container.querySelector('.lab-ring-center > strong')).not.toHaveTextContent('—')
     expect(view.container.querySelector('.attention-field .is-strong')).toHaveAttribute('aria-label', 'Historical measured work · Focus 82')
-    expect(screen.getByText('Focus time').parentElement).toHaveTextContent('10m')
+    expect(screen.getByText('Session time').parentElement).toHaveTextContent('10m')
   })
 
   it('labels a DST fallback day by local wall-clock quarters', () => {
@@ -407,7 +407,7 @@ describe('LabDashboard metric labels', () => {
     expect(html).toContain('Measured work')
     expect(html).toContain('Attention 78')
     expect(html).toContain('Average attention')
-    expect(html).toContain('Focus time')
+    expect(html).toContain('Session time')
     expect(html).toContain('10m')
     expect(html).toContain('Deep Focus')
     expect(html).toContain('4m')
@@ -528,7 +528,7 @@ describe('LabDashboard score notes', () => {
     }
     const time = { focusSeconds: 7200, measurementWarning: true, measurementCoverage: 0.6 }
     render(React.createElement(FocusScoreExplanation, { period, time, warningsOnly: true }))
-    expect(screen.getByText(/Only 60% of Focus Time could be measured/)).toBeInTheDocument()
+    expect(screen.getByText(/Only 60% of session time could be measured/)).toBeInTheDocument()
     expect(screen.queryByText(/Today’s score/)).not.toBeInTheDocument()
     expect(screen.queryByText(/scored against/)).not.toBeInTheDocument()
     expect(screen.queryByText('How this score works')).not.toBeInTheDocument()

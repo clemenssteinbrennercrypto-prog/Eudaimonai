@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  hasReportedEnergy,
   artifactFromTitle,
   classifyGoalAwareActivity,
   deriveSessionIntent,
@@ -184,5 +185,14 @@ describe('classification against a session contract', () => {
     const withNull = classifyGoalAwareActivity({ app: 'Word' }, config, true, intent, null)
     expect(withNone.kind).toBe(withNull.kind)
     expect(withNone.basis).not.toContain('contract')
+  })
+})
+
+describe('hasReportedEnergy', () => {
+  it('trusts energy only on sessions saved with the energy marker', () => {
+    expect(hasReportedEnergy({ energyLevel: 'tired', energyLevelVersion: 2 })).toBe(true)
+    // Unmarked values may be the old quick-start default.
+    expect(hasReportedEnergy({ energyLevel: 'medium' })).toBe(false)
+    expect(hasReportedEnergy({ energyLevel: null, energyLevelVersion: 2 })).toBe(false)
   })
 })

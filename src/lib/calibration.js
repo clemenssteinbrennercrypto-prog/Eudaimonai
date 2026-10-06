@@ -11,7 +11,7 @@
 // is made below the thresholds below.
 
 import { comparableSessions, sessionAverageFocus, sessionFocusMeasurement } from './historyTrend'
-import { summarizeSessionAlignment } from './sessionIntent'
+import { hasReportedEnergy, summarizeSessionAlignment } from './sessionIntent'
 import { sessionStartedAt } from './sessionTiming'
 import { formatMinutes } from './durationFormat'
 
@@ -220,7 +220,9 @@ export function energyFit(sessions) {
   const buckets = new Map()
   for (const s of sessions) {
     const pct = focusPct(s)
-    if (!s.energyLevel || pct == null) continue
+    // Only answers given since the energy marker: older 'medium' values were
+    // mostly a default nobody chose.
+    if (!hasReportedEnergy(s) || pct == null) continue
     if (!buckets.has(s.energyLevel)) buckets.set(s.energyLevel, { id: s.energyLevel, label: `${s.energyLevel} energy`, values: [], sessions: [] })
     const bucket = buckets.get(s.energyLevel)
     bucket.values.push(pct)

@@ -213,3 +213,19 @@ describe('SessionScreen output evidence', () => {
     expect(source).not.toMatch(/if \(folder\) \{\s*setOutputWatchFolder/)
   })
 })
+
+describe('SessionScreen live measures', () => {
+  it('shows Deep Focus live, not a phase name', () => {
+    // Lock-in and Deep Focus are different rules; showing both live made it
+    // unclear which one counts (AGENTS.md §11).
+    expect(source).not.toContain('Phase: {FOCUS_PHASES')
+    expect(source).toContain('Deep Focus · {formatTimer(deepFocusSeconds)}')
+  })
+})
+
+describe('App session record', () => {
+  const app = readFileSync(new URL('../App.jsx', import.meta.url), 'utf8')
+  it('marks every saved session so its energy can be trusted', () => {
+    expect(app).toContain('energyLevelVersion: ENERGY_LEVEL_VERSION,')
+  })
+})

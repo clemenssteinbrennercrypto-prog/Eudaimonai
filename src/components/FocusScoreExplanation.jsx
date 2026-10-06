@@ -6,9 +6,9 @@ import { FOCUS_SCORE } from '../lib/focusScore'
 export function FocusScoreMethod() {
   return (
     <>
-      <p>Measured Focus Time is the volume. Average Attention scales that time from no credit at {FOCUS_SCORE.qualityFloor} to full credit at {FOCUS_SCORE.qualityCeiling}. Exact Deep Focus minutes receive a {Math.round(FOCUS_SCORE.deepFocusBonus * 100)}% continuity bonus before the same quality factor is applied.</p>
+      <p>Measured session time is the volume. Average Attention scales that time from no credit at {FOCUS_SCORE.qualityFloor} to full credit at {FOCUS_SCORE.qualityCeiling}. Exact Deep Focus minutes receive a {Math.round(FOCUS_SCORE.deepFocusBonus * 100)}% continuity bonus before the same quality factor is applied.</p>
       <p>More work at the same quality always raises the score. The curve starts gently so very short sessions earn little, then applies diminishing returns: within one weekday, {formatMinutes(FOCUS_SCORE.referenceMinutesPerWorkday)} effective minutes scores 50, four effective hours score about 81 and eight score about 91. A week or month adds its raw measurements before calculating one score instead of averaging daily scores.</p>
-      <p>The score is accumulated focused work, not an attention percentage or a claim about output quality. Focus Time, Deep Focus and Average Attention remain visible separately so the result can be explained.</p>
+      <p>The score is accumulated focused work, not an attention percentage or a claim about output quality. Session time, Deep Focus and Average Attention remain visible separately so the result can be explained.</p>
       <p>At least {formatMinutes(5)} of measured time in a session is required. Breaks and camera gaps earn nothing. Sessions are assigned to their start date, and older sessions without exact Deep Focus are never guessed.</p>
     </>
   )
@@ -39,7 +39,7 @@ export default function FocusScoreExplanation({ period, time = null, warningsOnl
   if (statusDay?.status === 'unscorable') status = `A session ${when} is missing exact Deep Focus time, so no score is shown rather than a partial estimate.`
   if (statusDay?.status === 'future') { status = 'This day is in the future.'; routine = true }
   if (!selectedDay && period.refusal) { status = 'Some sessions after this score began are missing exact Deep Focus time, so no period score is shown rather than a partial estimate.'; routine = false }
-  else if (!selectedDay && period.beforeMetricPeriod) { status = 'The current Focus Score did not exist for this period. Historical Focus Time remains visible; no score is reconstructed.'; routine = false }
+  else if (!selectedDay && period.beforeMetricPeriod) { status = 'The current Focus Score did not exist for this period. Historical session time remains visible; no score is reconstructed.'; routine = false }
   else if (!selectedDay && today?.status === 'measured') { status = `Today’s score: ${today.score}.`; routine = true }
   if (!status && period.score == null) { status = 'No qualifying measurements in this period.'; routine = true }
   const showStatus = status && !(warningsOnly && routine)
@@ -64,13 +64,13 @@ export default function FocusScoreExplanation({ period, time = null, warningsOnl
         <p>This period is scored against {period.referenceWorkdays === 1 ? 'one weekday' : `${period.referenceWorkdays} weekdays`} so far. Weekend work still counts.</p>
       )}
       {!warningsOnly && scoreUsesPartialFocusTime && (
-        <p>Focus Score uses {formatMinutes(scoreMeasuredSeconds / 60)} of {formatMinutes(totalFocusSeconds / 60)} Focus Time. Only qualifying measured time enters the score; other active time remains visible and is not guessed.</p>
+        <p>Focus Score uses {formatMinutes(scoreMeasuredSeconds / 60)} of {formatMinutes(totalFocusSeconds / 60)} session time. Only qualifying measured time enters the score; other active time remains visible and is not guessed.</p>
       )}
       {time?.measurementWarning && (
-        <p>Only {Math.round(time.measurementCoverage * 100)}% of Focus Time could be measured. Focus Score uses the measured time only; missing camera data is not guessed.</p>
+        <p>Only {Math.round(time.measurementCoverage * 100)}% of session time could be measured. Focus Score uses the measured time only; missing camera data is not guessed.</p>
       )}
       {time?.measurementCoverageUnknown && (
-        <p>Camera coverage is unavailable for part of this Focus Time because some earlier sessions did not store it.</p>
+        <p>Camera coverage is unavailable for part of this session time because some earlier sessions did not store it.</p>
       )}
       {!warningsOnly && <details>
         <summary>How this score works</summary>

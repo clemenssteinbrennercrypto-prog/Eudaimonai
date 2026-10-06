@@ -322,7 +322,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
         <div className="lab-metric-row">
           <Metric
             tone="time"
-            label="Focus time"
+            label="Session time"
             value={time.focusSeconds == null ? null : formatDurationCompact(time.focusSeconds)}
             detail="Time in sessions, without breaks"
           />

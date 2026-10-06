@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeConclusion, fmtClock } from './sessionAnalysisPresentation'
+import { describeConclusion, energyInterpretation, fmtClock } from './sessionAnalysisPresentation'
 
 describe('session analysis presentation', () => {
   it('shows an explicit hour field in long-session timestamps', () => {
@@ -12,5 +12,13 @@ describe('session analysis presentation', () => {
     const copy = describeConclusion({ code: 'SCORING_VERSION_INCOMPATIBLE' }, {})
     expect(copy.headline).toContain('different camera measurement method')
     expect(copy.headline).not.toMatch(/version|ruler/i)
+  })
+
+  it('reads energy against average attention, in the same bands as the session read', () => {
+    expect(energyInterpretation('tired', 72)).toMatch(/still held high attention/)
+    expect(energyInterpretation('tired', 65)).toBeNull()
+    expect(energyInterpretation('fresh', 45)).toMatch(/friction likely came from the work/)
+    expect(energyInterpretation('fresh', 55)).toBeNull()
+    expect(energyInterpretation(null, 80)).toBeNull()
   })
 })

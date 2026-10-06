@@ -18,10 +18,12 @@ export function fmtClock(seconds) {
 // Energy colours the SENTENCE, never the number — see sessionAnalysis.js and
 // the CLAUDE.md invariant this whole module respects: energy is context, not
 // a threshold. Ported verbatim from the old EndScreen.jsx.
-export function energyInterpretation(energyLevel, focusPct) {
-  if (!energyLevel || focusPct == null) return null
-  if (energyLevel === 'tired' && focusPct >= 60) return 'You started tired and still held 60%+ focused time — the same number is worth more from that start.'
-  if (energyLevel === 'fresh' && focusPct < 60) return 'You started fresh, so the friction likely came from the work or the environment rather than from energy.'
+// Reads average attention against the same bands as the session conclusion
+// (high ≥ 70, low < 50), so the sentence never disagrees with the read above it.
+export function energyInterpretation(energyLevel, averageAttention) {
+  if (!energyLevel || averageAttention == null) return null
+  if (energyLevel === 'tired' && averageAttention >= 70) return 'You started tired and still held high attention — the same number is worth more from that start.'
+  if (energyLevel === 'fresh' && averageAttention < 50) return 'You started fresh, so the friction likely came from the work or the environment rather than from energy.'
   return null
 }
 

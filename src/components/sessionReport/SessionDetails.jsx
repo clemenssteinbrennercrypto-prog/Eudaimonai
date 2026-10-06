@@ -145,7 +145,7 @@ export default function SessionDetails({ session, analysis }) {
   const { facts } = analysis
   const distractionLog = Array.isArray(session.distractionLog) ? session.distractionLog : []
   const tags = Array.isArray(session.tags) ? session.tags : []
-  const energyNote = energyInterpretation(facts.energyLevel, analysis.measurement.aboveThresholdPct)
+  const energyNote = energyInterpretation(facts.energyLevel, analysis.measurement.averageFocus)
   const hasAnything = Object.values(facts.phases.seconds || {}).some(s => s > 0) ||
     facts.activity || facts.output || distractionLog.length > 0 || tags.length > 0 || facts.energyLevel
 
@@ -169,15 +169,6 @@ export default function SessionDetails({ session, analysis }) {
             {energyNote && (
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>{energyNote}</p>
             )}
-          </div>
-        )}
-        {analysis.measurement.aboveThresholdPct != null && (
-          <div>
-            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Time above threshold</p>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
-              {analysis.measurement.aboveThresholdPct}% of measured time sat above the focus threshold — a different
-              question from the average score, and reported separately for that reason.
-            </p>
           </div>
         )}
         <PhaseBreakdown phaseSeconds={facts.phases.seconds || {}} />
