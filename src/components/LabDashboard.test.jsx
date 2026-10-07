@@ -122,7 +122,9 @@ describe('LabDashboard metric labels', () => {
     expect(screen.getByText('of 100')).toBeInTheDocument()
     const focusTime = screen.getByText('Session time').parentElement
     expect(focusTime).toHaveTextContent('2h')
-    expect(focusTime).toHaveTextContent('Time in sessions, without breaks')
+    fireEvent.click(within(focusTime).getByRole('button', { name: 'What Session time means' }))
+    expect(screen.getByRole('dialog', { name: 'What Session time means' })).toHaveTextContent('Time in sessions, without breaks')
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(focusTime).not.toHaveTextContent('2m')
     // The Weekly view adds a week review below; these are the hero's metrics.
     const hero = within(document.querySelector('.lab-hero'))
@@ -151,7 +153,7 @@ describe('LabDashboard metric labels', () => {
 
     const metric = screen.getByText('Session time').parentElement
     expect(metric).toHaveTextContent('2h')
-    expect(metric).toHaveTextContent('Time in sessions, without breaks')
+    expect(within(metric).getByRole('button', { name: 'What Session time means' })).toBeInTheDocument()
     expect(metric).not.toHaveTextContent('—')
     expect(screen.getByText('Deep Focus').parentElement).toHaveTextContent('Missing for some sessions')
   })
@@ -413,13 +415,30 @@ describe('LabDashboard metric labels', () => {
     expect(html).toContain('10m')
     expect(html).toContain('Deep Focus')
     expect(html).toContain('4m')
-    expect(html).toContain('Time in sessions, without breaks')
+    expect(html).toContain('aria-label="What Session time means"')
     expect(html).not.toContain('Time credit')
     expect(html).not.toContain('78% efficiency')
     expect(html).toContain('aria-label="Measured work · Focus 53"')
     expect(html).not.toContain('Complete a measured session to reveal your attention field.')
     expect(html).not.toContain('Measured focus')
     expect(html).not.toContain('78 focus')
+  })
+
+  it('keeps each metric definition behind its own info button', () => {
+    render(<LabDashboard focusModeEnabled={false} sessions={[]} ledger={loadFocusLedger()} />)
+
+    const definitions = [
+      ['What Session time means', 'Time in sessions, without breaks'],
+      ['What Average attention means', 'Average while the camera could see you'],
+      ['What Deep Focus means', 'Stretches of 90 s or more of steady attention'],
+    ]
+    for (const [label, text] of definitions) {
+      expect(screen.queryByText(text)).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: label }))
+      expect(screen.getByRole('dialog', { name: label })).toHaveTextContent(text)
+      fireEvent.keyDown(document, { key: 'Escape' })
+      expect(screen.queryByRole('dialog', { name: label })).not.toBeInTheDocument()
+    }
   })
 
   it('reveals the session name on hover without showing exact activity names', () => {
@@ -596,7 +615,7 @@ describe('LabDashboard personal baseline', () => {
     expect(screen.getByText('Usual day 30m')).toBeInTheDocument()
     expect(screen.getByText(/^Usual day \d+$/)).toBeInTheDocument()
     // Attention is not cumulative, so it is compared.
-    expect(screen.getByText('+4 vs usual')).toBeInTheDocument()
+    expect(screen.getByText('+4 vs usual')).toHaveClass('is-up')
   })
 
   it('compares every value on a finished day', async () => {

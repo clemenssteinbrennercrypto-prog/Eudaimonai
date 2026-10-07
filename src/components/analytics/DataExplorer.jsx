@@ -120,7 +120,7 @@ function TimeOfDay({ data, usableCount, required }) {
 }
 
 function WorkspaceComparison({ data }) {
-  const rows = data.rows.filter(row => row.averageAttention != null)
+  const rows = data.rows.filter(row => row.sessions > 0)
   const bestId = data.comparison.best?.id
   const worstId = data.comparison.worst?.id
   return (
@@ -131,10 +131,14 @@ function WorkspaceComparison({ data }) {
           <div key={row.id} style={{ '--i': index }} className={`${row.id === bestId ? 'is-best' : ''} ${row.id === worstId ? 'is-worst' : ''}`.trim() || undefined}>
             <div>
               <span>{row.label}</span>
-              <small>{sessionLabel(row.sessions)}{row.outcomeRate == null ? '' : ` · ${row.outcomeRate}% goals reached`}</small>
+              <small>
+                {sessionLabel(row.sessions)}
+                {row.averageAttention == null ? ' · attention after 3 sessions' : ''}
+                {row.outcomeRate == null ? '' : ` · ${row.outcomeRate}% goals reached`}
+              </small>
             </div>
-            <strong>{row.averageAttention}</strong>
-            <i><b style={{ width: `${row.averageAttention}%` }} /></i>
+            <strong>{row.averageAttention ?? '—'}</strong>
+            <i><b style={{ width: `${row.averageAttention ?? 0}%` }} /></i>
           </div>
         ))}
       </div>
@@ -176,8 +180,7 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
   }
 
   const resetVisible = range !== 'all' || outcome !== 'all' || workspace !== 'all'
-  const workspaceReady = details.conditions.usableCount >= details.conditions.required &&
-    details.conditions.workspace.rows.filter(row => row.averageAttention != null).length >= 2
+  const workspaceVisible = details.conditions.workspace.rows.some(row => row.sessions > 0)
   const durationReady = details.duration.length >= 3
   const phasesReady = details.phases.totalSeconds > 0 || details.phases.deepFocus.measuredSessions > 0
   const plottedSessionCount = details.timeline.filter(row => row.scoreEligible).length
@@ -268,7 +271,7 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
                 ? `Collecting ${details.conditions.usableCount}/${details.conditions.required}`
                 : `${details.conditions.usableCount} qualified sessions`}
             />
-            <div className={`analytics-condition-grid${workspaceReady ? '' : ' is-single'}`}>
+            <div className={`analytics-condition-grid${workspaceVisible ? '' : ' is-single'}`}>
               <div>
                 <h3>Time of day</h3>
                 <TimeOfDay
@@ -278,7 +281,7 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
                   required={details.conditions.required}
                 />
               </div>
-              {workspaceReady && (
+              {workspaceVisible && (
                 <div>
                   <h3>Workspace</h3>
                   <WorkspaceComparison key={`workspace-${filterKey}`} data={details.conditions.workspace} />
