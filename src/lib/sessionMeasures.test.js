@@ -14,6 +14,7 @@ function timeline(pattern, { apps = null, start = 5 } = {}) {
       score,
       focused: score >= 40,
       deepFocused: char === 'D',
+      inFlow: char === 'D',
     }
     if (apps) sample.activity = { kind: 'aligned', label: 'title', app: apps[index] ?? '', domain: '' }
     samples.push(sample)
@@ -76,9 +77,26 @@ describe('deriveSessionMeasures', () => {
   it('finds the longest unbroken Deep Focus block, capped by the exact total', () => {
     const pattern = `${FOCUS_HOUR}DDDDFDDDDDDDDF_DDDDDDDDDDDDDD`
     const measures = deriveSessionMeasures(session(pattern))
-    // 14 samples after the hole beat 8 before it; the hole splits them.
-    expect(measures.longestDeepFocusSeconds).toBe(70)
+    // 14 samples after the hole beat 8 before it; the proven Flow entry adds
+    // the same 90 s qualifying span that flowSeconds already credited.
+    expect(measures.longestDeepFocusSeconds).toBe(160)
     expect(deriveSessionMeasures(session(pattern, { flowSeconds: 40 })).longestDeepFocusSeconds).toBe(40)
+  })
+
+  it('does not credit the warm-up twice after a retained Flow interruption', () => {
+    const tl = timeline(`${FOCUS_HOUR}DDDDDD`).map((sample, index) => {
+      if (index === 63) return { ...sample, deepFocused: false, inFlow: true }
+      return sample
+    })
+    const measures = deriveSessionMeasures(session('', { timeline: tl, flowSeconds: 115 }))
+    // First run: 90 s warm-up + 15 s stamped. Second run resumes the retained
+    // gate and contributes only its 10 s of stamped time.
+    expect(measures.longestDeepFocusSeconds).toBe(105)
+  })
+
+  it('refuses to reconstruct a block when historical samples lack Flow gate state', () => {
+    const tl = timeline(`${FOCUS_HOUR}DDDD`).map(({ inFlow, ...sample }) => sample)
+    expect(deriveSessionMeasures(session('', { timeline: tl })).longestDeepFocusSeconds).toBeNull()
   })
 
   it('leaves the block unknown for sessions without exact Deep Focus', () => {

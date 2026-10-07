@@ -6,8 +6,6 @@ function input(extra = {}) {
     hasFace: true,
     faceAbsentMs: 0,
     previousScore: 68,
-    hasBlinkData: false,
-    blinkRate: 0,
     fidgetVariance: 0.02,
     pitchDeg: 10,
     workZonePitchMin: 8,
@@ -18,10 +16,7 @@ function input(extra = {}) {
     distractionDownward: false,
     unknownPhoneDownwardConfirmed: false,
     eyesClosedMs: 0,
-    earlyMicrosleepMs: 0,
-    hasPerclos: false,
-    perclos: 0,
-    yawnMs: 0,
+    eyeClosureRatio: 1,
     lookingUpMs: 0,
     pitchUpDT: 15,
     pitchDT: 30,
@@ -48,30 +43,33 @@ function input(extra = {}) {
 describe('pure attention score and trace', () => {
   it('records every applied bonus and penalty with the same arithmetic as the live ruler', () => {
     const base = calculateBaseAttentionScore(input({
-      hasBlinkData: true,
-      blinkRate: 15,
       fidgetVariance: 0.01,
       productiveHorizontal: true,
       eyesClosedMs: 1600,
+      eyeClosureRatio: 0.5,
       activityBonus: 5,
     }))
     expect(base.components).toMatchObject({
       face_present_base: 68,
-      blink_optimal: 7,
       head_stable: 5,
       work_zone_gaze: 5,
       productive_secondary_screen: 5,
-      eyes_closed_prolonged: -35,
+      eyes_closed_sustained: -35,
       activity_focus_app: 5,
     })
-    expect(base.score).toBe(60)
+    expect(base.score).toBe(53)
     expect(base.primaryReason).toBe('prolonged')
+    expect(base.signals.eyeClosureRatio).toBe(0.5)
   })
 
   it('records camera clamping and smoothing rather than hiding either transform', () => {
-    const base = calculateBaseAttentionScore(input({ hasBlinkData: true, blinkRate: 15, fidgetVariance: 0.001, productiveHorizontal: true }))
+    const base = calculateBaseAttentionScore(input({
+      fidgetVariance: 0.001,
+      productiveHorizontal: true,
+      productiveDownward: true,
+    }))
     const final = finalizeAttentionScore({ base, rampBonus: 10, previousScore: 70, trackingUncertain: false })
-    expect(base.components.camera_cap).toBe(-5)
+    expect(base.components.camera_cap).toBe(-1)
     expect(final.rawFinal).toBe(95)
     expect(final.score).toBe(77.5)
     expect(final.trace.version).toBe(SCORE_TRACE_VERSION)
@@ -139,8 +137,8 @@ describe('pure attention score and trace', () => {
   })
 
   it('scales the whole score by the off-target factor and leaves it alone inside a work zone', () => {
-    const inside = calculateBaseAttentionScore(input({ hasBlinkData: true, blinkRate: 15 }))
-    const away = calculateBaseAttentionScore(input({ hasBlinkData: true, blinkRate: 15, offTargetFactor: 0.75 }))
+    const inside = calculateBaseAttentionScore(input())
+    const away = calculateBaseAttentionScore(input({ offTargetFactor: 0.75 }))
     expect(inside.components.off_target).toBeUndefined()
     expect(away.score).toBeCloseTo(inside.score * 0.25)
     expect(away.components.off_target).toBeCloseTo(-inside.score * 0.75)
@@ -153,6 +151,19 @@ describe('pure attention score and trace', () => {
   it('names looking away once it costs a quarter of the score, without overriding a specific reason', () => {
     expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.2 })).primaryReason).toBe('focused')
     expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.3 })).primaryReason).toBe('looking_away')
-    expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.9, yawnMs: 2000 })).primaryReason).toBe('yawn')
+    expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.9, eyesClosedMs: 2000 })).primaryReason).toBe('prolonged')
+  })
+
+  it('does not turn blink rate, mouth opening, or closure share into focus points', () => {
+    const baseline = calculateBaseAttentionScore(input())
+    const diagnostics = calculateBaseAttentionScore(input({
+      hasBlinkData: true,
+      blinkRate: 60,
+      hasPerclos: true,
+      perclos: 100,
+      yawnMs: 10_000,
+    }))
+    expect(diagnostics.score).toBe(baseline.score)
+    expect(diagnostics.components).toEqual(baseline.components)
   })
 })

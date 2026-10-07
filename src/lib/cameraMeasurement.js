@@ -11,9 +11,20 @@ export const NATIVE_CAMERA_MEASUREMENT_V2 = Object.freeze({
   detectorModelSha256: '3bc182eb9f33925d9e58b5c8d59308a760f4adea8f282370e428c51212c26633',
 })
 
-// New live sessions have one source. V1 remains exported solely so stored
-// history can identify its original ruler; it is never a runtime fallback.
-export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V2
+// The native camera and model stay byte-for-byte V2. Attention scoring V3 is a
+// new ruler because it removes unsupported blink/yawn/closure-share heuristics
+// and personalises sustained eye closure. A distinct source id makes that
+// boundary explicit in stored history without pretending the model changed.
+export const NATIVE_CAMERA_MEASUREMENT_V3 = Object.freeze({
+  ...NATIVE_CAMERA_MEASUREMENT_V2,
+  id: 'native_mediapipe_v2_attention_v3',
+  attentionScoringVersion: 3,
+})
+
+// New live sessions have one source. Earlier generations remain exported only
+// so stored history can identify its original ruler; there is no runtime
+// fallback between them.
+export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V3
 
 export function nativeCameraFaultFor(status) {
   if (status?.state !== 'faulted') return null

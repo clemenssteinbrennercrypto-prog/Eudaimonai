@@ -17,6 +17,7 @@ function session({ day, hour = 9, blockMinutes = 20, version = 2, faulted = fals
     score: i < blockSamples ? 80 : 66,
     focused: true,
     deepFocused: i < blockSamples,
+    inFlow: i < blockSamples,
   }))
   return withSessionFocusMetric({
     id: `s${counter}`,
@@ -49,7 +50,7 @@ describe('buildPersonalRecords', () => {
   it('reports the three records once ready', () => {
     const { ready, records } = buildPersonalRecords(tenDays(), { now: NOW })
     expect(ready).toBe(true)
-    expect(records.longestBlock).toMatchObject({ value: 19 * 60, dayKey: '2026-11-10' })
+    expect(records.longestBlock).toMatchObject({ value: 19 * 60 + 90, dayKey: '2026-11-10' })
     expect(records.dayDeepFocus).toMatchObject({ value: 19 * 60 + 90, dayKey: '2026-11-10' })
     expect(records.dayScore.dayKey).toBe('2026-11-10')
   })
@@ -69,7 +70,7 @@ describe('newRecordsForSession', () => {
   it('announces a longer Deep Focus block with the previous best', () => {
     const found = newRecordsForSession(session({ day: 15, blockMinutes: 25 }), tenDays(), { now: NOW })
     expect(found.find(r => r.key === 'longestBlock')).toEqual({
-      key: 'longestBlock', label: 'Longest Deep Focus block', value: 25 * 60, previous: 19 * 60,
+      key: 'longestBlock', label: 'Longest Deep Focus block', value: 25 * 60 + 90, previous: 19 * 60 + 90,
     })
   })
 

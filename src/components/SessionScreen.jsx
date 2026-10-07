@@ -68,6 +68,13 @@ import {
   shouldBuildSustainedRamp,
 } from '../lib/attentionScore'
 import { OFF_TARGET_REST, stepOffTarget } from '../lib/offTargetAttention'
+import {
+  DEFAULT_OPEN_EYE_EAR,
+  eyeClosureRatio,
+  hasSubstantialEyeClosure,
+  isOpenEyeSample,
+  personalOpenEyeBaseline,
+} from '../lib/ocularAttention'
 import { isScreenRole } from '../lib/workspaceObjects'
 import {
   advancePenaltyFrameState,
@@ -93,34 +100,23 @@ import {
 import ConfirmDialog from './ConfirmDialog'
 import { ActivityPill, FocusRing, StatusDot } from './SessionIndicators'
 import {
-  BLINK_WIN_MS,
   CONF_UNCERTAIN_MAX,
   DISTRACTION_DOWN_HOLD_MS,
-  EAR_PROLONGED_CLOSE,
   EAR_RECALIB_INTERVAL,
   FACE_ABSENT_HOLD_MS,
   HEAD_DRIFT_THRESH,
   HEAD_DRIFT_WIN_MS,
   HEAD_TURN_HOLD,
   IRIS_OFF_H,
-  MAR_YAWN,
-  PERCLOS_WIN_MS,
-  PROLONGED_CLOSE_MS,
   UNCERTAIN_HOLD_MS,
 } from '../lib/cameraScoringConstants'
 import { playSessionStartChime } from '../lib/signatureSound'
 
 // ── Thresholds ────────────────────────────────────────────────────────────────
-// Science sources:
-//  • EAR blink/heavy: Soukupová & Čech (2016), dlib 68-pt model, EAR < 0.20 = blink
-//  • PROLONGED_CLOSE_MS: fatigue eye closure > 500ms (PMC3836343), microsleep ≥ 1000ms
-//    → 800ms = early fatigue warning; 1500ms = confirmed impairment (kept for penalty trigger)
-//  • MAR_YAWN: 0.50 per Weng et al. (MDPI 2022) — threshold in 20-frame sequence
-//  • BLINK_WIN_MS: 20s window gives ~4 blinks minimum at 12/min — adequate signal
-//  • PERCLOS_WIN_MS: 30s (shortened from 60s) — office/study use responds faster than driving;
-//    Wierwille (1994) 60s was for highway driving. 30s validated in PMC10108649.
-const EAR_BLINK              = 0.20
-const EAR_HEAVY              = 0.15
+// Evidence boundaries for ocular scoring live in ocularAttention.js. Blink
+// rate, mouth opening and webcam-derived eye-closure share are deliberately
+// not score inputs: the literature does not identify them as precise proxies
+// for focus in uncontrolled knowledge work.
 const PITCH_UP_THRESH     = 15
 const ALERT_COOLDOWN_MS      = 60_000
 const GENTLE_REMINDER_DELAY_MS = 60_000
@@ -262,9 +258,9 @@ function getPhaseAlertMessage(reason, phase) {
   return phaseCopy ? { ...base, ...phaseCopy } : base
 }
 
-// ── Circadian thresholds ───────────────────────────────────────────────────────
-// Research: post-lunch dip 13:00–15:00 (Monk 2005); night fatigue 23:00–06:00 (Czeisler 1999)
-// We lenient-shift PROLONGED_CLOSE_MS and ALERT delay in these windows.
+// ── Alert schedule ────────────────────────────────────────────────────────────
+// Fixed clock windows only shorten the alert delay. They do not change the
+// attention score or the sustained-eye-closure boundary.
 
 // ── Alert messages ────────────────────────────────────────────────────────────
 const ALERT_MESSAGES = {
@@ -423,14 +419,10 @@ export default function SessionScreen({
   const lastActivePushAtRef    = useRef(0)   // when we last told the companion this session is active
 
   // ── Detection rolling buffers ─────────────────────────────────────────────
-  const blinkTimestampsRef     = useRef([])
-  const wasClosedRef           = useRef(false)
-  const perclosHistRef         = useRef([])
   const headDownStartRef       = useRef(null)
   const headTurnLeftStartRef   = useRef(null)
   const headTurnRightStartRef  = useRef(null)
   const eyesClosedSinceRef     = useRef(null)
-  const yawnStartRef           = useRef(null)
   const phoneStartRef          = useRef(null)
   const distractionDownStartRef = useRef(null)
   const downwardContextHistRef  = useRef([])   // last second of downward classifications (majority vote)
@@ -523,7 +515,7 @@ export default function SessionScreen({
   })
 
   // ── Personal EAR baseline refs ───────────────────────────────────────────
-  const earBaselineRef      = useRef(0.28) // fallback default
+  const earBaselineRef      = useRef(DEFAULT_OPEN_EYE_EAR)
   const earCalibSamplesRef  = useRef([])
   // Personal iris neutral (looking-at-screen) baseline, learned during the
   // 20s calibration. Gaze offsets are measured relative to these, so the
@@ -684,7 +676,6 @@ export default function SessionScreen({
     headTurnLeftStartRef.current = null
     headTurnRightStartRef.current = null
     eyesClosedSinceRef.current = null
-    yawnStartRef.current = null
     phoneStartRef.current = null
     distractionDownStartRef.current = null
     downwardContextHistRef.current = []
@@ -697,9 +688,6 @@ export default function SessionScreen({
     headDownFramesRef.current = 0
     eyesOffFramesRef.current = 0
     penaltyFramesRef.current = createPenaltyFrameState()
-    wasClosedRef.current = false
-    blinkTimestampsRef.current = []
-    perclosHistRef.current = []
     nosePtHistRef.current = []
     setCurrentStreak(0)
     setFaceAbsentPrompt(false)
@@ -1343,7 +1331,7 @@ export default function SessionScreen({
     const shouldPrompt = faceAbsentMs >= 2000 && faceAbsentMs < FACE_ABSENT_HOLD_MS
     setFaceAbsentPrompt(shouldPrompt)
 
-    let avgEar = 0.30, pitchDeg = 0, pitchUpDeg = 0, yawSigned = 0, mar = 0, irisV = 0, irisH = 0
+    let avgEar = 0.30, pitchDeg = 0, pitchUpDeg = 0, yawSigned = 0, irisV = 0, irisH = 0
 
     if (hasFace) {
       const f   = analyzeFrame(lmArray[0])
@@ -1351,57 +1339,25 @@ export default function SessionScreen({
       pitchDeg  = f.pitchDeg
       pitchUpDeg = f.pitchUpDeg
       yawSigned = f.yawSigned
-      mar       = f.mar
       irisV     = f.irisV
       irisH     = f.irisH
-
-      // Computed personal EAR thresholds from baseline
-      const earBlink = earBaselineRef.current * 0.72
-      const earHeavy = earBaselineRef.current * 0.55
-
-      if (avgEar < earBlink) {
-        wasClosedRef.current = true
-      } else if (wasClosedRef.current) {
-        wasClosedRef.current = false
-        blinkTimestampsRef.current.push(now)
-      }
-      perclosHistRef.current.push({ t: now, heavy: avgEar < earHeavy })
       nosePtHistRef.current.push({ t: now, x: f.nosePt.x, y: f.nosePt.y })
     }
     const adjustedYawSigned = yawSigned - yawNeutral
     gazeSignalRef.current = { hasFace, pitchDeg, yawSigned: adjustedYawSigned }
 
-    const tenAgo   = now - BLINK_WIN_MS
-    const thirtyAgo = now - PERCLOS_WIN_MS
     const driftAgo = now - HEAD_DRIFT_WIN_MS
-    blinkTimestampsRef.current = blinkTimestampsRef.current.filter(t => t > tenAgo)
-    perclosHistRef.current     = perclosHistRef.current.filter(f => f.t > thirtyAgo)
     nosePtHistRef.current      = nosePtHistRef.current.filter(p => p.t > driftAgo)
 
-    const blinkRate    = blinkTimestampsRef.current.length * 3
-    const hasBlinkData = sessionElapsed >= 15
-    const pHist        = perclosHistRef.current
-    const perclos      = pHist.length > 0 ? (pHist.filter(f => f.heavy).length / pHist.length) * 100 : 0
-    const hasPerclos   = sessionElapsed >= 30 && pHist.length >= 15
-
-    if (hasFace && avgEar < EAR_PROLONGED_CLOSE) {
+    const currentEyeClosureRatio = hasFace
+      ? eyeClosureRatio(avgEar, earBaselineRef.current)
+      : null
+    if (hasFace && hasSubstantialEyeClosure(avgEar, earBaselineRef.current)) {
       if (!eyesClosedSinceRef.current) eyesClosedSinceRef.current = now
     } else {
       eyesClosedSinceRef.current = null
     }
     const eyesClosedMs = eyesClosedSinceRef.current ? now - eyesClosedSinceRef.current : 0
-    // Early microsleep warning: research shows >500ms slow closure = drowsiness signal
-    // (PMC3836343: sleep-deprived pilots showed increased 500ms+ closures with performance errors)
-    // earlyMicrosleepMs uses EAR_PROLONGED_CLOSE threshold (held below 0.18)
-    // but a shorter time window than PROLONGED_CLOSE_MS to catch onset earlier
-    const earlyMicrosleepMs = hasFace && avgEar < EAR_PROLONGED_CLOSE ? eyesClosedMs : 0
-
-    if (hasFace && mar > MAR_YAWN) {
-      if (!yawnStartRef.current) yawnStartRef.current = now
-    } else {
-      yawnStartRef.current = null
-    }
-    const yawnMs = yawnStartRef.current ? now - yawnStartRef.current : 0
 
     if (hasFace && pitchUpDeg >= pitchUpDT) {
       if (!lookingUpStartRef.current) lookingUpStartRef.current = now
@@ -1669,18 +1625,20 @@ export default function SessionScreen({
       ? (now - distractionDownStartRef.current) >= DISTRACTION_DOWN_HOLD_MS
       : false
 
-    // During calibration: collect EAR + iris-neutral samples for personal
-    // baselines, then return. The user is looking at the screen (where the
-    // calibrating ring is), so their iris position now = "eyes on task" neutral.
+    // During calibration, learn the user's open-eye geometry rather than an
+    // absolute EAR threshold. The robust median tolerates ordinary blinks;
+    // only samples near that personal baseline feed gaze-neutral calibration.
     if (calibrating) {
-      if (hasFace && avgEar > 0.20) {
+      if (hasFace && Number.isFinite(avgEar)) {
         earCalibSamplesRef.current.push(avgEar)
-        irisCalibSamplesRef.current.push({ h: irisH, v: irisV })
-        workspacePoseSamplesRef.current.push({ yawSigned, pitchDeg: pitchDeg - pitchUpDeg, irisH })
-      }
-      if (earCalibSamplesRef.current.length > 0) {
-        const sum = earCalibSamplesRef.current.reduce((a, b) => a + b, 0)
-        earBaselineRef.current = sum / earCalibSamplesRef.current.length
+        earBaselineRef.current = personalOpenEyeBaseline(
+          earCalibSamplesRef.current,
+          earBaselineRef.current,
+        )
+        if (isOpenEyeSample(avgEar, earBaselineRef.current)) {
+          irisCalibSamplesRef.current.push({ h: irisH, v: irisV })
+          workspacePoseSamplesRef.current.push({ yawSigned, pitchDeg: pitchDeg - pitchUpDeg, irisH })
+        }
       }
       if (irisCalibSamplesRef.current.length > 0) {
         const s = irisCalibSamplesRef.current
@@ -1699,11 +1657,13 @@ export default function SessionScreen({
       return
     }
 
-    // ── EAR drift compensation: re-calibrate baseline every 10 min ──────────
-    // Eye muscles fatigue mid-session → EAR naturally drops ~5–8% over 30 min.
-    // Without re-calibration, a tired-but-still-focused user gets false penalties.
-    // We blend new open-eye samples (>0.20) into existing baseline at 20% weight.
-    if (hasFace && avgEar > 0.20 && (now - lastRecalibTimeRef.current) >= EAR_RECALIB_INTERVAL) {
+    // Slow drift correction accepts only values close to the personal open-eye
+    // baseline. A closure can therefore never lower its own future threshold.
+    if (
+      hasFace &&
+      isOpenEyeSample(avgEar, earBaselineRef.current) &&
+      (now - lastRecalibTimeRef.current) >= EAR_RECALIB_INTERVAL
+    ) {
       earBaselineRef.current = earBaselineRef.current * 0.8 + avgEar * 0.2
       lastRecalibTimeRef.current = now
     }
@@ -1755,8 +1715,6 @@ export default function SessionScreen({
       faceAbsentMs,
       faceAbsentConfirmed,
       previousScore: focusScoreRef.current,
-      hasBlinkData,
-      blinkRate,
       fidgetVariance,
       pitchDeg,
       workZonePitchMin,
@@ -1767,10 +1725,7 @@ export default function SessionScreen({
       distractionDownward,
       unknownPhoneDownwardConfirmed: penaltySignalConfirmed(penaltyFramesRef.current, 'unknownPhoneDownward'),
       eyesClosedMs,
-      earlyMicrosleepMs,
-      hasPerclos,
-      perclos,
-      yawnMs,
+      eyeClosureRatio: currentEyeClosureRatio,
       lookingUpMs,
       pitchUpDT,
       pitchDT,
@@ -1796,19 +1751,13 @@ export default function SessionScreen({
     const primaryReason = baseScore.primaryReason
     const holdForPenaltyDebounce = !hasFace && !faceAbsentConfirmed
 
-    // ── Sustained-focus ramp (+0 to +15 over ~2 min) ──────────────────────
-    // Attention Restoration Theory (Kaplan 1995; Mark et al. 2008):
-    // After a distraction, directed attention recovers gradually — ~2 min to re-engage.
-    // We model this by building the ramp at 40% speed for 2 min post-distraction,
-    // then full speed once recovery window has passed.
-    const msSinceDistraction = lastDistractionRef.current ? now - lastDistractionRef.current : Infinity
-    const inRecovery = msSinceDistraction < RECOVERY_WINDOW_MS
-    const rampRate = inRecovery ? 0.4 : 1.0  // 40% speed while recovering
-
+    // The ramp rewards two measured minutes above the Flow threshold. Earlier
+    // versions slowed it to 40% after distraction without supporting evidence;
+    // generation 3 uses one rate for the same observed attention everywhere.
     if (trackingUncertain || holdForPenaltyDebounce) {
       // signal unreliable — neither earn nor burn the focus ramp
     } else if (shouldBuildSustainedRamp(baseScore.score)) {
-      sustainedGoodMsRef.current = Math.min(120_000, sustainedGoodMsRef.current + frameDelta * rampRate)
+      sustainedGoodMsRef.current = Math.min(120_000, sustainedGoodMsRef.current + frameDelta)
     } else {
       sustainedGoodMsRef.current = Math.max(0, sustainedGoodMsRef.current - frameDelta * 3)
     }

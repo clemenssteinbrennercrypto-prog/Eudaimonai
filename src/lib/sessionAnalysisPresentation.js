@@ -129,7 +129,7 @@ export function describeNextAction(nextAction) {
     case 'USE_DELIBERATE_RECOVERY_MINUTE': return 'After an alert, use one deliberate recovery minute before pushing on; repeated recovery time suggests the session restarted too noisily.'
     case 'REMOVE_DISTRACTION_APP': return 'Add the repeated off-goal app/site to blockers or narrow allowed apps for this task type.'
     case 'MOVE_PHONE_AWAY': return 'Move the phone out of reach before starting; phone checks were strong enough to break the session state.'
-    case 'ADDRESS_FATIGUE_SIGNALS': return 'Use a shorter session or take a real break first; fatigue signals drove the interruptions.'
+    case 'CHECK_SUSTAINED_EYE_CLOSURE': return 'The camera repeatedly saw sustained eye closure. Check the camera angle; if the readings were real, take a short break.'
     case 'WATCH_SPECIFIC_TIMESTAMP_RANGE': return `Watch the ${fmtClock(start)}-${fmtClock(end)} zone next time; attention dipped there without a clear app/site cause.`
     case 'KEEP_GENTLE_REMINDERS_ON': return 'Keep gentle reminders on. The session recovered through light nudges without escalating into drift-risk windows.'
     case 'KEEP_STRUCTURE_NO_DOMINANT_ISSUE': return 'Keep the same structure next time; no single phase, alert reason, or alignment leak dominated the session.'

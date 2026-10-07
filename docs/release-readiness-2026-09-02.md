@@ -341,3 +341,21 @@ app and did not publish either release channel.
 - The hard camera-loss, sleep/lid-close, clean permission, installed updater and
   CPU/energy gates remain manual checks on the final signed candidate. No claim
   about those gates is inferred from these automated results.
+
+## Focus signal evidence correction — 7 October 2026
+
+Attention scoring generation 3 removes the unsupported absolute blink-rate,
+yawn/mouth-opening and pseudo-PERCLOS score effects, personalises the remaining
+sustained-closure boundary, and removes the unsupported post-distraction ramp
+slowdown. The native V2 camera models and hashes are unchanged. V1/V2 history
+remains readable and is isolated from V3 comparisons. The longest Deep Focus
+block now includes a proven, successfully credited 90-second warm-up without
+double-crediting a retained interruption.
+
+- `npm test`: **96 files, 992 tests passed**.
+- `npm run lint`, `npm run build`, and `git diff --check`: passed.
+- Rust verification passed despite no Rust source change: **14 native-camera
+  library tests and 70 app tests**.
+- No installed app or updater channel was changed. The new scoring generation
+  still needs one real-camera session on the target Mac to confirm calibration,
+  sustained closure and the saved V3 metadata end to end.

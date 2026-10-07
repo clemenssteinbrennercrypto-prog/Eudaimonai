@@ -7,19 +7,13 @@ import {
   HEAD_TURN_HOLD,
   PHONE_HOLD_MS,
   PROLONGED_CLOSE_MS,
-  EARLY_MICROSLEEP_MS,
-  YAWN_HOLD_MS,
 } from './cameraScoringConstants.js'
 
-export const SCORE_TRACE_VERSION = 2
+export const SCORE_TRACE_VERSION = 3
 
 export const SCORE_COMPONENT_LABELS = Object.freeze({
   face_present_base: 'Face present base',
   face_transition_decay: 'Brief face-loss decay',
-  blink_optimal: 'Optimal blink rate',
-  blink_focus_suppression: 'Focused blink suppression',
-  blink_normal: 'Normal blink rate',
-  blink_extreme: 'Extreme blink rate',
   head_stable: 'Stable head position',
   head_mostly_stable: 'Mostly stable head',
   work_zone_gaze: 'Work-zone gaze',
@@ -27,11 +21,7 @@ export const SCORE_COMPONENT_LABELS = Object.freeze({
   productive_secondary_screen: 'Secondary work screen',
   phone_confirmed: 'Confirmed phone/downward distraction',
   phone_possible: 'Possible phone/downward distraction',
-  eyes_closed_prolonged: 'Prolonged eye closure',
-  eyes_closed_early: 'Early microsleep signal',
-  perclos_high: 'High eye-closure share',
-  perclos_elevated: 'Elevated eye-closure share',
-  yawn_sustained: 'Sustained yawn',
+  eyes_closed_sustained: 'Sustained eye closure',
   looking_up_sustained: 'Sustained upward look',
   head_down_productive_sustained: 'Productive head-down adjustment',
   head_down_sustained: 'Sustained head-down posture',
@@ -91,10 +81,6 @@ export function calculateBaseAttentionScore(input) {
     score = input.previousScore * 0.88
     record.add('face_transition_decay', score - input.previousScore)
   } else if (input.hasFace) {
-    if (input.hasBlinkData && input.blinkRate >= 12 && input.blinkRate <= 20) add('blink_optimal', 7)
-    else if (input.hasBlinkData && input.blinkRate >= 5 && input.blinkRate < 12) add('blink_focus_suppression', 4)
-    else if (input.hasBlinkData && input.blinkRate >= 8 && input.blinkRate <= 28) add('blink_normal', 3)
-
     if (input.fidgetVariance <= HEAD_DRIFT_THRESH * 0.5) add('head_stable', 5)
     else if (input.fidgetVariance <= HEAD_DRIFT_THRESH) add('head_mostly_stable', 2)
 
@@ -110,26 +96,12 @@ export function calculateBaseAttentionScore(input) {
       if (primaryReason === 'focused') primaryReason = 'phone'
     }
     if (input.eyesClosedMs >= PROLONGED_CLOSE_MS) {
-      add('eyes_closed_prolonged', -35)
+      add('eyes_closed_sustained', -35)
       if (primaryReason === 'focused') primaryReason = 'prolonged'
-    } else if (input.earlyMicrosleepMs >= EARLY_MICROSLEEP_MS) {
-      add('eyes_closed_early', -15)
-      if (primaryReason === 'focused') primaryReason = 'prolonged'
-    }
-    if (input.hasPerclos) {
-      if (input.perclos > 15) add('perclos_high', -30)
-      else if (input.perclos > 8) add('perclos_elevated', -15)
-    }
-    if (input.yawnMs >= YAWN_HOLD_MS) {
-      add('yawn_sustained', -20)
-      if (primaryReason === 'focused') primaryReason = 'yawn'
     }
     if (input.lookingUpMs >= 3000 && input.pitchUpDT <= 15) {
       add('looking_up_sustained', -25)
       if (primaryReason === 'focused') primaryReason = 'lookingup'
-    }
-    if (input.hasBlinkData && input.blinkRate > 0 && (input.blinkRate < 3 || input.blinkRate > 35)) {
-      add('blink_extreme', -15)
     }
     if (input.pitchDeg >= input.pitchDT && input.headDownSecs >= HEAD_DOWN_HOLD) {
       add(input.productiveDownward ? 'head_down_productive_sustained' : 'head_down_sustained', input.productiveDownward ? -3 : -25)
@@ -190,11 +162,11 @@ export function calculateBaseAttentionScore(input) {
     offTargetFactor,
     components: record.components,
     signals: {
-      blinkRate: input.hasBlinkData ? input.blinkRate : null,
       fidgetVariance: input.fidgetVariance,
       pitchDeg: input.pitchDeg,
       yawSigned: input.adjustedYawSigned,
-      perclos: input.hasPerclos ? input.perclos : null,
+      eyeClosureRatio: Number.isFinite(input.eyeClosureRatio) ? input.eyeClosureRatio : null,
+      sustainedEyeClosureMs: input.eyesClosedMs,
       eyesOffSeconds: input.eyesOffSecs,
       headDownSeconds: input.headDownSecs,
       headTurnLeftSeconds: input.headTurnLeftSecs,

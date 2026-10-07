@@ -130,7 +130,6 @@ describe('SessionScreen accumulation wiring', () => {
       'headTurnRightFramesRef.current = 0',
       'headDownFramesRef.current = 0',
       'eyesOffFramesRef.current = 0',
-      'blinkTimestampsRef.current = []',
       'nosePtHistRef.current = []',
     ]) {
       expect(reset).toContain(cleared)

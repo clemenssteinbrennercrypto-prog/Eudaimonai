@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   NATIVE_CAMERA_MEASUREMENT_V2,
+  NATIVE_CAMERA_MEASUREMENT_V3,
   PRIMARY_CAMERA_MEASUREMENT,
   WEBVIEW_CAMERA_MEASUREMENT,
   nativeCameraFaultFor,
@@ -8,13 +9,16 @@ import {
 } from './cameraMeasurement'
 
 describe('primary camera measurement', () => {
-  // Revised 31 Aug 2026: native V2 is deliberately the only source for new
-  // sessions. Existing V1 records retain their generation instead of silently
-  // crossing the ruler boundary.
-  it('uses native V2 without retaining a WebView runtime fallback', () => {
-    expect(PRIMARY_CAMERA_MEASUREMENT).toBe(NATIVE_CAMERA_MEASUREMENT_V2)
-    expect(NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion)
+  it('uses scoring V3 on the pinned native V2 engine without a runtime fallback', () => {
+    expect(PRIMARY_CAMERA_MEASUREMENT).toBe(NATIVE_CAMERA_MEASUREMENT_V3)
+    expect(NATIVE_CAMERA_MEASUREMENT_V3.attentionScoringVersion)
       .not.toBe(WEBVIEW_CAMERA_MEASUREMENT.attentionScoringVersion)
+    expect(NATIVE_CAMERA_MEASUREMENT_V3.attentionScoringVersion)
+      .not.toBe(NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion)
+    expect(NATIVE_CAMERA_MEASUREMENT_V3.landmarkModelSha256)
+      .toBe(NATIVE_CAMERA_MEASUREMENT_V2.landmarkModelSha256)
+    expect(NATIVE_CAMERA_MEASUREMENT_V3.detectorModelSha256)
+      .toBe(NATIVE_CAMERA_MEASUREMENT_V2.detectorModelSha256)
   })
 
   it('maps native failures to existing honest no-measurement states', () => {
