@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CALIBRATION_SECS, FOCUSED_SCORE, GOOD_STREAK_SCORE } from './attention'
+import { EARNED_TOP_FLOOR, earnedTopCeiling } from './attentionScore'
 import {
   PARITY_FRAME_INTERVAL_MS,
   createCameraScoreReplay,
@@ -153,5 +154,33 @@ describe('looking away from every work zone', () => {
   it('lets a short glance pass without leaving the focused band', () => {
     const scores = replayAway({ yawDeg: -60 }, 1.5)
     expect(Math.min(...scores)).toBeGreaterThanOrEqual(FOCUSED_SCORE)
+  })
+})
+
+describe('earned top of the scale in the replay', () => {
+  it('makes a calm stretch earn the top of the scale with time and restart after leaving the desk', () => {
+    const replay = createCameraScoreReplay()
+    const landmarks = makeLandmarks()
+    const framesPerMinute = Math.round(60_000 / PARITY_FRAME_INTERVAL_MS)
+    const calibrationFrames = Math.ceil(CALIBRATION_SECS * 1000 / PARITY_FRAME_INTERVAL_MS)
+    let index = 0
+    const run = (frames, record) => {
+      let score = null
+      for (let i = 0; i < frames; i += 1) score = replay.step(record, index++)
+      return score
+    }
+
+    run(calibrationFrames, measuredFrame(landmarks))
+    const afterOneMinute = run(framesPerMinute, measuredFrame(landmarks))
+    const afterTwentyMinutes = run(19 * framesPerMinute, measuredFrame(landmarks))
+    expect(afterOneMinute).toBeGreaterThanOrEqual(EARNED_TOP_FLOOR)
+    expect(afterOneMinute).toBeLessThan(earnedTopCeiling(1.1 * 60_000))
+    // The synthetic face never blinks, so its own signal tops out at 88.
+    expect(afterTwentyMinutes).toBeGreaterThan(afterOneMinute + 10)
+    expect(afterTwentyMinutes).toBeLessThanOrEqual(earnedTopCeiling(20 * 60_000))
+
+    expect(run(Math.ceil(6_000 / PARITY_FRAME_INTERVAL_MS), measuredFrame(null))).toBeLessThan(1)
+    const back = run(Math.ceil(30_000 / PARITY_FRAME_INTERVAL_MS), measuredFrame(landmarks))
+    expect(back).toBeLessThan(earnedTopCeiling(31_000))
   })
 })

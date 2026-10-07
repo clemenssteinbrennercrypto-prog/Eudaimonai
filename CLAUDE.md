@@ -139,6 +139,15 @@ been fixed. Check this list before and after editing scoring/detection logic.
    without an upper bound — an unbounded zone (side screen accepted any yaw
    past 15°) silently disables this.
 
+10. **The top of the scale is earned, and its floor stays above every band.**
+    The shown score is `min(signal, earnedTopCeiling(earnedAttentionMs))`:
+    75 at the start of an unbroken stretch, 90 after 20 min, reset by a break
+    or leaving the desk. Smoothing and holds use `signalScoreRef`, not
+    `focusScoreRef`. The floor (75) sits above `FLOW_SCORE` (72), so Deep
+    Focus, lapses and phases are unchanged by construction. Never lower it
+    below 72, and change floor, half-life or drain only with a new
+    `attentionScoringVersion` (AGENTS.md §4.11).
+
 ## GitHub
 
 https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai

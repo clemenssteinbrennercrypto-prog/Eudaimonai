@@ -11,9 +11,20 @@ export const NATIVE_CAMERA_MEASUREMENT_V2 = Object.freeze({
   detectorModelSha256: '3bc182eb9f33925d9e58b5c8d59308a760f4adea8f282370e428c51212c26633',
 })
 
-// New live sessions have one source. V1 remains exported solely so stored
-// history can identify its original ruler; it is never a runtime fallback.
-export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V2
+// Same native camera and models as V2; the scale changed. Above 75 the score
+// now has to be earned with unbroken attention (attentionScore.js,
+// earnedTopCeiling), which moves mean attention and the Focus Score's quality
+// factor. Every band decision is unchanged, but a V2 day and a V3 day still
+// must not be averaged or compared as if read off one ruler.
+export const NATIVE_CAMERA_MEASUREMENT_V3 = Object.freeze({
+  ...NATIVE_CAMERA_MEASUREMENT_V2,
+  id: 'native_mediapipe_v3_earned_top',
+  attentionScoringVersion: 3,
+})
+
+// New live sessions have one source. V1 and V2 remain exported solely so
+// stored history can identify its original ruler; neither is a runtime fallback.
+export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V3
 
 export function nativeCameraFaultFor(status) {
   if (status?.state !== 'faulted') return null
