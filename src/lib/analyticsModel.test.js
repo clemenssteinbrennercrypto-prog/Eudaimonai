@@ -211,6 +211,7 @@ describe('Analytics model — redesigned Details', () => {
       currentMethodQualified: 1,
     })
     expect(result.conditions.usableCount).toBe(8)
+    expect(result.phases.deepFocus).toMatchObject({ complete: true, seconds: 8 * 300 })
     expect(result.distribution.values).not.toContain(95)
     expect(result.duration.map(row => row.id)).not.toContain('s-20')
     // The trend keeps both generations, each as its own series.

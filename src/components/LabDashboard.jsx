@@ -103,12 +103,56 @@ function fractionOf(value, whole) {
   return Number.isFinite(value) && Number.isFinite(whole) && whole > 0 && value >= 0 ? value / whole : null
 }
 
-function Metric({ label, value, suffix, detail, tone, compare = null }) {
+function InfoPopover({ id, label, compact = false, children }) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef(null)
+  const Root = compact ? 'span' : 'div'
+  useEffect(() => {
+    if (!open) return undefined
+    const onPointerDown = event => { if (!rootRef.current?.contains(event.target)) setOpen(false) }
+    const onKeyDown = event => { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+  return (
+    <Root ref={rootRef} className={`lab-score-info${compact ? ' lab-metric-info' : ''}`}>
+      <button
+        type="button"
+        className="lab-score-info-button"
+        aria-expanded={open}
+        aria-controls={id}
+        aria-label={label}
+        title={label}
+        onClick={() => setOpen(current => !current)}
+      >
+        <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" /><path d="M8 7.25v4M8 4.9v.1" /></svg>
+      </button>
+      {open && (compact ? (
+        <span id={id} className="lab-score-method lab-metric-info-popover" role="dialog" aria-label={label}>
+          {children}
+        </span>
+      ) : (
+        <div id={id} className={`lab-score-method${compact ? ' lab-metric-info-popover' : ''}`} role="dialog" aria-label={label}>
+          {typeof children === 'string' ? <p>{children}</p> : children}
+        </div>
+      ))}
+    </Root>
+  )
+}
+
+function Metric({ label, value, suffix, detail, status = null, tone, compare = null }) {
   return (
     <div className={`lab-metric lab-metric-${tone}${compare ? ' has-compare' : ''}`}>
-      <span>{label}</span>
+      <span>
+        {label}
+        {detail && <InfoPopover id={`lab-${tone}-metric-info`} label={`What ${label} means`} compact>{detail}</InfoPopover>}
+      </span>
       <strong>{value ?? '—'}{value != null && suffix ? <small>{suffix}</small> : null}</strong>
-      {detail ? <small className="lab-metric-detail">{detail}</small> : null}
+      {status ? <small className="lab-metric-detail">{status}</small> : null}
       {compare}
     </div>
   )
@@ -247,38 +291,10 @@ function AttentionField({ bins, range, title }) {
 // A small (i) beside the score label opens the method as a popover, the way
 // macOS puts help beside a control, so the hero stays free of running text.
 function ScoreInfo() {
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef(null)
-  useEffect(() => {
-    if (!open) return undefined
-    const onPointerDown = event => { if (!rootRef.current?.contains(event.target)) setOpen(false) }
-    const onKeyDown = event => { if (event.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [open])
   return (
-    <div ref={rootRef} className="lab-score-info">
-      <button
-        type="button"
-        className="lab-score-info-button"
-        aria-expanded={open}
-        aria-controls="lab-score-method"
-        aria-label="How the Focus Score works"
-        title="How the Focus Score works"
-        onClick={() => setOpen(current => !current)}
-      >
-        <svg className="ds-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" /><path d="M8 7.25v4M8 4.9v.1" /></svg>
-      </button>
-      {open && (
-        <div id="lab-score-method" className="lab-score-method" role="dialog" aria-label="How the Focus Score works">
-          <FocusScoreMethod />
-        </div>
-      )}
-    </div>
+    <InfoPopover id="lab-score-method" label="How the Focus Score works">
+      <FocusScoreMethod />
+    </InfoPopover>
   )
 }
 
@@ -441,7 +457,8 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
             tone="deep"
             label="Deep Focus"
             value={time.deepFocusSeconds == null ? null : formatDurationCompact(time.deepFocusSeconds)}
-            detail={deepFocusDetail}
+            detail="Stretches of 90 s or more of steady attention"
+            status={time.deepFocusSeconds == null ? deepFocusDetail : null}
             compare={baseline && (
               <BaselineNote value={time.deepFocusSeconds} usual={baseline.deepFocusSeconds} format={formatSeconds} unit={60} cumulative isToday={isToday} days={baseline.days} />
             )}

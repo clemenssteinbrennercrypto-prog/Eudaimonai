@@ -259,6 +259,32 @@ describe('Analytics Details', () => {
     expect(document.querySelectorAll('.analytics-condition-signal')).toHaveLength(0)
   })
 
+  it('shows recorded workspace facts before a comparison is mature', () => {
+    renderExplorer([
+      session(1, { workspace: { id: 'desk', name: 'Desk', revision: 1 } }),
+      session(2, { workspace: { id: 'desk', name: 'Desk', revision: 2 } }),
+    ])
+
+    expect(screen.getByRole('heading', { name: 'Workspace' })).toBeTruthy()
+    expect(screen.getByText('Desk')).toBeTruthy()
+    expect(screen.getByText('2 sessions · attention after 3 sessions')).toBeTruthy()
+  })
+
+  it('keeps Deep Focus and workspace history visible on one earlier method after an update', () => {
+    const earlier = Array.from({ length: 8 }, (_, index) => session(index, {
+      attentionScoringVersion: 2,
+      workspace: { id: 'desk', name: 'Desk', revision: 1 + (index % 3) },
+    }))
+    const current = session(20, { attentionScoringVersion: 5, avgFocusScore: 95 })
+    renderExplorer([...earlier, current])
+
+    expect(screen.getByRole('note').textContent).toContain('earlier measurement method')
+    expect(within(screen.getByLabelText('Exact Deep Focus time')).getByText('40m')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Workspace' })).toBeTruthy()
+    expect(screen.getAllByText('Desk')).toHaveLength(1)
+    expect(screen.getByText('8 sessions')).toBeTruthy()
+  })
+
   it('explains why mature history still lacks a second comparison bucket', () => {
     renderExplorer(Array.from({ length: 8 }, (_, index) => session(index, {
       timestamp: new Date(2026, 8, 1 + index, 10).getTime(),
