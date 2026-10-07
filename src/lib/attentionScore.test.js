@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { calculateBaseAttentionScore, finalizeAttentionScore, SCORE_TRACE_VERSION } from './attentionScore'
+import {
+  EARNED_TOP_FLOOR,
+  EARNED_TOP_MAX_MS,
+  SCORE_TRACE_VERSION,
+  calculateBaseAttentionScore,
+  earnedTopCeiling,
+  finalizeAttentionScore,
+  stepEarnedAttention,
+} from './attentionScore'
+import { ALERT_SCORE, FLOW_SCORE, FOCUSED_SCORE, GOOD_STREAK_SCORE } from './attention'
 
 function input(extra = {}) {
   return {
@@ -70,7 +79,7 @@ describe('pure attention score and trace', () => {
 
   it('records camera clamping and smoothing rather than hiding either transform', () => {
     const base = calculateBaseAttentionScore(input({ hasBlinkData: true, blinkRate: 15, fidgetVariance: 0.001, productiveHorizontal: true }))
-    const final = finalizeAttentionScore({ base, rampBonus: 10, previousScore: 70, trackingUncertain: false })
+    const final = finalizeAttentionScore({ base, rampBonus: 10, previousScore: 70, earnedAttentionMs: EARNED_TOP_MAX_MS, trackingUncertain: false })
     expect(base.components.camera_cap).toBe(-5)
     expect(final.rawFinal).toBe(95)
     expect(final.score).toBe(77.5)
@@ -102,6 +111,7 @@ describe('pure attention score and trace', () => {
       base,
       rampBonus: 10,
       previousScore: 80,
+      earnedAttentionMs: EARNED_TOP_MAX_MS,
       trackingUncertain: false,
       holdForDebounce: true,
     })
@@ -154,5 +164,73 @@ describe('pure attention score and trace', () => {
     expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.2 })).primaryReason).toBe('focused')
     expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.3 })).primaryReason).toBe('looking_away')
     expect(calculateBaseAttentionScore(input({ offTargetFactor: 0.9, yawnMs: 2000 })).primaryReason).toBe('yawn')
+  })
+})
+
+describe('earned top of the scale', () => {
+  const calm = () => calculateBaseAttentionScore(input({
+    hasBlinkData: true, blinkRate: 15, fidgetVariance: 0.001, activityBonus: 10,
+  }))
+  const minutes = m => m * 60_000
+
+  it('starts at the floor and halves the distance to 100 every 15 minutes', () => {
+    expect(earnedTopCeiling(0)).toBe(EARNED_TOP_FLOOR)
+    expect(earnedTopCeiling(minutes(5))).toBeCloseTo(80.2, 1)
+    expect(earnedTopCeiling(minutes(15))).toBeCloseTo(87.5, 5)
+    expect(earnedTopCeiling(minutes(20))).toBeCloseTo(90.1, 1)
+    expect(earnedTopCeiling(minutes(35))).toBeCloseTo(95.0, 1)
+    expect(Math.round(earnedTopCeiling(EARNED_TOP_MAX_MS))).toBe(100)
+    expect(earnedTopCeiling(minutes(500))).toBe(earnedTopCeiling(EARNED_TOP_MAX_MS))
+  })
+
+  it('caps a calm start at the floor instead of letting presence read as 95', () => {
+    const final = finalizeAttentionScore({ base: calm(), rampBonus: 0, previousScore: 95, earnedAttentionMs: 0, trackingUncertain: false })
+    expect(final.signal).toBe(95)
+    expect(final.score).toBe(EARNED_TOP_FLOOR)
+    expect(final.trace.signalScore).toBe(95)
+    expect(final.trace.earnedTopCeiling).toBe(EARNED_TOP_FLOOR)
+  })
+
+  it('never raises a score: a penalised signal below the ceiling passes through unchanged', () => {
+    const phone = calculateBaseAttentionScore(input({ phoneMs: 5_000 }))
+    const final = finalizeAttentionScore({ base: phone, rampBonus: 0, previousScore: 40, earnedAttentionMs: 0, trackingUncertain: false })
+    expect(final.score).toBe(final.signal)
+  })
+
+  it('smooths and holds on the signal, so the ceiling cannot feed back into it', () => {
+    const held = finalizeAttentionScore({ base: calm(), rampBonus: 0, previousScore: 92, earnedAttentionMs: 0, trackingUncertain: true })
+    expect(held.signal).toBe(92)
+    expect(held.score).toBe(EARNED_TOP_FLOOR)
+  })
+
+  // The whole design rests on this: the floor sits above every band, so the
+  // ceiling cannot change a single band decision — Deep Focus, the Flow gate,
+  // focused seconds, lapses, recovery and phases read identically.
+  it('leaves every band decision unchanged for any signal and any earned time', () => {
+    const bands = [ALERT_SCORE, FOCUSED_SCORE, 55, GOOD_STREAK_SCORE, FLOW_SCORE]
+    expect(Math.max(...bands)).toBeLessThan(EARNED_TOP_FLOOR - 0.5)
+    for (let signal = 0; signal <= 100; signal += 0.25) {
+      for (const earned of [0, minutes(1), minutes(10), EARNED_TOP_MAX_MS]) {
+        const shown = Math.min(signal, earnedTopCeiling(earned))
+        for (const band of bands) {
+          expect(shown >= band).toBe(signal >= band)
+          expect(Math.round(shown) >= band).toBe(Math.round(signal) >= band)
+        }
+      }
+    }
+  })
+
+  it('builds on the ramp condition, drains three times as fast below it, and holds while the signal is held', () => {
+    expect(stepEarnedAttention({ previousMs: 0, preRampScore: FLOW_SCORE, deltaMs: 100, hold: false })).toBe(100)
+    expect(stepEarnedAttention({ previousMs: 1_000, preRampScore: FLOW_SCORE - 1, deltaMs: 100, hold: false })).toBe(700)
+    expect(stepEarnedAttention({ previousMs: 200, preRampScore: 10, deltaMs: 100, hold: false })).toBe(0)
+    expect(stepEarnedAttention({ previousMs: 1_000, preRampScore: 10, deltaMs: 100, hold: true })).toBe(1_000)
+    expect(stepEarnedAttention({ previousMs: EARNED_TOP_MAX_MS, preRampScore: 90, deltaMs: 100, hold: false })).toBe(EARNED_TOP_MAX_MS)
+  })
+
+  it('cannot visibly lower the ceiling from one bad frame (invariant 2)', () => {
+    const before = minutes(20)
+    const after = stepEarnedAttention({ previousMs: before, preRampScore: 0, deltaMs: 200, hold: false })
+    expect(earnedTopCeiling(before) - earnedTopCeiling(after)).toBeLessThan(0.05)
   })
 })

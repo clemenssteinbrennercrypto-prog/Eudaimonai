@@ -401,7 +401,7 @@ describe('daily focus formula', () => {
     expect(scoreAt(55)).toBe(42)
   })
 
-  it.each([0, 3, '2', NaN])('refuses an unknown ledger generation %s', generation => {
+  it.each([0, 4, '2', NaN])('refuses an unknown ledger generation %s', generation => {
     const entry = dailyEntry({ minutes: 120, efficiency: 80 })
     entry.sessions.x.generation = generation
     expect(calculateDailyFocus(entry)).toBeNull()

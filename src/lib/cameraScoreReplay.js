@@ -26,6 +26,7 @@ import {
   calculateBaseAttentionScore,
   finalizeAttentionScore,
   shouldBuildSustainedRamp,
+  stepEarnedAttention,
 } from './attentionScore.js'
 import {
   advancePenaltyFrameState,
@@ -94,7 +95,9 @@ export function createCameraScoreReplay({
     workspaceNeutral: { yawSigned: 0, pitchDeg: 0, irisH: 0 },
     lastRecalibrationAt: 0,
     focusScore: 68,
+    signalScore: 68,
     sustainedGoodMs: 0,
+    earnedAttentionMs: 0,
     lastFrameAt: 0,
     lastDistractionAt: 0,
     penaltyFrames: createPenaltyFrameState(),
@@ -321,6 +324,7 @@ export function createCameraScoreReplay({
           }
         }
         state.focusScore = 68
+        state.signalScore = 68
         return state.focusScore
       }
 
@@ -333,6 +337,7 @@ export function createCameraScoreReplay({
       state.lastFrameAt = now
       if (faceAbsentMs >= FACE_ABSENT_HOLD_MS) {
         state.sustainedGoodMs = 0
+        state.earnedAttentionMs = 0
       }
 
       const offTarget = stepOffTarget({
@@ -356,7 +361,7 @@ export function createCameraScoreReplay({
         hasFace,
         faceAbsentMs,
         faceAbsentConfirmed,
-        previousScore: state.focusScore,
+        previousScore: state.signalScore,
         hasBlinkData,
         blinkRate,
         fidgetVariance,
@@ -401,14 +406,21 @@ export function createCameraScoreReplay({
           ? Math.min(120_000, state.sustainedGoodMs + frameDelta * rampRate)
           : Math.max(0, state.sustainedGoodMs - frameDelta * 3)
       }
-      const previousScore = state.focusScore
+      state.earnedAttentionMs = stepEarnedAttention({
+        previousMs: state.earnedAttentionMs,
+        preRampScore: baseScore.score,
+        deltaMs: frameDelta,
+        hold: trackingUncertain || holdForPenaltyDebounce,
+      })
       const finalized = finalizeAttentionScore({
         base: baseScore,
         rampBonus: state.sustainedGoodMs / 120_000 * 15,
-        previousScore,
+        previousScore: state.signalScore,
+        earnedAttentionMs: state.earnedAttentionMs,
         trackingUncertain,
         holdForDebounce: holdForPenaltyDebounce,
       })
+      state.signalScore = finalized.signal
       state.focusScore = finalized.score
       if (state.focusScore < 55) state.lastDistractionAt = now
       return state.focusScore
