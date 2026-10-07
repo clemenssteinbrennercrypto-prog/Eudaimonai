@@ -3,6 +3,7 @@ import {
   NATIVE_CAMERA_MEASUREMENT_V2,
   NATIVE_CAMERA_MEASUREMENT_V3,
   NATIVE_CAMERA_MEASUREMENT_V4,
+  NATIVE_CAMERA_MEASUREMENT_V5,
   PRIMARY_CAMERA_MEASUREMENT,
   WEBVIEW_CAMERA_MEASUREMENT,
   nativeCameraFaultFor,
@@ -11,7 +12,6 @@ import {
 
 describe('primary camera measurement', () => {
   it('uses evidence-clean V4 on the pinned native V2 engine without a runtime fallback', () => {
-    expect(PRIMARY_CAMERA_MEASUREMENT).toBe(NATIVE_CAMERA_MEASUREMENT_V4)
     expect(NATIVE_CAMERA_MEASUREMENT_V4.attentionScoringVersion)
       .not.toBe(WEBVIEW_CAMERA_MEASUREMENT.attentionScoringVersion)
     expect(NATIVE_CAMERA_MEASUREMENT_V4.attentionScoringVersion)
@@ -31,6 +31,17 @@ describe('primary camera measurement', () => {
     expect(NATIVE_CAMERA_MEASUREMENT_V3.id).not.toBe(NATIVE_CAMERA_MEASUREMENT_V2.id)
     expect(NATIVE_CAMERA_MEASUREMENT_V3.landmarkModelSha256).toBe(NATIVE_CAMERA_MEASUREMENT_V2.landmarkModelSha256)
     expect(NATIVE_CAMERA_MEASUREMENT_V3.detectorModelSha256).toBe(NATIVE_CAMERA_MEASUREMENT_V2.detectorModelSha256)
+  })
+
+  // 7 Oct 2026: earning the top in the Deep Focus band (attentionScore.js)
+  // changes the shown number above 75 again, so it cannot share V4's ruler.
+  it('records new sessions with the in-band earned top as their own generation', () => {
+    expect(PRIMARY_CAMERA_MEASUREMENT).toBe(NATIVE_CAMERA_MEASUREMENT_V5)
+    expect(NATIVE_CAMERA_MEASUREMENT_V5.attentionScoringVersion)
+      .not.toBe(NATIVE_CAMERA_MEASUREMENT_V4.attentionScoringVersion)
+    expect(NATIVE_CAMERA_MEASUREMENT_V5.id).not.toBe(NATIVE_CAMERA_MEASUREMENT_V4.id)
+    expect(NATIVE_CAMERA_MEASUREMENT_V5.landmarkModelSha256).toBe(NATIVE_CAMERA_MEASUREMENT_V2.landmarkModelSha256)
+    expect(NATIVE_CAMERA_MEASUREMENT_V5.detectorModelSha256).toBe(NATIVE_CAMERA_MEASUREMENT_V2.detectorModelSha256)
   })
 
   it('maps native failures to existing honest no-measurement states', () => {

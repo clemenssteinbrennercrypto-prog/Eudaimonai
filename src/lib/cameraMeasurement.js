@@ -31,9 +31,20 @@ export const NATIVE_CAMERA_MEASUREMENT_V4 = Object.freeze({
   attentionScoringVersion: 4,
 })
 
+// V5 keeps V4's signals and changes only how the top of the scale is earned
+// (attentionScore.js): time in the Deep Focus band earns, a dip holds, only a
+// lapse drains, and the half-life is 10 instead of 15 minutes. V3/V4 drained on
+// every glance and held real sessions near 80. The shown number above 75 moves,
+// so V4 days are never blended into V5.
+export const NATIVE_CAMERA_MEASUREMENT_V5 = Object.freeze({
+  ...NATIVE_CAMERA_MEASUREMENT_V4,
+  id: 'native_mediapipe_v5_earned_in_band',
+  attentionScoringVersion: 5,
+})
+
 // Earlier generations remain exported solely so stored history can identify
 // its original ruler; none is a runtime fallback.
-export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V4
+export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V5
 
 export function nativeCameraFaultFor(status) {
   if (status?.state !== 'faulted') return null
