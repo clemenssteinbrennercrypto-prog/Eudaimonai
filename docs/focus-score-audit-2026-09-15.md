@@ -407,17 +407,17 @@ for historical sessions.
   produced work was correct or valuable; output evidence remains a separate
   product fact.
 
-## Attention scoring generation 3 — 7 October 2026
+## Attention scoring generation 4 — 7 October 2026
 
 The Focus Score V4 period formula above is unchanged. The per-frame attention
-ruler feeding it is now generation 3 because an evidence review found that
+ruler feeding it is now generation 4 because an evidence review found that
 absolute blink-rate bands, mouth-opening/yawn penalties, the webcam
 "PERCLOS" proxy and a post-distraction 40% ramp rate were not defensible as
 precise focus measurements. They were removed rather than retuned.
 
 New sessions keep the pinned native V2 camera/model hashes and store
-`attentionScoringVersion: 3`. Earlier sessions remain readable under their own
-generation; daily rollups and comparisons never combine them with V3. Sustained
+`attentionScoringVersion: 4`. V4 retains V3's earned-top ceiling. Earlier
+sessions remain readable under their own generation; daily rollups and comparisons never combine them with V4. Sustained
 eye closure is the only retained ocular penalty. It is measured against a
 robust personal open-eye EAR baseline and must hold for 1.5 seconds. Its 0.55
 ratio and hold are conservative versioned product boundaries, not research

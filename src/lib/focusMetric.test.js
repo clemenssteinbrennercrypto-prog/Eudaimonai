@@ -189,19 +189,19 @@ describe('session focus metric refusals', () => {
     expect(deriveSessionFocusMetric(nativeV2).sessionEfficiency).toBeGreaterThan(0)
   })
 
-  it('scores attention generation 3 without mixing it with generation 2', () => {
-    const v2 = rawSession({ id: 'v2', measuredSeconds: 600, actualSeconds: 720 })
+  it('scores attention generation 4 without mixing it with generation 3', () => {
     const v3 = rawSession({ id: 'v3', measuredSeconds: 600, actualSeconds: 720 })
-    v2.attentionScoringVersion = 2
+    const v4 = rawSession({ id: 'v4', measuredSeconds: 600, actualSeconds: 720 })
     v3.attentionScoringVersion = 3
-    v2.scoreSum = 600 * 90
-    v3.scoreSum = 600 * 50
+    v4.attentionScoringVersion = 4
+    v3.scoreSum = 600 * 90
+    v4.scoreSum = 600 * 50
 
-    let ledger = addSessionToFocusLedger(emptyFocusLedger(), withSessionFocusMetric(v2))
-    ledger = addSessionToFocusLedger(ledger, withSessionFocusMetric(v3))
-    const scored = calculateDailyFocus(ledger.days[localDayKey(v3.startedAt)])
+    let ledger = addSessionToFocusLedger(emptyFocusLedger(), withSessionFocusMetric(v3))
+    ledger = addSessionToFocusLedger(ledger, withSessionFocusMetric(v4))
+    const scored = calculateDailyFocus(ledger.days[localDayKey(v4.startedAt)])
 
-    expect(scored).toMatchObject({ generation: 3, efficiency: 50, sessionCount: 1 })
+    expect(scored).toMatchObject({ generation: 4, efficiency: 50, sessionCount: 1 })
   })
 
   it('requires five measured minutes', () => {

@@ -1,5 +1,6 @@
 import { fmtDuration } from '../../lib/sessionAnalysisPresentation'
 import { describeFocusMetricRejection } from '../../lib/focusMetric'
+import { PRIMARY_CAMERA_MEASUREMENT } from '../../lib/cameraMeasurement'
 import TimelineBar from './TimelineBar'
 import SessionMeasures from './SessionMeasures'
 import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt } from '../../lib/sessionTiming'
@@ -72,7 +73,7 @@ export default function MeasuredFacts({ session, analysis }) {
           <span className="stat-label">{measurement.deepFocusSeconds == null ? 'deep focus not measured' : 'deep focus'}</span>
           {/* Name the current measurement method without exposing its internal
               schema generation. Historical methods still remain separate. */}
-          {measurement.measurementSource && (
+          {measurement.measurementSource === PRIMARY_CAMERA_MEASUREMENT.id && (
             <span style={{ fontSize: 10, color: 'var(--ultra-bright)', fontWeight: 800, marginTop: 4, display: 'block', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               {measurementSourceLabel(measurement.measurementSource, measurement.scoringVersion)}
             </span>

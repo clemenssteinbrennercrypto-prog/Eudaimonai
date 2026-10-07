@@ -9,7 +9,33 @@ import {
   PROLONGED_CLOSE_MS,
 } from './cameraScoringConstants.js'
 
-export const SCORE_TRACE_VERSION = 3
+export const SCORE_TRACE_VERSION = 4
+
+// ── Earned top of the scale ───────────────────────────────────────────────
+// Sitting calmly in front of the screen used to read 99 within half a minute:
+// face, blinking, a still head and work-zone gaze reach the camera cap of 85 on
+// their own, and the focus-app bonus and the two-minute ramp fill the rest. So
+// everything above FLOW_SCORE said "present and still", never "for how long".
+//
+// The ceiling makes the top quarter of the scale cost time. It starts at 75 and
+// its distance to 100 halves every 15 minutes of unbroken attention: 80 after
+// 5 min, 90 after 20, 95 after 35, 100 (rounded) after about 85. Time below
+// FLOW_SCORE drains it three times as fast as it was earned, and a break, a
+// camera fault or leaving the desk restart it.
+//
+// It is a ceiling, not a penalty: shown = min(signal, ceiling), and the
+// smoothed signal underneath is untouched. Because the floor is above every
+// band (alert 38, focused 40, fade 55, good streak 65, Deep Focus 72), each
+// band decision is identical with and without it — Deep Focus, the Flow gate,
+// lapses, recovery and phases do not move. What changes is the number above
+// 75, mean attention, and the Focus Score's quality factor on mixed days,
+// which is why it is its own scoring generation (attentionScoringVersion 3).
+export const EARNED_TOP_FLOOR = 75
+export const EARNED_TOP_HALF_LIFE_MS = 15 * 60_000
+export const EARNED_TOP_DRAIN_RATE = 3
+// Past this the ceiling is within 0.4 of 100. Banking more would only make the
+// top of a long session immune to the next distraction.
+export const EARNED_TOP_MAX_MS = 90 * 60_000
 
 export const SCORE_COMPONENT_LABELS = Object.freeze({
   face_present_base: 'Face present base',
@@ -177,15 +203,31 @@ export function calculateBaseAttentionScore(input) {
   }
 }
 
-export function finalizeAttentionScore({ base, rampBonus: rawRampBonus, previousScore, trackingUncertain, holdForDebounce = false }) {
+/**
+ * `previousScore` is the previous SIGNAL score (before the earned-top ceiling):
+ * smoothing and holds run on the signal so the ceiling can never feed back into
+ * it. `score` is what the session shows and records; `signal` is carried to the
+ * next frame.
+ */
+export function finalizeAttentionScore({
+  base,
+  rampBonus: rawRampBonus,
+  previousScore,
+  earnedAttentionMs,
+  trackingUncertain,
+  holdForDebounce = false,
+}) {
   // The ramp is a reward for focus, so looking away attenuates it like the
   // rest of the score instead of propping the number up for ~40 s.
   const rampBonus = rawRampBonus * (1 - (base.offTargetFactor || 0))
   const rawFinal = Math.min(100, base.score + rampBonus)
   const smoothedCandidate = clamp(rawFinal * 0.3 + previousScore * 0.7, 0, 100)
-  const finalScore = trackingUncertain || holdForDebounce ? previousScore : smoothedCandidate
+  const signal = trackingUncertain || holdForDebounce ? previousScore : smoothedCandidate
+  const ceiling = earnedTopCeiling(earnedAttentionMs)
+  const finalScore = Math.min(signal, ceiling)
   return {
     score: finalScore,
+    signal,
     rawFinal,
     trace: {
       version: SCORE_TRACE_VERSION,
@@ -201,6 +243,9 @@ export function finalizeAttentionScore({ base, rampBonus: rawRampBonus, previous
       rawFinal,
       previousScore,
       smoothedCandidate,
+      signalScore: signal,
+      earnedAttentionMs,
+      earnedTopCeiling: ceiling,
       finalScore,
       heldForUncertainTracking: trackingUncertain === true,
       heldForDebounce: holdForDebounce === true,
@@ -211,4 +256,27 @@ export function finalizeAttentionScore({ base, rampBonus: rawRampBonus, previous
 
 export function shouldBuildSustainedRamp(score) {
   return Number.isFinite(score) && score >= FLOW_SCORE
+}
+
+export function earnedTopCeiling(earnedAttentionMs) {
+  const earned = clamp(Number(earnedAttentionMs) || 0, 0, EARNED_TOP_MAX_MS)
+  return 100 - (100 - EARNED_TOP_FLOOR) * 0.5 ** (earned / EARNED_TOP_HALF_LIFE_MS)
+}
+
+/**
+ * Unbroken attention time behind the earned-top ceiling. It builds on the same
+ * condition as the sustained-focus ramp (pre-ramp score at FLOW_SCORE or
+ * above), drains at EARNED_TOP_DRAIN_RATE below it, and neither builds nor
+ * drains while the signal is held (uncertain tracking, face-loss deadzone).
+ * One bad frame drains one frame times three — a few hundred milliseconds of
+ * earned time, which cannot move the ceiling visibly (invariant 2). The caller
+ * zeroes it on hard transitions: a break, a camera fault, leaving the desk.
+ */
+export function stepEarnedAttention({ previousMs, preRampScore, deltaMs, hold }) {
+  const previous = clamp(Number(previousMs) || 0, 0, EARNED_TOP_MAX_MS)
+  if (hold) return previous
+  const delta = Math.max(0, Number(deltaMs) || 0)
+  return shouldBuildSustainedRamp(preRampScore)
+    ? Math.min(EARNED_TOP_MAX_MS, previous + delta)
+    : Math.max(0, previous - delta * EARNED_TOP_DRAIN_RATE)
 }

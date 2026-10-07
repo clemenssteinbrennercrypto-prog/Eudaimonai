@@ -11,20 +11,29 @@ export const NATIVE_CAMERA_MEASUREMENT_V2 = Object.freeze({
   detectorModelSha256: '3bc182eb9f33925d9e58b5c8d59308a760f4adea8f282370e428c51212c26633',
 })
 
-// The native camera and model stay byte-for-byte V2. Attention scoring V3 is a
-// new ruler because it removes unsupported blink/yawn/closure-share heuristics
-// and personalises sustained eye closure. A distinct source id makes that
-// boundary explicit in stored history without pretending the model changed.
+// Same native camera and models as V2; the scale changed. Above 75 the score
+// now has to be earned with unbroken attention (attentionScore.js,
+// earnedTopCeiling), which moves mean attention and the Focus Score's quality
+// factor. Every band decision is unchanged, but a V2 day and a V3 day still
+// must not be averaged or compared as if read off one ruler.
 export const NATIVE_CAMERA_MEASUREMENT_V3 = Object.freeze({
   ...NATIVE_CAMERA_MEASUREMENT_V2,
-  id: 'native_mediapipe_v2_attention_v3',
+  id: 'native_mediapipe_v3_earned_top',
   attentionScoringVersion: 3,
 })
 
-// New live sessions have one source. Earlier generations remain exported only
-// so stored history can identify its original ruler; there is no runtime
-// fallback between them.
-export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V3
+// V4 retains that earned-top scale but removes unsupported blink/yawn/
+// closure-share heuristics, personalises sustained eye closure, and uses one
+// recovery-ramp rate. The camera and model hashes are still byte-for-byte V2.
+export const NATIVE_CAMERA_MEASUREMENT_V4 = Object.freeze({
+  ...NATIVE_CAMERA_MEASUREMENT_V3,
+  id: 'native_mediapipe_v4_evidence_clean',
+  attentionScoringVersion: 4,
+})
+
+// Earlier generations remain exported solely so stored history can identify
+// its original ruler; none is a runtime fallback.
+export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V4
 
 export function nativeCameraFaultFor(status) {
   if (status?.state !== 'faulted') return null

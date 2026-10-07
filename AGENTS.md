@@ -59,7 +59,7 @@ app but could never run the native measurement engine.
 ```bash
 npm install
 npm run dev        # isolated UI development only; native features unavailable
-npm test           # vitest, currently 992 tests — must stay green
+npm test           # vitest, currently 1001 tests — must stay green
 npm run build      # production bundle
 ```
 
@@ -288,6 +288,30 @@ scoring or detection.**
     the UI warns that the score used measured time only.
     A selected single historical day may render on its own camera generation;
     multi-day periods still use one generation and never blend camera measurement methods.
+11. **The top of the scale is earned with time (7 Oct 2026).** Face, blinking,
+    a still head and work-zone gaze reach the camera cap of 85 by themselves;
+    with the focus-app bonus and the 2-minute ramp, sitting calmly read 99
+    after ~30 s, so everything above 72 meant "present", never "for how long".
+    The shown score is now `min(signal, earnedTopCeiling(earnedAttentionMs))`
+    (`attentionScore.js`): the ceiling starts at `EARNED_TOP_FLOOR` (75) and
+    its distance to 100 halves every 15 min of unbroken attention (80 at 5 min,
+    90 at 20, 95 at 35). Earned time builds on the ramp's own condition
+    (pre-ramp score ≥ `FLOW_SCORE`), drains 3× as fast below it, holds while
+    the signal is held, and resets on a break, a camera fault or leaving the
+    desk (invariant 4). Smoothing and holds run on the uncapped signal
+    (`signalScoreRef`), never on the shown score, so the ceiling cannot feed
+    back into the measurement.
+    **The floor must stay above every band** (38, 40, 55, 65, 72): that is
+    what keeps Deep Focus, the Flow gate, focused seconds, lapses, recovery
+    and phases bit-for-bit identical, verified on 45,000 real recorded frames
+    and pinned by the band test in `attentionScore.test.js`. Lowering the floor
+    below 72 to make presence "look like 65" silently redefines Deep Focus,
+    which §11 freezes. What the ceiling does change — the number above 75, mean
+    attention, the Focus Score's quality factor on mixed days — is why it is
+    its own generation (`attentionScoringVersion: 3`,
+    `NATIVE_CAMERA_MEASUREMENT_V3`, same camera and models as V2). V2 sessions
+    stay readable and are never compared with V3. Tune the floor, half-life or
+    drain only with a new generation.
 
 ---
 
@@ -386,7 +410,7 @@ degrades the result; it never breaks a session.
 
 ## 7. Testing and verification
 
-There are currently 992 JS tests and 84 Rust tests (14 native-camera library
+There are currently 1001 JS tests and 84 Rust tests (14 native-camera library
 tests plus 70 app tests). Both suites must stay green. Treat these counts as a
 checkpoint, not a substitute for reading the runner output when tests are added.
 
@@ -555,23 +579,24 @@ hashes and attention-scoring generation; no daily score, trend bucket or pattern
 native frames remain absent measurement; and the real minimize/close score test
 passes. This is a versioned ruler migration, not a claim of equality.
 
-`SCOREABLE_SCORING_VERSIONS` includes V1, V2 and V3 but refuses a missing version.
+`SCOREABLE_SCORING_VERSIONS` includes V1 through V4 but refuses a missing version.
 Per day, `calculateDailyFocus` uses the highest generation present.
 `comparableSessions()` narrows cross-session comparisons to the most recently
 used generation. Earlier history remains stored and readable, but is excluded
-from current-generation comparisons. Users therefore need eight usable V3
+from current-generation comparisons. Users therefore need eight usable V4
 sessions before patterns speak again. Do not bypass that silence by blending
 generations.
 
 Since 7 Oct 2026, new sessions use the same pinned native V2 camera/models with
-`attentionScoringVersion: 3`. V3 is a scoring-ruler boundary, not a camera-model
-upgrade: it removes absolute blink-rate rewards/penalties, mouth-opening/yawn
+`attentionScoringVersion: 4`. V4 retains V3's earned-top ceiling but is a new
+scoring-ruler boundary, not a camera-model upgrade: it removes absolute blink-rate rewards/penalties, mouth-opening/yawn
 penalties, webcam pseudo-PERCLOS and the unsupported post-distraction ramp
 slowdown. Only sustained eye closure remains, measured relative to the user's
 calibrated open-eye EAR and held for 1.5 s. The 0.55 ratio and hold are
 conservative product boundaries, not claims of diagnosing fatigue. The evidence
 and rejected interpretations are in
-`docs/focus-score-evidence-2026-10-07.md`.
+`docs/focus-score-evidence-2026-10-07.md`. V3 history keeps the earned-top
+scale with the older ocular rules; it is readable but never blended into V4.
 
 ### Native V2 status (1 Sep 2026)
 
@@ -710,7 +735,7 @@ and yawning are not score inputs.
 | **Recovery time** (stability) | Median time from the start of a lapse until attention is back at ≥ `FOCUSED_SCORE` for ≥ 10 s; a lapse cut off by a break, gap or the session end is left out | timeline |
 | **Context switches per hour** | Changes of work context (app, plus site in a browser) where each side holds ≥ 10 s, per measured hour. Needs `activity.app` on every sample, recorded since 6 Oct 2026; the older `label` is the window title and changes with every file or page | timeline `activity` |
 | **Longest Deep Focus block** | Longest run of consecutive `deepFocused` samples plus the 90 s qualifying warm-up when `inFlow` proves that run opened a new Flow span | timeline |
-| **Average attention** | Mean score over measured seconds — a supporting number and the Focus Score's quality input, not a headline | ledger |
+| **Average attention** | Mean score over measured seconds — a supporting number and the Focus Score's quality input, not a headline. Since V3 the part above 75 has to be earned with unbroken time (§4.11), so a clean short session averages in the high 70s, not the high 90s | ledger |
 | **Session time** | Active session time without breaks (was labelled "Focus time"; it is not focused time) | `actualSeconds` |
 | **Focus Score** | The daily ring, unchanged (§4.9): volume × attention quality | ledger |
 

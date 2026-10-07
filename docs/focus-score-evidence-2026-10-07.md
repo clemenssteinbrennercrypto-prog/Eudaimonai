@@ -1,4 +1,4 @@
-# Focus signal evidence and V3 decision — 7 October 2026
+# Focus signal evidence and V4 decision — 7 October 2026
 
 ## Validity boundary
 
@@ -6,12 +6,12 @@ The Eudaimonai attention score is not a scientifically validated measure of
 cognitive focus. No current study validates this exact MediaPipe signal,
 scoring formula, population and real-world knowledge-work setting against a
 ground truth such as sustained-attention task performance or post-session
-self-report. V3 therefore removes rules the literature cannot justify instead
+self-report. V4 therefore removes rules the literature cannot justify instead
 of replacing them with different precise-looking guesses.
 
 ## Decisions
 
-| Previous rule | Evidence finding | V3 decision |
+| Previous rule | Evidence finding | V4 decision |
 | --- | --- | --- |
 | Absolute blink-rate bands earned up to 7 points or lost 15 | Blink rate decreases with task demand but increases with fatigue in the same session; absolute values also vary between people. One band cannot identify focus in uncontrolled work. | Blink rate does not change the score. |
 | Mouth opening held for 1.5 s was treated as a yawn and cost 20 points | Yawning can accompany low vigilance, but a review found no evidence that yawning itself restores or reliably indexes arousal. Webcam mouth opening also confounds speech, eating and ordinary movement. | Mouth opening/yawning does not change the score. |
@@ -28,12 +28,12 @@ reports sustained closure as the observation it is and does not infer fatigue.
 
 ## Version boundary
 
-V3 keeps the exact native V2 camera pipeline, MediaPipe package and model
-hashes. It changes only the score interpretation, so new sessions store
-`attentionScoringVersion: 3` and source
-`native_mediapipe_v2_attention_v3`. V1 and V2 sessions remain readable but do
-not enter V3 comparisons, baselines or mixed-generation days. The score trace
-is version 3 as well.
+V4 keeps the exact native V2 camera pipeline, MediaPipe package and model
+hashes, plus V3's earned-top ceiling. It changes the remaining score
+interpretation, so new sessions store `attentionScoringVersion: 4` and source
+`native_mediapipe_v4_evidence_clean`. V1–V3 sessions remain readable but do
+not enter V4 comparisons, baselines or mixed-generation days. The score trace
+is version 4 as well.
 
 ## Primary evidence
 

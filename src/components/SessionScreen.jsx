@@ -66,6 +66,7 @@ import {
   calculateBaseAttentionScore,
   finalizeAttentionScore,
   shouldBuildSustainedRamp,
+  stepEarnedAttention,
 } from '../lib/attentionScore'
 import { OFF_TARGET_REST, stepOffTarget } from '../lib/offTargetAttention'
 import {
@@ -432,7 +433,8 @@ export default function SessionScreen({
 
   // ── Score & alert refs ────────────────────────────────────────────────────
   const scoreHistoryRef        = useRef([68]) // last 60 score values for sparkline
-  const focusScoreRef          = useRef(68)
+  const focusScoreRef          = useRef(68)    // shown and recorded score (signal capped by the earned top)
+  const signalScoreRef         = useRef(68)    // smoothed signal underneath; holds and smoothing run on this
   const lastFrameAtRef         = useRef(0)     // last time the camera pipeline delivered a frame
   const lastDeliveredFrameAtRef = useRef(0)    // real frame only; camera restart grace must never count as measurement
   const cameraFaultRef         = useRef(null)  // mirrors cameraFault for the interval callback
@@ -446,6 +448,7 @@ export default function SessionScreen({
   const lastScoreTraceRef      = useRef(null)
   const scoreLowSinceRef       = useRef(null)
   const sustainedGoodMsRef     = useRef(0)   // ms of consecutive good focus (for ramp-up bonus)
+  const earnedAttentionMsRef   = useRef(0)   // unbroken attention behind the earned-top ceiling
   const lastFrameTsRef         = useRef(0)
   const offTargetRef           = useRef(OFF_TARGET_REST) // low-passed distance outside every work zone
   const lastDistractionRef     = useRef(0)   // timestamp of last distraction event (alert or prolonged low score)
@@ -662,6 +665,7 @@ export default function SessionScreen({
     goodStreakSecsRef.current = 0
     currentStreakRef.current = 0
     sustainedGoodMsRef.current = 0
+    earnedAttentionMsRef.current = 0
     lastFrameTsRef.current = 0
     offTargetRef.current = OFF_TARGET_REST
     scoreLowSinceRef.current = null
@@ -1654,6 +1658,7 @@ export default function SessionScreen({
         }
       }
       focusScoreRef.current = 68
+      signalScoreRef.current = 68
       return
     }
 
@@ -1677,6 +1682,7 @@ export default function SessionScreen({
     // live in attentionScore.js so the exact same rule can be audited in tests.
     if (faceAbsentMs >= FACE_ABSENT_HOLD_MS) {
       sustainedGoodMsRef.current = 0  // ramp resets when person is clearly away
+      earnedAttentionMsRef.current = 0  // …and so does the earned top: the stretch was broken
       // Activity-based bonus/penalty accumulators must reset here too, otherwise
       // a distraction penalty built up while the user is away from the webcam
       // gets slapped on in full the instant they return.
@@ -1714,7 +1720,7 @@ export default function SessionScreen({
       hasFace,
       faceAbsentMs,
       faceAbsentConfirmed,
-      previousScore: focusScoreRef.current,
+      previousScore: signalScoreRef.current,
       fidgetVariance,
       pitchDeg,
       workZonePitchMin,
@@ -1753,7 +1759,7 @@ export default function SessionScreen({
 
     // The ramp rewards two measured minutes above the Flow threshold. Earlier
     // versions slowed it to 40% after distraction without supporting evidence;
-    // generation 3 uses one rate for the same observed attention everywhere.
+    // generation 4 uses one rate for the same observed attention everywhere.
     if (trackingUncertain || holdForPenaltyDebounce) {
       // signal unreliable — neither earn nor burn the focus ramp
     } else if (shouldBuildSustainedRamp(baseScore.score)) {
@@ -1763,14 +1769,26 @@ export default function SessionScreen({
     }
     const rampBonus = (sustainedGoodMsRef.current / 120_000) * 15
 
+    // ── Earned top of the scale (attentionScore.js) ───────────────────────
+    // The shown score may exceed 75 only as far as unbroken attention has
+    // earned. Every band sits below 75, so no band decision changes.
+    earnedAttentionMsRef.current = stepEarnedAttention({
+      previousMs: earnedAttentionMsRef.current,
+      preRampScore: baseScore.score,
+      deltaMs: frameDelta,
+      hold: trackingUncertain || holdForPenaltyDebounce,
+    })
+
     const finalizedScore = finalizeAttentionScore({
       base: baseScore,
       rampBonus,
-      previousScore: focusScoreRef.current,
+      previousScore: signalScoreRef.current,
+      earnedAttentionMs: earnedAttentionMsRef.current,
       trackingUncertain,
       holdForDebounce: holdForPenaltyDebounce,
     })
     rawScoreRef.current = finalizedScore.rawFinal
+    signalScoreRef.current = finalizedScore.signal
     focusScoreRef.current = finalizedScore.score
     lastScoreTraceRef.current = finalizedScore.trace
 
