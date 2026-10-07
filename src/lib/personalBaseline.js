@@ -35,12 +35,36 @@ function medianIfEnough(values) {
  * exist in the window. A value is also null on its own when fewer than five
  * of those days carry it.
  */
-export function buildDayBaseline({ ledger, sessions = [], dayStart, now = Date.now(), metricVersion = FOCUS_SCORE.metricVersion }) {
+export function buildDayBaseline(options) {
+  const { scores, deepFocus, attention } = scoredDays(options)
+  if (scores.length < BASELINE_MIN_DAYS) return null
+  return {
+    days: scores.length,
+    focusScore: median(scores),
+    deepFocusSeconds: medianIfEnough(deepFocus),
+    averageAttention: medianIfEnough(attention),
+  }
+}
+
+/**
+ * Why there is no usual yet, so the Lab can say so instead of the comparison
+ * silently disappearing: { days, required, earlierMethodDays }. After a
+ * scoring change `earlierMethodDays` counts the scored days in the window that
+ * used an earlier method. They are never compared with the new one; the usual
+ * returns once the new method has `required` scored days of its own.
+ */
+export function buildDayBaselineProgress(options) {
+  const { scores, earlierMethodDays } = scoredDays(options)
+  return { days: scores.length, required: BASELINE_MIN_DAYS, earlierMethodDays }
+}
+
+function scoredDays({ ledger, sessions = [], dayStart, now = Date.now(), metricVersion = FOCUS_SCORE.metricVersion }) {
   const reference = new Date(dayStart ?? now)
   const generation = activeFocusGeneration(sessions)
   const scores = []
   const deepFocus = []
   const attention = []
+  let earlierMethodDays = 0
   for (let offset = 1; offset <= BASELINE_WINDOW_DAYS; offset += 1) {
     const { start } = getFocusPeriodWindow('day', -offset, reference)
     const period = buildVersionedFocusPeriod(ledger, {
@@ -50,17 +74,15 @@ export function buildDayBaseline({ ledger, sessions = [], dayStart, now = Date.n
       sessions,
       metricVersion,
     })
-    if (period?.score == null || period.generation !== generation) continue
+    if (period?.score == null) continue
+    if (period.generation !== generation) {
+      earlierMethodDays += 1
+      continue
+    }
     scores.push(period.score)
     if (Number.isFinite(period.averageAttention)) attention.push(period.averageAttention)
     const time = buildPeriodTimeSummary(sessions, period, now)
     if (Number.isFinite(time.deepFocusSeconds)) deepFocus.push(time.deepFocusSeconds)
   }
-  if (scores.length < BASELINE_MIN_DAYS) return null
-  return {
-    days: scores.length,
-    focusScore: median(scores),
-    deepFocusSeconds: medianIfEnough(deepFocus),
-    averageAttention: medianIfEnough(attention),
-  }
+  return { scores, deepFocus, attention, earlierMethodDays }
 }

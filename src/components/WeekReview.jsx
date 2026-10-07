@@ -64,6 +64,9 @@ export default function WeekReview({ review, title }) {
             {current.bestDay && <small>Focus Score {current.bestDay.score}</small>}</dd>
         </div>
       </dl>
+      {review.previousOnEarlierMethod && (
+        <p className="lab-week-records">Last week used the earlier measurement method, so this week is not compared with it.</p>
+      )}
       {recordsThisWeek.length > 0 && (
         <p className="lab-week-records">
           Records set this week: {recordsThisWeek.map(record => RECORD_LABELS[record.key]).join(' · ')}

@@ -123,7 +123,6 @@ function WorkspaceComparison({ data }) {
   const rows = data.rows.filter(row => row.averageAttention != null)
   const bestId = data.comparison.best?.id
   const worstId = data.comparison.worst?.id
-  const duplicateLabels = new Set(rows.filter((row, index) => rows.findIndex(other => other.label === row.label) !== index).map(row => row.label))
   return (
     <>
       <ConditionSignal comparison={data.comparison} />
@@ -131,7 +130,7 @@ function WorkspaceComparison({ data }) {
         {rows.map((row, index) => (
           <div key={row.id} style={{ '--i': index }} className={`${row.id === bestId ? 'is-best' : ''} ${row.id === worstId ? 'is-worst' : ''}`.trim() || undefined}>
             <div>
-              <span>{row.label}{duplicateLabels.has(row.label) ? ` · setup v${row.revision}` : ''}</span>
+              <span>{row.label}</span>
               <small>{sessionLabel(row.sessions)}{row.outcomeRate == null ? '' : ` · ${row.outcomeRate}% goals reached`}</small>
             </div>
             <strong>{row.averageAttention}</strong>
