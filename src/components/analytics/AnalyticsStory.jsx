@@ -136,7 +136,7 @@ function RecentOverview({ sessions }) {
             <strong>
               {snapshot.averageAttention == null ? '—' : <><CountedNumber value={snapshot.averageAttention} />/100</>}
             </strong>
-            <span>Average attention</span>
+            <span>Average attention{snapshot.averageAttentionOnCurrentMethod ? '' : ' · earlier method'}</span>
           </div>
         </div>
         <div className="analytics-overview-metric">

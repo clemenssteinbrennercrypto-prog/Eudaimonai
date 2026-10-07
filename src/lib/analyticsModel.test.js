@@ -33,6 +33,13 @@ function session(index, extra = {}) {
 }
 
 describe('Analytics model — version boundaries', () => {
+  it('keeps the overview average on the earlier method while the current one has too few sessions', () => {
+    const earlier = Array.from({ length: 8 }, (_, i) => session(i + 1, { avgFocusScore: 60 }))
+    const current = [session(20, { attentionScoringVersion: 5, avgFocusScore: 95 })]
+    const snapshot = buildOverviewSnapshot([...earlier, ...current], 'all')
+    expect(snapshot).toMatchObject({ averageAttention: 60, averageAttentionOnCurrentMethod: false, sessionCount: 9 })
+  })
+
   it('uses the newest explicit supported ruler and refuses missing versions', () => {
     const rows = [
       session(1, { attentionScoringVersion: 1 }),
@@ -188,6 +195,37 @@ describe('Analytics model — redesigned Details', () => {
     expect(result.distribution.values).toEqual([55])
     expect(result.sessionCount).toBe(2)
     expect(result.scoreableCount).toBe(1)
+  })
+
+  // 7 Oct 2026: after a scoring change the user's first session on the new
+  // generation emptied every Details chart, although the history was stored.
+  it('draws the charts on the earlier method until the current one has enough sessions, never both', () => {
+    const earlier = Array.from({ length: 8 }, (_, i) => session(i + 1, { avgFocusScore: 60 + i }))
+    const current = [session(20, { attentionScoringVersion: 5, avgFocusScore: 95 })]
+    const result = buildDetailsSummary([...earlier, ...current])
+
+    expect(result).toMatchObject({
+      generation: 5,
+      chartGeneration: 2,
+      chartsOnCurrentMethod: false,
+      currentMethodQualified: 1,
+    })
+    expect(result.conditions.usableCount).toBe(8)
+    expect(result.distribution.values).not.toContain(95)
+    expect(result.duration.map(row => row.id)).not.toContain('s-20')
+    // The trend keeps both generations, each as its own series.
+    expect(result.timeline.find(row => row.id === 's-20')).toMatchObject({ currentGeneration: true, qualified: false })
+
+    const headline = buildDetailsHeadline([...earlier, ...current], 1_800_000_000_000 + 30_000)
+    expect(headline).toMatchObject({ sessionCount: 8, onCurrentMethod: false })
+  })
+
+  it('moves the charts to the current method once it has enough sessions of its own', () => {
+    const earlier = Array.from({ length: 8 }, (_, i) => session(i + 1, { avgFocusScore: 60 }))
+    const current = Array.from({ length: 8 }, (_, i) => session(20 + i, { attentionScoringVersion: 5, avgFocusScore: 90 }))
+    const result = buildDetailsSummary([...earlier, ...current])
+    expect(result).toMatchObject({ chartGeneration: 5, chartsOnCurrentMethod: true })
+    expect(new Set(result.distribution.values)).toEqual(new Set([90]))
   })
 
   it('requires ten measured minutes before a session can influence Details statistics', () => {

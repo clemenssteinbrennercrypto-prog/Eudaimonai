@@ -250,6 +250,15 @@ export default function DataExplorer({ sessions, selectedSessionId, onSelectSess
             <FocusTrend key={`trend-${filterKey}`} rows={details.timeline} onSelect={onSelectSession} />
           </RevealSection>
 
+          {!details.chartsOnCurrentMethod && (
+            <p className="analytics-footnote analytics-method-note" role="note">
+              The charts below still use your earlier measurement method
+              {details.chartsMethodLastTimestamp ? ` (sessions up to ${new Date(details.chartsMethodLastTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : ''}.
+              They switch to the current method once it has {details.conditions.required} qualified sessions
+              ({details.currentMethodQualified} so far). The two are never mixed.
+            </p>
+          )}
+
           <RevealSection labelledBy="conditions-heading">
             <SectionHeading
               kicker="Conditions"

@@ -3,6 +3,7 @@ import {
   aggregateDeepFocusTime,
   aggregateFocusMeasurements,
   buildHistoryTrend,
+  evidenceFocusGeneration,
   hasMeasuredFocus,
   measuredSessionDayStreak,
   outcomeDistribution,
@@ -267,5 +268,30 @@ describe('outcomeDistribution', () => {
   it('handles an empty or missing session list', () => {
     expect(outcomeDistribution([])).toEqual({ yes: 0, partly: 0, no: 0, unrated: 0 })
     expect(outcomeDistribution(undefined)).toEqual({ yes: 0, partly: 0, no: 0, unrated: 0 })
+  })
+})
+
+describe('evidenceFocusGeneration', () => {
+  const at = (version, timestamp, usable = true) => ({ attentionScoringVersion: version, timestamp, usable })
+  const pick = (sessions, minCount) => evidenceFocusGeneration(sessions, { minCount, isUsable: s => s.usable })
+
+  it('uses the active generation once it has enough usable sessions', () => {
+    const sessions = [at(2, 1), at(2, 2), at(5, 3), at(5, 4)]
+    expect(pick(sessions, 2)).toMatchObject({ generation: 5, isActive: true, count: 2, activeGeneration: 5, activeCount: 2 })
+  })
+
+  it('falls back to the most recently used earlier generation that has enough', () => {
+    const sessions = [at(1, 1), at(1, 2), at(1, 3), at(2, 10), at(2, 11), at(2, 12), at(4, 20), at(5, 30)]
+    expect(pick(sessions, 3)).toMatchObject({ generation: 2, isActive: false, count: 3, lastTimestamp: 12, activeGeneration: 5, activeCount: 1 })
+  })
+
+  it('counts only usable sessions toward the minimum', () => {
+    const sessions = [at(2, 1), at(2, 2, false), at(5, 3)]
+    expect(pick(sessions, 2)).toMatchObject({ generation: 5, isActive: true })
+  })
+
+  it('stays on the active generation when no generation has enough', () => {
+    expect(pick([at(2, 1), at(5, 2)], 3)).toMatchObject({ generation: 5, isActive: true, count: 1 })
+    expect(pick([], 3)).toMatchObject({ isActive: true, count: 0 })
   })
 })

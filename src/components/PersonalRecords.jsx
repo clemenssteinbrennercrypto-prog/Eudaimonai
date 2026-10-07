@@ -45,6 +45,12 @@ export function PersonalRecordsPanel({ sessions }) {
         </div>
         {!result.ready && <b>{result.qualifyingCount} of {RECORDS_MIN_SESSIONS}</b>}
       </div>
+      {result.ready && !result.isCurrentMethod && (
+        <p className="analytics-footnote">
+          Earlier measurement method. Records on the current method start after {RECORDS_MIN_SESSIONS} sessions
+          ({result.currentMethodCount} of {RECORDS_MIN_SESSIONS} so far); until then these stay as they were.
+        </p>
+      )}
       {result.ready && entries.length ? (
         <div className="analytics-overview-grid">
           {entries.map(([key, record]) => (
