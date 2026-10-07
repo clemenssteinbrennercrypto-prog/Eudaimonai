@@ -189,6 +189,21 @@ describe('session focus metric refusals', () => {
     expect(deriveSessionFocusMetric(nativeV2).sessionEfficiency).toBeGreaterThan(0)
   })
 
+  it('scores attention generation 4 without mixing it with generation 3', () => {
+    const v3 = rawSession({ id: 'v3', measuredSeconds: 600, actualSeconds: 720 })
+    const v4 = rawSession({ id: 'v4', measuredSeconds: 600, actualSeconds: 720 })
+    v3.attentionScoringVersion = 3
+    v4.attentionScoringVersion = 4
+    v3.scoreSum = 600 * 90
+    v4.scoreSum = 600 * 50
+
+    let ledger = addSessionToFocusLedger(emptyFocusLedger(), withSessionFocusMetric(v3))
+    ledger = addSessionToFocusLedger(ledger, withSessionFocusMetric(v4))
+    const scored = calculateDailyFocus(ledger.days[localDayKey(v4.startedAt)])
+
+    expect(scored).toMatchObject({ generation: 4, efficiency: 50, sessionCount: 1 })
+  })
+
   it('requires five measured minutes', () => {
     const session = measuredSession({ measuredSeconds: 299, actualSeconds: 319 })
     expect(session.sessionEfficiency).toBeNull()
@@ -401,7 +416,7 @@ describe('daily focus formula', () => {
     expect(scoreAt(55)).toBe(42)
   })
 
-  it.each([0, 4, '2', NaN])('refuses an unknown ledger generation %s', generation => {
+  it.each([0, 99, '2', NaN])('refuses an unknown ledger generation %s', generation => {
     const entry = dailyEntry({ minutes: 120, efficiency: 80 })
     entry.sessions.x.generation = generation
     expect(calculateDailyFocus(entry)).toBeNull()

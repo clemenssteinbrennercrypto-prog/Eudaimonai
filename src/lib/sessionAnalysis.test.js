@@ -210,6 +210,24 @@ describe('next action — exactly one, priority ordered', () => {
     expect(a.nextAction.code).toBe('MAKE_CRITERION_SMALLER_AND_OBSERVABLE')
   })
 
+  it('reports sustained closure without diagnosing fatigue', () => {
+    const a = analyzeSession(session({
+      actualSeconds: 1800,
+      pct: 60,
+      goalOutcome: 'yes',
+      extra: {
+        distractionLog: [
+          { second: 400, reason: 'prolonged' },
+          { second: 800, reason: 'prolonged' },
+        ],
+      },
+    }))
+    expect(a.nextAction).toEqual({
+      code: 'CHECK_SUSTAINED_EYE_CLOSURE',
+      evidence: { count: 2 },
+    })
+  })
+
   it('uses the ultimate fallback only when there is no outcome-derived action either', () => {
     // facts_only sessions never reach buildNextAction at all — nextAction is
     // null by construction. This asserts the invariant directly.

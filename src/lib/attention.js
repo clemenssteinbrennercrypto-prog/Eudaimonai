@@ -65,14 +65,15 @@ export function clamp01(value) {
 }
 
 // ── Circadian ────────────────────────────────────────────────────────────────
-// Research: post-lunch dip 13:00–15:00 (Monk 2005); night fatigue 23:00–06:00
-// (Czeisler 1999). Returns < 1.0 during tired hours. INVARIANT: callers must
-// MULTIPLY the alert delay by this, never divide — tired hours have to make the
-// alert fire SOONER. This exact line has been inverted and re-fixed before.
+// Product alert schedule only; it is not part of the attention score and these
+// fixed hours are not a validated personal circadian model. Returns < 1.0 in
+// the configured windows. INVARIANT: callers must MULTIPLY the alert delay by
+// this, never divide, so those windows alert sooner. This exact line has been
+// inverted and re-fixed before.
 export function getCircadianFactor(now = new Date()) {
   const h = now.getHours()
-  if (h >= 23 || h < 6) return 0.75   // night owl — more lenient: 75% strictness
-  if (h >= 13 && h < 15) return 0.85  // post-lunch dip — mildly lenient
+  if (h >= 23 || h < 6) return 0.75   // alert sooner in the configured night window
+  if (h >= 13 && h < 15) return 0.85  // alert sooner in the configured afternoon window
   return 1.0                           // normal hours
 }
 

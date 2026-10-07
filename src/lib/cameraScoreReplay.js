@@ -1,7 +1,6 @@
 import {
   CALIBRATION_SECS,
   PHONE_PITCH_THRESH,
-  RECOVERY_WINDOW_MS,
   analyzeFrame,
   computeThresholds,
   headVariance,
@@ -9,17 +8,13 @@ import {
   smoothDownwardContext,
 } from './attention.js'
 import {
-  BLINK_WIN_MS,
   CONF_UNCERTAIN_MAX,
   DISTRACTION_DOWN_HOLD_MS,
-  EAR_PROLONGED_CLOSE,
   EAR_RECALIB_INTERVAL,
   FACE_ABSENT_HOLD_MS,
   HEAD_DRIFT_THRESH,
   HEAD_DRIFT_WIN_MS,
   IRIS_OFF_H,
-  MAR_YAWN,
-  PERCLOS_WIN_MS,
   UNCERTAIN_HOLD_MS,
 } from './cameraScoringConstants.js'
 import {
@@ -34,6 +29,13 @@ import {
   penaltySignalConfirmed,
 } from './attentionPenaltyDebounce.js'
 import { OFF_TARGET_REST, stepOffTarget } from './offTargetAttention.js'
+import {
+  DEFAULT_OPEN_EYE_EAR,
+  eyeClosureRatio,
+  hasSubstantialEyeClosure,
+  isOpenEyeSample,
+  personalOpenEyeBaseline,
+} from './ocularAttention.js'
 import { isScreenRole } from './workspaceObjects.js'
 // Historical FaceMesh.js sampling cadence used by the recorded parity corpus.
 // Keep it explicit here: the live WebView camera controller no longer exists.
@@ -65,9 +67,6 @@ export function createCameraScoreReplay({
   } = computeThresholds(devices)
   const startAt = 1_700_000_000_000
   const state = {
-    blinkTimestamps: [],
-    wasClosed: false,
-    perclosHistory: [],
     noseHistory: [],
     headDownFrames: 0,
     headTurnLeftFrames: 0,
@@ -78,7 +77,6 @@ export function createCameraScoreReplay({
     headTurnRightStart: null,
     eyesOffStart: null,
     eyesClosedSince: null,
-    yawnStart: null,
     phoneStart: null,
     distractionDownStart: null,
     downwardContextHistory: [],
@@ -86,7 +84,7 @@ export function createCameraScoreReplay({
     lookingUpStart: null,
     faceAbsentSince: null,
     lowConfidenceSince: null,
-    earBaseline: 0.28,
+    earBaseline: DEFAULT_OPEN_EYE_EAR,
     earCalibration: [],
     irisCalibration: [],
     workspaceCalibration: [],
@@ -99,7 +97,6 @@ export function createCameraScoreReplay({
     sustainedGoodMs: 0,
     earnedAttentionMs: 0,
     lastFrameAt: 0,
-    lastDistractionAt: 0,
     penaltyFrames: createPenaltyFrameState(),
   }
 
@@ -124,7 +121,6 @@ export function createCameraScoreReplay({
       let pitchDeg = 0
       let pitchUpDeg = 0
       let yawSigned = 0
-      let mar = 0
       let irisV = 0
       let irisH = 0
 
@@ -134,48 +130,23 @@ export function createCameraScoreReplay({
         pitchDeg = signals.pitchDeg
         pitchUpDeg = signals.pitchUpDeg
         yawSigned = signals.yawSigned
-        mar = signals.mar
         irisV = signals.irisV
         irisH = signals.irisH
-
-        const earBlink = state.earBaseline * 0.72
-        const earHeavy = state.earBaseline * 0.55
-        if (avgEar < earBlink) {
-          state.wasClosed = true
-        } else if (state.wasClosed) {
-          state.wasClosed = false
-          state.blinkTimestamps.push(now)
-        }
-        state.perclosHistory.push({ t: now, heavy: avgEar < earHeavy })
         state.noseHistory.push({ t: now, x: signals.nosePt.x, y: signals.nosePt.y })
       }
 
       const adjustedYawSigned = yawSigned - yawNeutral
-      state.blinkTimestamps = state.blinkTimestamps.filter(time => time > now - BLINK_WIN_MS)
-      state.perclosHistory = state.perclosHistory.filter(frame => frame.t > now - PERCLOS_WIN_MS)
       state.noseHistory = state.noseHistory.filter(point => point.t > now - HEAD_DRIFT_WIN_MS)
 
-      const blinkRate = state.blinkTimestamps.length * 3
-      const hasBlinkData = sessionElapsed >= 15
-      const perclos = state.perclosHistory.length
-        ? state.perclosHistory.filter(frame => frame.heavy).length / state.perclosHistory.length * 100
-        : 0
-      const hasPerclos = sessionElapsed >= 30 && state.perclosHistory.length >= 15
-
-      if (hasFace && avgEar < EAR_PROLONGED_CLOSE) {
+      const currentEyeClosureRatio = hasFace
+        ? eyeClosureRatio(avgEar, state.earBaseline)
+        : null
+      if (hasFace && hasSubstantialEyeClosure(avgEar, state.earBaseline)) {
         if (!state.eyesClosedSince) state.eyesClosedSince = now
       } else {
         state.eyesClosedSince = null
       }
       const eyesClosedMs = state.eyesClosedSince ? now - state.eyesClosedSince : 0
-      const earlyMicrosleepMs = hasFace && avgEar < EAR_PROLONGED_CLOSE ? eyesClosedMs : 0
-
-      if (hasFace && mar > MAR_YAWN) {
-        if (!state.yawnStart) state.yawnStart = now
-      } else {
-        state.yawnStart = null
-      }
-      const yawnMs = state.yawnStart ? now - state.yawnStart : 0
 
       if (hasFace && pitchUpDeg >= pitchUpDT) {
         if (!state.lookingUpStart) state.lookingUpStart = now
@@ -304,13 +275,13 @@ export function createCameraScoreReplay({
         : false
 
       if (calibrating) {
-        if (hasFace && avgEar > 0.20) {
+        if (hasFace && Number.isFinite(avgEar)) {
           state.earCalibration.push(avgEar)
-          state.irisCalibration.push({ h: irisH, v: irisV })
-          state.workspaceCalibration.push({ yawSigned, pitchDeg: pitchDeg - pitchUpDeg, irisH })
-        }
-        if (state.earCalibration.length) {
-          state.earBaseline = mean(state.earCalibration)
+          state.earBaseline = personalOpenEyeBaseline(state.earCalibration, state.earBaseline)
+          if (isOpenEyeSample(avgEar, state.earBaseline)) {
+            state.irisCalibration.push({ h: irisH, v: irisV })
+            state.workspaceCalibration.push({ yawSigned, pitchDeg: pitchDeg - pitchUpDeg, irisH })
+          }
         }
         if (state.irisCalibration.length) {
           state.irisHNeutral = mean(state.irisCalibration.map(sample => sample.h))
@@ -328,7 +299,11 @@ export function createCameraScoreReplay({
         return state.focusScore
       }
 
-      if (hasFace && avgEar > 0.20 && now - state.lastRecalibrationAt >= EAR_RECALIB_INTERVAL) {
+      if (
+        hasFace &&
+        isOpenEyeSample(avgEar, state.earBaseline) &&
+        now - state.lastRecalibrationAt >= EAR_RECALIB_INTERVAL
+      ) {
         state.earBaseline = state.earBaseline * 0.8 + avgEar * 0.2
         state.lastRecalibrationAt = now
       }
@@ -362,8 +337,6 @@ export function createCameraScoreReplay({
         faceAbsentMs,
         faceAbsentConfirmed,
         previousScore: state.signalScore,
-        hasBlinkData,
-        blinkRate,
         fidgetVariance,
         pitchDeg,
         workZonePitchMin,
@@ -374,10 +347,7 @@ export function createCameraScoreReplay({
         distractionDownward,
         unknownPhoneDownwardConfirmed: penaltySignalConfirmed(state.penaltyFrames, 'unknownPhoneDownward'),
         eyesClosedMs,
-        earlyMicrosleepMs,
-        hasPerclos,
-        perclos,
-        yawnMs,
+        eyeClosureRatio: currentEyeClosureRatio,
         lookingUpMs,
         pitchUpDT,
         pitchDT,
@@ -399,11 +369,9 @@ export function createCameraScoreReplay({
         offTargetFactor: offTarget.state.factor,
       })
       const holdForPenaltyDebounce = !hasFace && !faceAbsentConfirmed
-      const msSinceDistraction = state.lastDistractionAt ? now - state.lastDistractionAt : Infinity
-      const rampRate = msSinceDistraction < RECOVERY_WINDOW_MS ? 0.4 : 1
       if (!trackingUncertain && !holdForPenaltyDebounce) {
         state.sustainedGoodMs = shouldBuildSustainedRamp(baseScore.score)
-          ? Math.min(120_000, state.sustainedGoodMs + frameDelta * rampRate)
+          ? Math.min(120_000, state.sustainedGoodMs + frameDelta)
           : Math.max(0, state.sustainedGoodMs - frameDelta * 3)
       }
       state.earnedAttentionMs = stepEarnedAttention({
@@ -422,7 +390,6 @@ export function createCameraScoreReplay({
       })
       state.signalScore = finalized.signal
       state.focusScore = finalized.score
-      if (state.focusScore < 55) state.lastDistractionAt = now
       return state.focusScore
     },
   }

@@ -24,6 +24,7 @@ describe('SessionMeasures', () => {
       score: i >= 40 && i < 42 ? 30 : i >= 60 ? 80 : 70,
       focused: !(i >= 40 && i < 42),
       deepFocused: i >= 60,
+      inFlow: i >= 60,
       activity: { kind: 'aligned', label: 't', app: i < 50 ? 'Code' : 'Safari', domain: '' },
     }))
     const html = render(measuredSession(samples))

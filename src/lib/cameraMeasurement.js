@@ -22,9 +22,18 @@ export const NATIVE_CAMERA_MEASUREMENT_V3 = Object.freeze({
   attentionScoringVersion: 3,
 })
 
-// New live sessions have one source. V1 and V2 remain exported solely so
-// stored history can identify its original ruler; neither is a runtime fallback.
-export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V3
+// V4 retains that earned-top scale but removes unsupported blink/yawn/
+// closure-share heuristics, personalises sustained eye closure, and uses one
+// recovery-ramp rate. The camera and model hashes are still byte-for-byte V2.
+export const NATIVE_CAMERA_MEASUREMENT_V4 = Object.freeze({
+  ...NATIVE_CAMERA_MEASUREMENT_V3,
+  id: 'native_mediapipe_v4_evidence_clean',
+  attentionScoringVersion: 4,
+})
+
+// Earlier generations remain exported solely so stored history can identify
+// its original ruler; none is a runtime fallback.
+export const PRIMARY_CAMERA_MEASUREMENT = NATIVE_CAMERA_MEASUREMENT_V4
 
 export function nativeCameraFaultFor(status) {
   if (status?.state !== 'faulted') return null

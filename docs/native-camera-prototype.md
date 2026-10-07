@@ -149,11 +149,11 @@ classification parity.
 
 Both recorded-frame runners deliberately write `attentionScore: null`. The
 comparator feeds both landmark streams through the same camera-only JavaScript
-replay: 20-second personal calibration, rolling EAR/PERCLOS/head histories,
-all existing holds and deadzones, trust gating, smoothing and the sustained
-focus ramp. Activity scoring is disabled equally for both streams because it
-is not an input to camera parity. Stateful constants are imported from the
-same module as `SessionScreen`; `FOCUSED_SCORE` comes directly from
+replay: 20-second personal calibration, personal sustained-eye-closure and head
+state, all existing holds and deadzones, trust gating, smoothing and the
+sustained-focus ramp. Activity scoring is disabled equally for both streams
+because it is not an input to camera parity. Stateful constants are imported
+from the same module as `SessionScreen`; `FOCUSED_SCORE` comes directly from
 `attention.js`. Unit tests pin calibration, determinism and the distinction
 between an explicitly unmeasured frame and a measured no-face result.
 

@@ -4,6 +4,7 @@ import { PRIMARY_CAMERA_MEASUREMENT } from '../../lib/cameraMeasurement'
 import TimelineBar from './TimelineBar'
 import SessionMeasures from './SessionMeasures'
 import { sessionEndedAt, sessionPausedSeconds, sessionStartedAt } from '../../lib/sessionTiming'
+import { measurementSourceLabel } from '../../lib/measurementTerminology'
 
 function fmtTime(timestamp) {
   return new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
@@ -74,7 +75,7 @@ export default function MeasuredFacts({ session, analysis }) {
               schema generation. Historical methods still remain separate. */}
           {measurement.measurementSource === PRIMARY_CAMERA_MEASUREMENT.id && (
             <span style={{ fontSize: 10, color: 'var(--ultra-bright)', fontWeight: 800, marginTop: 4, display: 'block', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              Current camera measurement
+              {measurementSourceLabel(measurement.measurementSource, measurement.scoringVersion)}
             </span>
           )}
         </div>

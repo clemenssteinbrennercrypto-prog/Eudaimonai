@@ -10,10 +10,10 @@
 // holes, and nothing is ever counted across a hole: a lapse that "ended" on
 // the far side of a break is not a recovery, it is missing data.
 import { FOCUSED_SCORE } from './attention'
-import { DEEP_FOCUS_TIME_VERSION } from './attentionSampling'
+import { DEEP_FOCUS_TIME_VERSION, FLOW_ENTRY_MS } from './attentionSampling'
 import { sessionFocusMeasurement } from './historyTrend'
 
-export const SESSION_MEASURES_VERSION = 1
+export const SESSION_MEASURES_VERSION = 2
 export const TIMELINE_INTERVAL_SECONDS = 5
 /** Samples further apart than this belong to different stretches. */
 const CONTIGUOUS_GAP_SECONDS = TIMELINE_INTERVAL_SECONDS * 1.5
@@ -139,15 +139,23 @@ function recordsContext(samples) {
     samples.some(sample => contextKey(sample) !== null)
 }
 
-/** Longest unbroken run of Deep Focus samples. The 90 s entry warm-up is
- *  credited to the total but not stamped on samples, so blocks are measured
- *  from the moment the gate opened — the same offset for every session. */
+/**
+ * Longest unbroken Deep Focus block, including the qualifying warm-up that the
+ * exact Flow accumulator credits retroactively. `inFlow` proves whether a
+ * stamped run opened a new Flow span. A brief unqualified sample can split the
+ * displayed block while the gate remains active, but it never earns a second
+ * warm-up. Missing gate state is refused by deriveSessionMeasures.
+ */
 function longestDeepFocusBlock(stretches, flowSeconds) {
   let longest = 0
   for (const stretch of stretches) {
     for (const run of runsOf(stretch, sample => sample.deepFocused === true)) {
       if (run.key !== true) continue
-      const seconds = stretch[run.end].second - stretch[run.start].second + TIMELINE_INTERVAL_SECONDS
+      const previous = stretch[run.start - 1]
+      const openedFlow = previous == null || previous.inFlow === false
+      const warmupSeconds = openedFlow ? FLOW_ENTRY_MS / 1000 : 0
+      const seconds = warmupSeconds +
+        stretch[run.end].second - stretch[run.start].second + TIMELINE_INTERVAL_SECONDS
       longest = Math.max(longest, seconds)
     }
   }
@@ -189,7 +197,9 @@ export function deriveSessionMeasures(session) {
 
   const exactFlow = session?.deepFocusTimeVersion === DEEP_FOCUS_TIME_VERSION &&
     Number.isFinite(session.flowSeconds) && session.flowSeconds >= 0 &&
-    samples.some(sample => typeof sample.deepFocused === 'boolean')
+    samples.length > 0 &&
+    samples.every(sample =>
+      typeof sample.deepFocused === 'boolean' && typeof sample.inFlow === 'boolean')
   const longestDeepFocusSeconds = exactFlow ? longestDeepFocusBlock(stretches, session.flowSeconds) : null
 
   return {

@@ -4,6 +4,7 @@ import { createLocalSessionRepository } from './sessionRepository.local'
 import { buildSessionSummary } from './sessionSummary'
 import { ATTENTION_SCORING_VERSION } from './focusMetric'
 import { saveFocusScoreSchedule } from './focusScoreSchedule'
+import { SESSION_ANALYSIS_VERSION } from './sessionAnalysis'
 
 class MemoryStorage {
   constructor() { this.values = new Map() }
@@ -138,7 +139,7 @@ describe('saving', () => {
   it('stores a versioned analysis snapshot with the record', async () => {
     await repo.saveSession(sessionData({ goalOutcome: 'yes' }))
     const analysis = sent('db_save_session').analysis
-    expect(analysis.version).toBe(2)
+    expect(analysis.version).toBe(SESSION_ANALYSIS_VERSION)
     expect(analysis.status).toBe('ready')
   })
 })

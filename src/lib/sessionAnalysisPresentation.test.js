@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeConclusion, energyInterpretation, fmtClock } from './sessionAnalysisPresentation'
+import { describeConclusion, describeNextAction, energyInterpretation, fmtClock } from './sessionAnalysisPresentation'
 
 describe('session analysis presentation', () => {
   it('shows an explicit hour field in long-session timestamps', () => {
@@ -20,5 +20,11 @@ describe('session analysis presentation', () => {
     expect(energyInterpretation('fresh', 45)).toMatch(/friction likely came from the work/)
     expect(energyInterpretation('fresh', 55)).toBeNull()
     expect(energyInterpretation(null, 80)).toBeNull()
+  })
+
+  it('describes sustained eye closure as an observation, not a fatigue diagnosis', () => {
+    const copy = describeNextAction({ code: 'CHECK_SUSTAINED_EYE_CLOSURE', evidence: { count: 2 } })
+    expect(copy).toContain('sustained eye closure')
+    expect(copy).not.toMatch(/fatigue|tired|microsleep/i)
   })
 })

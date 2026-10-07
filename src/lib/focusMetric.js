@@ -4,7 +4,12 @@
 // can create V2 without silently rewriting V1 history.
 
 import { ATTENTION_ACCUMULATION_VERSION, DEEP_FOCUS_TIME_VERSION } from './attentionSampling'
-import { NATIVE_CAMERA_MEASUREMENT_V2, NATIVE_CAMERA_MEASUREMENT_V3, WEBVIEW_CAMERA_MEASUREMENT } from './cameraMeasurement'
+import {
+  NATIVE_CAMERA_MEASUREMENT_V2,
+  NATIVE_CAMERA_MEASUREMENT_V3,
+  NATIVE_CAMERA_MEASUREMENT_V4,
+  WEBVIEW_CAMERA_MEASUREMENT,
+} from './cameraMeasurement'
 import { activeFocusGeneration } from './historyTrend'
 import { formatDuration } from './durationFormat'
 
@@ -33,6 +38,7 @@ export const SCOREABLE_SCORING_VERSIONS = Object.freeze([
   WEBVIEW_CAMERA_MEASUREMENT.attentionScoringVersion,
   NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
   NATIVE_CAMERA_MEASUREMENT_V3.attentionScoringVersion,
+  NATIVE_CAMERA_MEASUREMENT_V4.attentionScoringVersion,
 ])
 
 function isScoreableGeneration(version) {

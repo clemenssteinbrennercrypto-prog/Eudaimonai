@@ -2,7 +2,7 @@
 
 export const DISTRACTION_LABELS = {
   phone: 'Phone check',
-  yawn: 'Fatigue',
+  yawn: 'Mouth opening (legacy)',
   away: 'Left camera',
   looking_away: 'Looked away',
   lookingup: 'Daydreaming',

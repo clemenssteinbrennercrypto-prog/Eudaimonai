@@ -21,7 +21,7 @@ import { SCOREABLE_SCORING_VERSIONS } from './focusMetric'
 import { summarizeSessionAlignment } from './sessionIntent'
 import { calibrate } from './calibration'
 
-export const SESSION_ANALYSIS_VERSION = 2
+export const SESSION_ANALYSIS_VERSION = 3
 
 /** Below this a session is noise, not evidence — same bar as calibration.js's
  *  `isUsable` and sessionVerdict.js's MIN_SESSION_SECONDS. Below it we still
@@ -267,8 +267,8 @@ function buildNextAction({ session, measurement, goalOutcome, facts }) {
   if (topDistraction?.[0] === 'phone') {
     return { code: 'MOVE_PHONE_AWAY', evidence: { count: topDistraction[1] } }
   }
-  if (topDistraction?.[0] === 'yawn' || topDistraction?.[0] === 'prolonged') {
-    return { code: 'ADDRESS_FATIGUE_SIGNALS', evidence: { reason: topDistraction[0], count: topDistraction[1] } }
+  if (topDistraction?.[0] === 'prolonged') {
+    return { code: 'CHECK_SUSTAINED_EYE_CLOSURE', evidence: { count: topDistraction[1] } }
   }
   if (lowestStretch && lowestStretch.avg < 55 && fadeDriftSeconds < 60 && alignment.driftPct < 20) {
     return { code: 'WATCH_SPECIFIC_TIMESTAMP_RANGE', evidence: { start: lowestStretch.start, end: lowestStretch.end, avg: lowestStretch.avg } }

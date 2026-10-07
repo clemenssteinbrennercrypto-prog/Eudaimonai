@@ -59,7 +59,7 @@ app but could never run the native measurement engine.
 ```bash
 npm install
 npm run dev        # isolated UI development only; native features unavailable
-npm test           # vitest, currently 796 tests — must stay green
+npm test           # vitest, currently 1001 tests — must stay green
 npm run build      # production bundle
 ```
 
@@ -67,7 +67,7 @@ Rust side:
 
 ```bash
 cd companion/src-tauri
-cargo test         # currently 75 tests (13 library + 62 app)
+cargo test         # currently 84 tests (14 library + 70 app)
 cargo check
 ```
 
@@ -410,8 +410,8 @@ degrades the result; it never breaks a session.
 
 ## 7. Testing and verification
 
-There are currently 796 JS tests and 75 Rust tests (13 native-camera library
-tests plus 62 app tests). Both suites must stay green. Treat these counts as a
+There are currently 1001 JS tests and 84 Rust tests (14 native-camera library
+tests plus 70 app tests). Both suites must stay green. Treat these counts as a
 checkpoint, not a substitute for reading the runner output when tests are added.
 
 Test the **refusals and the boundaries**, not just the happy path. The valuable
@@ -574,17 +574,29 @@ gate as a promotion gate because the historical execution backend is not a
 stable reference implementation. Keep the harness, failed numbers and
 model/sign checks as characterization and regression evidence.
 
-The replacement gate is: every new session is explicitly V2 with pinned model
-hashes; no daily score, trend bucket or pattern mixes generations; missing
+The replacement gate is: every new session explicitly records its pinned model
+hashes and attention-scoring generation; no daily score, trend bucket or pattern mixes generations; missing
 native frames remain absent measurement; and the real minimize/close score test
 passes. This is a versioned ruler migration, not a claim of equality.
 
-`SCOREABLE_SCORING_VERSIONS` includes V1 and V2 but refuses a missing version.
+`SCOREABLE_SCORING_VERSIONS` includes V1 through V4 but refuses a missing version.
 Per day, `calculateDailyFocus` uses the highest generation present.
 `comparableSessions()` narrows cross-session comparisons to the most recently
-used generation. V1 history remains stored and readable, but is excluded from
-V2 comparisons. Existing users therefore need eight usable V2 sessions before
-patterns speak again. Do not bypass that silence by blending generations.
+used generation. Earlier history remains stored and readable, but is excluded
+from current-generation comparisons. Users therefore need eight usable V4
+sessions before patterns speak again. Do not bypass that silence by blending
+generations.
+
+Since 7 Oct 2026, new sessions use the same pinned native V2 camera/models with
+`attentionScoringVersion: 4`. V4 retains V3's earned-top ceiling but is a new
+scoring-ruler boundary, not a camera-model upgrade: it removes absolute blink-rate rewards/penalties, mouth-opening/yawn
+penalties, webcam pseudo-PERCLOS and the unsupported post-distraction ramp
+slowdown. Only sustained eye closure remains, measured relative to the user's
+calibrated open-eye EAR and held for 1.5 s. The 0.55 ratio and hold are
+conservative product boundaries, not claims of diagnosing fatigue. The evidence
+and rejected interpretations are in
+`docs/focus-score-evidence-2026-10-07.md`. V3 history keeps the earned-top
+scale with the older ocular rules; it is readable but never blended into V4.
 
 ### Native V2 status (1 Sep 2026)
 
@@ -710,8 +722,9 @@ may still use WebView camera/FaceMesh code; they are not session measurement.
 
 What the user is shown, and the rules that keep it honest. Names matter: a
 metric's name is a promise about what it measures. The camera sees overt visual
-attention and alertness (eyes on the work, eyelid closure, blinking, head
-pose), not covert thought, so nothing user-facing may claim more than that.
+behaviour (eyes/head toward configured work zones and sustained eyelid closure),
+not covert thought, so nothing user-facing may claim more than that. Blink rate
+and yawning are not score inputs.
 
 ### Measures
 
@@ -721,7 +734,7 @@ pose), not covert thought, so nothing user-facing may claim more than that.
 | **Lapses per hour** (stability) | Entries into a stretch of ≥ 10 s (two consecutive 5 s timeline samples) below `FOCUSED_SCORE`, per measured hour | timeline |
 | **Recovery time** (stability) | Median time from the start of a lapse until attention is back at ≥ `FOCUSED_SCORE` for ≥ 10 s; a lapse cut off by a break, gap or the session end is left out | timeline |
 | **Context switches per hour** | Changes of work context (app, plus site in a browser) where each side holds ≥ 10 s, per measured hour. Needs `activity.app` on every sample, recorded since 6 Oct 2026; the older `label` is the window title and changes with every file or page | timeline `activity` |
-| **Longest Deep Focus block** | Longest run of consecutive `deepFocused` timeline samples | timeline |
+| **Longest Deep Focus block** | Longest run of consecutive `deepFocused` samples plus the 90 s qualifying warm-up when `inFlow` proves that run opened a new Flow span | timeline |
 | **Average attention** | Mean score over measured seconds — a supporting number and the Focus Score's quality input, not a headline. Since V3 the part above 75 has to be earned with unbroken time (§4.11), so a clean short session averages in the high 70s, not the high 90s | ledger |
 | **Session time** | Active session time without breaks (was labelled "Focus time"; it is not focused time) | `actualSeconds` |
 | **Focus Score** | The daily ring, unchanged (§4.9): volume × attention quality | ledger |
@@ -738,10 +751,11 @@ Rules:
   derived count ("Deep Focus blocks ≥ 20 min") from the timeline instead.
 - **Derived measures come from the stored 5 s timeline** (`sessionMeasures.js`),
   never from new live logic. Nothing is counted across a break or camera gap,
-  and per-hour rates need 5 measured minutes. They need no new ruler version and can be computed for every V2
-  session already stored. Their 5 s granularity is stated, not hidden; the
-  longest block excludes the 90 s warm-up because warm-up samples are not
-  stamped `deepFocused`.
+  and per-hour rates need 5 measured minutes. Their 5 s granularity is stated,
+  not hidden. The longest block includes the same successfully qualified 90 s
+  warm-up already credited in `flowSeconds`; it adds that credit only where
+  `inFlow` proves a new entry, never after a retained interruption. Historical
+  samples without gate state stay unknown rather than being guessed.
 - **Every count has a hold time** (invariant 2): one 5 s sample never makes a
   lapse or a switch.
 - **The live session shows Deep Focus, not phase names.** Lock-in (a 4-minute
