@@ -4628,14 +4628,17 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 }
 .lab-metric > span {
   display: inline-flex;
-  align-items: center;
+  /* Keep the marker and help control on the first line when a label wraps.
+     Average Attention is the only current two-line label, so centering the
+     controls against the whole label made its info icon look detached. */
+  align-items: flex-start;
   gap: var(--ds-space-2);
   color: var(--ds-label-2);
   font: 600 11px/1.2 var(--ds-font);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.lab-metric > span::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--metric-tone); flex: none; }
+.lab-metric > span::before { content: ''; width: 8px; height: 8px; margin-top: 2px; border-radius: 50%; background: var(--metric-tone); flex: none; }
 .lab-metric strong {
   text-align: left;
   font: 300 44px/1 var(--ds-font);
@@ -4702,7 +4705,7 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
 .lab-score-method p { margin: var(--ds-space-2) 0; }
 .lab-score-method p:first-child { margin-top: 0; }
 .lab-score-method p:last-child { margin-bottom: 0; }
-.lab-metric-info { display: inline-flex; margin-left: 2px; text-transform: none; letter-spacing: normal; }
+.lab-metric-info { display: inline-flex; flex: none; margin: -2px 0 0 2px; text-transform: none; letter-spacing: normal; }
 .lab-metric-info .lab-score-info-button { width: 18px; height: 18px; }
 .lab-metric-info .lab-score-info-button .ds-icon { width: 13px; height: 13px; }
 .lab-metric-info-popover {
