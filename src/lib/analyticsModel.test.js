@@ -228,6 +228,14 @@ describe('Analytics model — redesigned Details', () => {
     expect(new Set(result.distribution.values)).toEqual(new Set([90]))
   })
 
+  it('compares a workspace as one place, whatever revision of its layout a session used', () => {
+    const desk = revision => ({ id: 'desk', name: 'Schreibtisch', revision })
+    const result = buildDetailsSummary(Array.from({ length: 8 }, (_, i) => session(i + 1, { workspace: desk(1 + (i % 3)) })))
+    const rows = result.conditions.workspace.rows
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ id: 'desk', label: 'Schreibtisch', sessions: 8 })
+  })
+
   it('requires ten measured minutes before a session can influence Details statistics', () => {
     const shortSeconds = 10 * 60 - 1
     const result = buildDetailsSummary([

@@ -7,7 +7,7 @@ import { useCurrentTime } from '../lib/useCurrentTime'
 import FocusScoreExplanation, { FocusScoreMethod, focusScoreLabel } from './FocusScoreExplanation'
 import { formatDurationCompact } from '../lib/durationFormat'
 import { FOCUS_SCORE } from '../lib/focusScore'
-import { buildDayBaseline } from '../lib/personalBaseline'
+import { buildDayBaseline, buildDayBaselineProgress } from '../lib/personalBaseline'
 import { buildWeekReview, lastCompletedWeekStart } from '../lib/weeklyReview'
 import WeekReview from './WeekReview'
 
@@ -325,6 +325,17 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
       metricVersion: FOCUS_SCORE.metricVersion,
     })
     : null, [source, period.start, periodSelection.range, dashboardNow])
+  // After a scoring change the usual is silent until the new method has its
+  // own scored days. Say so, rather than letting the comparison vanish.
+  const baselineProgress = useMemo(() => periodSelection.range === 'day' && !baseline
+    ? buildDayBaselineProgress({
+      ledger: source.ledger,
+      sessions: source.sessions,
+      dayStart: period.start instanceof Date ? period.start.getTime() : undefined,
+      now: dashboardNow,
+      metricVersion: FOCUS_SCORE.metricVersion,
+    })
+    : null, [source, period.start, periodSelection.range, dashboardNow, baseline])
   const weekReview = useMemo(() => periodSelection.range === 'week'
     ? buildWeekReview({ ledger: source.ledger, sessions: source.sessions, weekStart: period.start instanceof Date ? period.start.getTime() : undefined, now: dashboardNow })
     : null, [source, period.start, periodSelection.range, dashboardNow])
@@ -399,6 +410,11 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
           <ScoreRings score={period.score} caption={period.score == null ? focusScoreLabel(period) : 'of 100'} rings={rings} />
           {baseline && (
             <BaselineNote value={period.score} usual={baseline.focusScore} format={formatPoints} cumulative isToday={isToday} days={baseline.days} />
+          )}
+          {baselineProgress?.earlierMethodDays > 0 && (
+            <small className="lab-baseline" title="Earlier days used an earlier measurement method and are never compared with the current one.">
+              Your usual returns after {baselineProgress.required} scored days on the updated measurement ({baselineProgress.days} of {baselineProgress.required})
+            </small>
           )}
         </div>
         <div className="lab-metric-row">

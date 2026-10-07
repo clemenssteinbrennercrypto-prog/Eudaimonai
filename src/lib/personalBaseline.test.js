@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addSessionToFocusLedger, emptyFocusLedger, withSessionFocusMetric } from './focusMetric'
-import { buildDayBaseline } from './personalBaseline'
+import { buildDayBaseline, buildDayBaselineProgress } from './personalBaseline'
 
 // Real pipeline fixtures: the session goes through withSessionFocusMetric and
 // into the ledger exactly as App does after a session ends.
@@ -83,3 +83,24 @@ describe('buildDayBaseline', () => {
     expect(buildDayBaseline({ ledger, sessions, dayStart: DAY_20, now: NOW })).toBeNull()
   })
 })
+
+describe('buildDayBaselineProgress', () => {
+  // After a scoring change the usual goes silent; the Lab must be able to say
+  // why instead of the comparison simply vanishing.
+  it('counts scored days on an earlier method without comparing them', () => {
+    const { sessions, ledger } = history([
+      ...[11, 12, 13, 14, 15, 16].map(day => session(`old${day}`, day)),
+      session('new', 19, { version: 5 }),
+    ])
+    expect(buildDayBaseline({ ledger, sessions, dayStart: DAY_20, now: NOW })).toBeNull()
+    expect(buildDayBaselineProgress({ ledger, sessions, dayStart: DAY_20, now: NOW }))
+      .toEqual({ days: 1, required: 5, earlierMethodDays: 6 })
+  })
+
+  it('reports no earlier-method days when the usual is simply still collecting', () => {
+    const { sessions, ledger } = history([1, 2].map(day => session(`s${day}`, 10 + day)))
+    expect(buildDayBaselineProgress({ ledger, sessions, dayStart: DAY_20, now: NOW }))
+      .toEqual({ days: 2, required: 5, earlierMethodDays: 0 })
+  })
+})
+

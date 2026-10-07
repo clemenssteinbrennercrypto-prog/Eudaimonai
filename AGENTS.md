@@ -608,7 +608,15 @@ has enough usable sessions (records 10, Details and the Overview average
 has, labelled "earlier method". Each view still reads exactly one generation.
 Comparisons across periods — personal baseline, week against week, the
 Details delta and record announcements in the debrief — keep refusing across
-a generation change.
+a generation change, but say so instead of going blank: the Lab shows "Your
+usual returns after 5 scored days on the updated measurement (n of 5)"
+(`buildDayBaselineProgress`), the week review "Last week used the earlier
+measurement method" (`previousOnEarlierMethod`), and the Focus Score names
+the method change as the reason a period's score starts mid-period.
+
+Workspaces are compared as places, not layout revisions (Details, Patterns):
+editing the desk keeps one "Schreibtisch" row instead of "v2 / v3 / v4".
+The revision stays in stored records and the CSV export.
 
 Since 7 Oct 2026, new sessions use the same pinned native V2 camera/models with
 `attentionScoringVersion: 4`. V4 retains V3's earned-top ceiling but is a new

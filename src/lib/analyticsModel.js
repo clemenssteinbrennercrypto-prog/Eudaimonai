@@ -239,7 +239,6 @@ function conditionRows(sessions, keyFor, order = null) {
       id: bucket.id,
       label: bucket.label,
       range: bucket.range,
-      revision: bucket.revision,
       sessions: bucket.sessions.length,
       averageAttention: bucket.sessions.length >= MIN_PER_BUCKET
         ? Math.round(mean(bucket.values))
@@ -407,11 +406,14 @@ export function buildDetailsSummary(sessions = []) {
     },
     DETAILS_TIME_BUCKETS,
   )
+  // One row per workspace, whatever its layout revision: editing the desk
+  // layout is the same place to the user, and per-revision rows read as
+  // "Desk v2 / Desk v3 / Desk v4". Sessions arrive newest first, so the row
+  // carries the workspace's current name.
   const workspaceRows = conditionRows(comparable, session => session.workspace?.id
     ? {
-        id: `${session.workspace.id}:${session.workspace.revision ?? 0}`,
+        id: session.workspace.id,
         label: session.workspace.name || session.workspace.id,
-        revision: session.workspace.revision ?? 0,
       }
     : null)
 

@@ -44,6 +44,8 @@ describe('buildWeekReview', () => {
     const mixed = [session(3, { version: 1 }), session(10)]
     const review = buildWeekReview({ ledger: ledgerOf(mixed), sessions: mixed, weekStart: new Date(2026, 10, 9).getTime(), now: new Date(2026, 10, 18).getTime() })
     expect(review.previous).toBeNull()
+    // …and says why, instead of the comparison going blank.
+    expect(review.previousOnEarlierMethod).toBe(true)
   })
 
   it('summarises Deep Focus against the week before in one line', () => {

@@ -10,7 +10,7 @@ import { getFocusPeriodWindow, localDayKey } from './focusMetric'
 import { buildVersionedFocusPeriod } from './focusMetricV2'
 import { FOCUS_SCORE } from './focusScore'
 import { buildPeriodTimeSummary } from './dashboardData'
-import { activeFocusGeneration } from './historyTrend'
+import { activeFocusGeneration, focusGenerationOf } from './historyTrend'
 import { buildPersonalRecords, isQualifyingSession } from './personalRecords'
 import { deriveSessionMeasures } from './sessionMeasures'
 import { sessionStartedAt } from './sessionTiming'
@@ -70,6 +70,7 @@ function weekFacts({ ledger, sessions, start, endExclusive, now, generation }) {
   return {
     onGeneration,
     sessionCount: inWeek.length,
+    earlierMethodSessions: inWeek.filter(session => focusGenerationOf(session) !== generation).length,
     qualifyingCount: inWeek.filter(session => isQualifyingSession(session, generation)).length,
     score: onGeneration ? period?.score ?? null : null,
     deepFocusSeconds: onGeneration ? time.deepFocusSeconds : null,
@@ -99,13 +100,17 @@ export function buildWeekReview({ ledger, sessions = [], weekStart, now = Date.n
       .filter(([, record]) => record?.dayKey && record.dayKey >= startKey && record.dayKey <= endKey)
       .map(([key, record]) => ({ key, ...record }))
     : []
+  const previous = before.qualifyingCount > 0 && before.onGeneration && current.onGeneration ? before : null
   return {
     weekKey: startKey,
     start,
     endExclusive,
     isCurrent: now >= start.getTime() && now < endExclusive.getTime(),
     current,
-    previous: before.qualifyingCount > 0 && before.onGeneration && current.onGeneration ? before : null,
+    previous,
+    // Last week was measured with another method: the comparison is withheld,
+    // and the review says so instead of going blank.
+    previousOnEarlierMethod: previous == null && before.earlierMethodSessions > 0,
     recordsThisWeek,
   }
 }

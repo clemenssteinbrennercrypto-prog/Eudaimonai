@@ -33,7 +33,7 @@ export default function FocusScoreExplanation({ period, time = null, warningsOnl
   let routine = false
   if (statusDay?.status === 'inactive') { status = `No session ${when}.`; routine = true }
   if (statusDay?.status === 'unmeasured') status = `No qualifying measurement ${when}. A session needs at least ${formatMinutes(5)} of measured time.`
-  if (statusDay?.status === 'different_generation') status = `Measurements ${when} use a different camera method and are excluded from this comparison.`
+  if (statusDay?.status === 'different_generation') status = `Measurements ${when} used an earlier measurement method. Open this day on its own to see its score.`
   if (statusDay?.status === 'before_metric') status = `This day predates the exact Deep Focus measurement required by the current Focus Score.`
   if (statusDay?.status === 'awaiting_metric') status = `No session ${when} recorded the exact Deep Focus time required to start the current Focus Score.`
   if (statusDay?.status === 'unscorable') status = `A session ${when} is missing exact Deep Focus time, so no score is shown rather than a partial estimate.`
@@ -58,7 +58,9 @@ export default function FocusScoreExplanation({ period, time = null, warningsOnl
     <div className="focus-score-explanation">
       {showStatus && <p>{status}</p>}
       {period.partialMetricPeriod && period.metricStartKey && (
-        <p>This score starts on {period.metricStartKey}, when exact Deep Focus measurement became available. Earlier sessions are not mixed into it.</p>
+        period.days?.some(day => day.status === 'different_generation')
+          ? <p>This score starts on {period.metricStartKey}, the first day on the updated measurement. Earlier days used the earlier method; they keep their own scores and are not mixed into this one.</p>
+          : <p>This score starts on {period.metricStartKey}, when exact Deep Focus measurement became available. Earlier sessions are not mixed into it.</p>
       )}
       {!warningsOnly && period.range !== 'day' && period.score != null && (
         <p>This period is scored against {period.referenceWorkdays === 1 ? 'one weekday' : `${period.referenceWorkdays} weekdays`} so far. Weekend work still counts.</p>

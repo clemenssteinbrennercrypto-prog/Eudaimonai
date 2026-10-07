@@ -356,7 +356,7 @@ export default function WorkspaceManager({ state, onChange, onContinue }) {
       return <article key={workspace.id} className={isActive ? 'is-active' : ''}>
         <div className="workspace-card-main">
           <WorkspaceMiniature workspace={workspace} />
-          <div className="workspace-card-copy"><div><strong>{workspace.name}</strong>{isActive && <em>Active</em>}</div><p>{workspace.objects.length} objects · {count}/{workspace.objects.length} calibrated · revision {workspace.revision}</p></div>
+          <div className="workspace-card-copy"><div><strong>{workspace.name}</strong>{isActive && <em>Active</em>}</div><p>{workspace.objects.length} objects · {count}/{workspace.objects.length} calibrated</p></div>
         </div>
         <div className="workspace-card-actions">{!isActive && <button onClick={() => commit({ ...state, activeWorkspaceId: workspace.id })}>Use</button>}<button onClick={() => setEditing(workspace)}>Edit</button><button onClick={() => commit(duplicateWorkspace(state, workspace.id))}>Duplicate</button><button disabled={state.workspaces.length <= 1} onClick={() => commit(deleteWorkspace(state, workspace.id))}>Delete</button></div>
       </article>

@@ -197,14 +197,15 @@ export function weekdayFit(sessions) {
   return rankBuckets(buckets)
 }
 
-/** Does the workspace (and which revision of its setup) predict your focus? */
+/** Does the workspace predict your focus? One bucket per workspace, not per
+ *  layout revision: an edited desk is still the same desk to the user. */
 export function workspaceFit(sessions) {
   const buckets = new Map()
   for (const s of sessions) {
     const ws = s.workspace
     const pct = focusPct(s)
     if (!ws?.id || pct == null) continue
-    const key = `${ws.id}:${ws.revision ?? 0}`
+    const key = ws.id
     if (!buckets.has(key)) buckets.set(key, { id: key, label: ws.name || ws.id, values: [], sessions: [] })
     const bucket = buckets.get(key)
     bucket.values.push(pct)
