@@ -65,20 +65,21 @@ export function clamp01(value) {
 }
 
 // ── Circadian ────────────────────────────────────────────────────────────────
-// Research: post-lunch dip 13:00–15:00 (Monk 2005); night fatigue 23:00–06:00
-// (Czeisler 1999). Returns < 1.0 during tired hours. INVARIANT: callers must
+// Post-lunch dip 13:00–15:00: real for some people and some tasks (Monk 2005).
+// The 23:00–06:00 night window is a product choice — no located source.
+// Returns < 1.0 during tired hours. INVARIANT: callers must
 // MULTIPLY the alert delay by this, never divide — tired hours have to make the
 // alert fire SOONER. This exact line has been inverted and re-fixed before.
 export function getCircadianFactor(now = new Date()) {
   const h = now.getHours()
-  if (h >= 23 || h < 6) return 0.75   // night owl — more lenient: 75% strictness
-  if (h >= 13 && h < 15) return 0.85  // post-lunch dip — mildly lenient
+  if (h >= 23 || h < 6) return 0.75   // night — alert after 75% of the delay (stricter)
+  if (h >= 13 && h < 15) return 0.85  // post-lunch dip — after 85% (mildly stricter)
   return 1.0                           // normal hours
 }
 
 // ── Workspace-derived thresholds ─────────────────────────────────────────────
 export function computeThresholds(devices = []) {
-  // Science: ergonomic laptop posture = 15-20° downward head pitch is NORMAL (Stanford, Pitt).
+  // Ergonomics (not attention research): laptop posture = 15-20° downward head pitch is NORMAL.
   // Default pitchDown starts at 25° to avoid false-positives for laptop users.
   // Explicit laptop device bumps it further to 30° (user is definitely looking down at screen).
   let yawLeft = 30, yawRight = 30, pitchDown = 25, pitchUp = 15, yawNeutral = 0
