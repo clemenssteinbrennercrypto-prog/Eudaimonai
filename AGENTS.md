@@ -593,9 +593,22 @@ passes. This is a versioned ruler migration, not a claim of equality.
 Per day, `calculateDailyFocus` uses the highest generation present.
 `comparableSessions()` narrows cross-session comparisons to the most recently
 used generation. Earlier history remains stored and readable, but is excluded
-from current-generation comparisons. Users therefore need eight usable V4
-sessions before patterns speak again. Do not bypass that silence by blending
-generations.
+from current-generation comparisons. Users therefore need eight usable
+sessions on the new generation before patterns speak again. Do not bypass that
+silence by blending generations.
+
+**History views fall back; comparisons do not (7 Oct 2026).** Three
+generations shipped in one day, and the user's first session on the newest one
+emptied Personal records, the Details charts (workspace, duration, phases)
+and the Overview average — the history was stored, just never drawn, and read
+as lost data. Views that summarise history now use
+`evidenceFocusGeneration` (`historyTrend.js`): the active generation once it
+has enough usable sessions (records 10, Details and the Overview average
+`MIN_SESSIONS`), until then the most recently used earlier generation that
+has, labelled "earlier method". Each view still reads exactly one generation.
+Comparisons across periods — personal baseline, week against week, the
+Details delta and record announcements in the debrief — keep refusing across
+a generation change.
 
 Since 7 Oct 2026, new sessions use the same pinned native V2 camera/models with
 `attentionScoringVersion: 4`. V4 retains V3's earned-top ceiling but is a new

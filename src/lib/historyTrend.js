@@ -52,6 +52,53 @@ export function isComparableFocusGeneration(session, generation = WEBVIEW_CAMERA
   return focusGenerationOf(session) === generation
 }
 
+/**
+ * The generation a summary of history (a chart, a records list) is drawn on:
+ * the active one once it holds `minCount` usable sessions, and until then the
+ * most recently used earlier generation that does.
+ *
+ * Without this, every scoring change emptied the history views the day it
+ * landed. Three generations shipped on 7 Oct 2026, and the user's first
+ * session on the newest one left Details charts and Personal records with
+ * nothing to show — the history was stored, just never drawn. Falling back
+ * still reads ONE generation: it never blends rulers into a number, and the
+ * caller must label a fallback as the earlier method. Comparisons that span
+ * two periods (baseline, week against week, deltas) do not use this; they keep
+ * refusing across a generation change.
+ *
+ * Returns { generation, isActive, count, lastTimestamp, activeGeneration,
+ * activeCount }. With no generation reaching minCount it stays on the active
+ * one, so the caller's own "collecting n of m" state still applies.
+ */
+export function evidenceFocusGeneration(sessions, { minCount = 1, isUsable = () => true } = {}) {
+  const safe = (Array.isArray(sessions) ? sessions : []).filter(Boolean)
+  const activeGeneration = activeFocusGeneration(safe)
+  const byGeneration = new Map()
+  for (const session of safe) {
+    const generation = focusGenerationOf(session)
+    const entry = byGeneration.get(generation) || { generation, count: 0, lastTimestamp: null }
+    if (isUsable(session)) entry.count += 1
+    if (Number.isFinite(session.timestamp) && (entry.lastTimestamp == null || session.timestamp > entry.lastTimestamp)) {
+      entry.lastTimestamp = session.timestamp
+    }
+    byGeneration.set(generation, entry)
+  }
+  const active = byGeneration.get(activeGeneration) || { generation: activeGeneration, count: 0, lastTimestamp: null }
+  const chosen = active.count >= minCount
+    ? active
+    : [...byGeneration.values()]
+      .filter(entry => entry.generation !== activeGeneration && entry.count >= minCount && entry.lastTimestamp != null)
+      .sort((a, b) => b.lastTimestamp - a.lastTimestamp)[0] || active
+  return {
+    generation: chosen.generation,
+    isActive: chosen.generation === activeGeneration,
+    count: chosen.count,
+    lastTimestamp: chosen.lastTimestamp,
+    activeGeneration,
+    activeCount: active.count,
+  }
+}
+
 /** Narrow a list to the single generation it should be compared on. */
 export function comparableSessions(sessions) {
   const safe = Array.isArray(sessions) ? sessions.filter(Boolean) : []

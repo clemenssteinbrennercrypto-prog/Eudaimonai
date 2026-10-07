@@ -61,7 +61,9 @@ export function DetailsHeadline({ headline }) {
             <small>vs previous {headline.windowDays} days</small>
           </span>
         )}
-        <span className="analytics-headline-label">Average attention · {sessionLabel(headline.sessionCount)}</span>
+        <span className="analytics-headline-label">
+          Average attention · {sessionLabel(headline.sessionCount)}{headline.onCurrentMethod === false ? ' · earlier method' : ''}
+        </span>
       </div>
     </div>
   )

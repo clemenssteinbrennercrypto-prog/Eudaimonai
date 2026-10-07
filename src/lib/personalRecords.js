@@ -2,8 +2,12 @@
 //
 // Records stay silent until 10 qualifying sessions exist. Before that almost
 // every session beats the last one, and a "record" every day stops meaning
-// anything. Only sessions on the camera generation in use now qualify, so a
-// method change can never produce a record by itself.
+// anything. Records are read on one generation only, so a method change can
+// never produce a record by itself. Until the generation in use has 10
+// qualifying sessions, the standing records are those of the most recent
+// earlier generation that has, marked `isCurrentMethod: false`; they used to
+// vanish on every scoring change (evidenceFocusGeneration). Only a session on
+// the generation in use can announce a new record.
 //
 // Day records are computed on a ledger rebuilt from the sessions passed in.
 // That keeps the debrief independent of whether the stored ledger has caught
@@ -12,7 +16,7 @@
 import { addSessionToFocusLedger, emptyFocusLedger, localDayKey } from './focusMetric'
 import { buildVersionedFocusPeriod } from './focusMetricV2'
 import { FOCUS_SCORE } from './focusScore'
-import { activeFocusGeneration, focusGenerationOf, sessionDeepFocusSeconds, sessionFocusMeasurement } from './historyTrend'
+import { activeFocusGeneration, evidenceFocusGeneration, focusGenerationOf, sessionDeepFocusSeconds, sessionFocusMeasurement } from './historyTrend'
 import { deriveSessionMeasures } from './sessionMeasures'
 import { sessionStartedAt } from './sessionTiming'
 
@@ -82,16 +86,26 @@ function dayScoreEntries(sessions, now) {
   })
 }
 
-/** { qualifyingCount, ready, records } for the sessions given. Each record is
- *  { value, dayKey, sessionId? } or null when nothing positive exists yet. */
+/** { qualifyingCount, ready, records, generation, isCurrentMethod,
+ *  currentMethodCount } for the sessions given. Each record is
+ *  { value, dayKey, sessionId? } or null when nothing positive exists yet.
+ *  `qualifyingCount` counts the generation the records are read on;
+ *  `currentMethodCount` always counts the generation in use. */
 export function buildPersonalRecords(sessions = [], { now = Date.now() } = {}) {
   const all = (Array.isArray(sessions) ? sessions : []).filter(Boolean)
-  const generation = activeFocusGeneration(all)
+  const evidence = evidenceFocusGeneration(all, {
+    minCount: RECORDS_MIN_SESSIONS,
+    isUsable: session => isQualifyingSession(session, focusGenerationOf(session)),
+  })
+  const generation = evidence.generation
   const qualifying = all.filter(session => isQualifyingSession(session, generation))
   const ready = qualifying.length >= RECORDS_MIN_SESSIONS
   return {
     qualifyingCount: qualifying.length,
     ready,
+    generation,
+    isCurrentMethod: evidence.isActive,
+    currentMethodCount: evidence.activeCount,
     records: ready
       ? {
         longestBlock: best(blockEntries(qualifying)),

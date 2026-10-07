@@ -42,6 +42,28 @@ function session({ day, hour = 9, blockMinutes = 20, version = 2, faulted = fals
 const tenDays = () => Array.from({ length: RECORDS_MIN_SESSIONS }, (_, i) => session({ day: i + 1, blockMinutes: 10 + i }))
 
 describe('buildPersonalRecords', () => {
+  // 7 Oct 2026: three scoring generations shipped in one day, and the first
+  // session on the newest one made every standing record disappear.
+  it('keeps showing the earlier method\'s records until the current method has 10 sessions', () => {
+    const sessions = [...tenDays(), session({ day: 20, version: 5, blockMinutes: 50 })]
+    const result = buildPersonalRecords(sessions, { now: NOW })
+    expect(result).toMatchObject({ ready: true, generation: 2, isCurrentMethod: false, currentMethodCount: 1, qualifyingCount: 10 })
+    // Read on the earlier generation only: the 50-minute V5 block is not mixed in.
+    expect(result.records.longestBlock).toMatchObject({ value: 19 * 60 + 90, dayKey: '2026-11-10' })
+  })
+
+  it('switches to the current method once it has 10 sessions of its own', () => {
+    const current = Array.from({ length: RECORDS_MIN_SESSIONS }, (_, i) => session({ day: 12 + i, version: 5, blockMinutes: 5 }))
+    const result = buildPersonalRecords([...tenDays(), ...current], { now: NOW })
+    expect(result).toMatchObject({ ready: true, generation: 5, isCurrentMethod: true, qualifyingCount: 10 })
+    expect(result.records.longestBlock.value).toBe(5 * 60 + 90)
+  })
+
+  it('never announces a record measured against an earlier method', () => {
+    const fresh = session({ day: 20, version: 5, blockMinutes: 50 })
+    expect(newRecordsForSession(fresh, tenDays(), { now: NOW })).toEqual([])
+  })
+
   it('stays silent below 10 qualifying sessions', () => {
     const result = buildPersonalRecords(tenDays().slice(0, 9), { now: NOW })
     expect(result).toMatchObject({ qualifyingCount: 9, ready: false, records: null })

@@ -6,6 +6,7 @@ import {
 import {
   aggregateAverageFocus,
   aggregateDeepFocusTime,
+  evidenceFocusGeneration,
   sessionAverageFocus,
   sessionFocusMeasurement,
 } from './historyTrend'
@@ -67,12 +68,24 @@ export function buildOverviewSnapshot(sessions = [], range = 'month', now = Date
     .filter(Boolean)
     .filter(session => cutoff == null || (Number.isFinite(session.timestamp) && session.timestamp >= cutoff))
 
+  // Average attention reads one generation. Right after a scoring change the
+  // new one may hold a single session, which "All time" would then present as
+  // the whole history; until it has MIN_SESSIONS measured sessions in the
+  // range, the most recent earlier generation that has is shown instead.
+  const known = knownMeasurementSessions(selected)
+  const evidence = evidenceFocusGeneration(known, {
+    minCount: MIN_SESSIONS,
+    isUsable: session => sessionFocusMeasurement(session) != null,
+  })
+  const attentionSessions = known.filter(session => session.attentionScoringVersion === evidence.generation)
+
   return {
     range: Object.prototype.hasOwnProperty.call(OVERVIEW_RANGES, range) ? range : 'month',
     focusSeconds: selected.reduce((sum, session) => (
       sum + (Number.isFinite(session.actualSeconds) && session.actualSeconds > 0 ? session.actualSeconds : 0)
     ), 0),
-    averageAttention: aggregateAverageFocus(selected),
+    averageAttention: aggregateAverageFocus(attentionSessions),
+    averageAttentionOnCurrentMethod: known.length === 0 || evidence.isActive,
     sessionCount: selected.length,
   }
 }
@@ -351,8 +364,14 @@ function durationAttentionSummary(rows) {
  */
 export function buildDetailsSummary(sessions = []) {
   const visible = knownMeasurementSessions(sessions)
-  const comparable = knownComparableSessions(visible)
-  const currentGeneration = comparable[0]?.attentionScoringVersion ?? null
+  const currentGeneration = visible[0]?.attentionScoringVersion ?? null
+  // The charts below read one generation: the current one once it has
+  // MIN_SESSIONS qualified sessions, until then the most recent earlier one
+  // that has (evidenceFocusGeneration). The trend above keeps every generation
+  // as its own series either way.
+  const evidence = detailsEvidence(visible)
+  const chartGeneration = visible.length ? evidence.generation : null
+  const comparable = visible.filter(session => session.attentionScoringVersion === chartGeneration)
   const qualified = comparable.filter(isDetailsUsable)
   const distribution = buildFocusDistribution(qualified)
   const outcomes = { yes: 0, partly: 0, no: 0, unrated: 0 }
@@ -369,7 +388,7 @@ export function buildDetailsSummary(sessions = []) {
     workspace: session.workspace?.name || null,
     generation: session.attentionScoringVersion,
     currentGeneration: session.attentionScoringVersion === currentGeneration,
-    qualified: session.attentionScoringVersion === currentGeneration && isDetailsUsable(session),
+    qualified: session.attentionScoringVersion === chartGeneration && isDetailsUsable(session),
     scoreEligible: isDetailsUsable(session),
     exclusion: detailsExclusion(session),
     trackingFaulted: session.trackingFaulted === true,
@@ -398,6 +417,10 @@ export function buildDetailsSummary(sessions = []) {
 
   return {
     generation: currentGeneration,
+    chartGeneration,
+    chartsOnCurrentMethod: chartGeneration === currentGeneration,
+    currentMethodQualified: evidence.activeCount,
+    chartsMethodLastTimestamp: evidence.lastTimestamp,
     sessionCount: visible.length,
     measuredCount: measured.length,
     scoreableCount: qualifiedMeasured.length,
@@ -426,6 +449,10 @@ export function buildDetailsSummary(sessions = []) {
   }
 }
 
+function detailsEvidence(knownSessions) {
+  return evidenceFocusGeneration(knownSessions, { minCount: MIN_SESSIONS, isUsable: isDetailsUsable })
+}
+
 export const DETAILS_HEADLINE_WINDOW_DAYS = 30
 
 /**
@@ -436,7 +463,11 @@ export const DETAILS_HEADLINE_WINDOW_DAYS = 30
  * full MIN_SESSIONS evidence floor on one measurement generation.
  */
 export function buildDetailsHeadline(sessions = [], now = Date.now()) {
-  const qualified = knownComparableSessions(sessions).filter(isDetailsUsable)
+  const known = knownMeasurementSessions(sessions)
+  const evidence = detailsEvidence(known)
+  const qualified = known
+    .filter(session => session.attentionScoringVersion === evidence.generation)
+    .filter(isDetailsUsable)
   const windowMs = DETAILS_HEADLINE_WINDOW_DAYS * 86400000
   const recent = qualified.filter(session => session.timestamp > now - windowMs && session.timestamp <= now)
   const previous = qualified.filter(session => session.timestamp > now - 2 * windowMs && session.timestamp <= now - windowMs)
@@ -445,6 +476,7 @@ export function buildDetailsHeadline(sessions = [], now = Date.now()) {
   return {
     averageAttention: qualified.length ? aggregateAverageFocus(qualified) : null,
     sessionCount: qualified.length,
+    onCurrentMethod: known.length === 0 || evidence.isActive,
     delta: recentAverage != null && previousAverage != null ? recentAverage - previousAverage : null,
     windowDays: DETAILS_HEADLINE_WINDOW_DAYS,
     recentCount: recent.length,
