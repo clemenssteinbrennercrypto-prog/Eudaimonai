@@ -1,4 +1,4 @@
-import { FLOW_SCORE } from './attention.js'
+import { FLOW_SCORE, FOCUSED_SCORE } from './attention.js'
 import {
   EYES_OFF_HOLD_SECS,
   FACE_ABSENT_HOLD_MS,
@@ -20,24 +20,42 @@ export const SCORE_TRACE_VERSION = 3
 // everything above FLOW_SCORE said "present and still", never "for how long".
 //
 // The ceiling makes the top quarter of the scale cost time. It starts at 75 and
-// its distance to 100 halves every 15 minutes of unbroken attention: 80 after
-// 5 min, 90 after 20, 95 after 35, 100 (rounded) after about 85. Time below
-// FLOW_SCORE drains it three times as fast as it was earned, and a break, a
-// camera fault or leaving the desk restart it.
+// its distance to 100 halves every 10 minutes of earned attention: 80 after
+// 3 min, 90 after 13, 95 after 23, 100 (rounded) after about an hour. (A first
+// version used 15 minutes; in a real session that read as too slow.)
 //
-// It is a ceiling, not a penalty: shown = min(signal, ceiling), and the
-// smoothed signal underneath is untouched. Because the floor is above every
-// band (alert 38, focused 40, fade 55, good streak 65, Deep Focus 72), each
-// band decision is identical with and without it — Deep Focus, the Flow gate,
-// lapses, recovery and phases do not move. What changes is the number above
-// 75, mean attention, and the Focus Score's quality factor on mixed days,
-// which is why it is its own scoring generation (attentionScoringVersion 3).
+// Earned time follows the zones the user already sees, read on the smoothed
+// signal (stepEarnedAttention):
+//   Deep Focus band (≥ FLOW_SCORE)   earns, one to one
+//   between FOCUSED and FLOW          holds — a small dip pauses earning, it
+//                                     never takes earned time away
+//   a lapse (< FOCUSED for ≥ 10 s,    drains at EARNED_TOP_LAPSE_DRAIN_RATE
+//   the definition sessionMeasures
+//   counts), leaving the desk too
+// A first version drained on every frame the raw pre-ramp score fell below
+// FLOW_SCORE. That raw value dips for a blink cluster, a glance or a slight
+// head turn, so a user who was clean 75 % of the time lost more than they
+// earned and never got past ~80. Only a lapse may cost earned time.
+//
+// It is a ceiling, not a penalty and not a bonus: shown = min(signal, ceiling),
+// and the smoothed signal underneath is untouched. It can only ever lower the
+// shown score, so a stale ceiling cannot leak score after the user returns
+// (the concern behind invariant 4); a deliberate break still ends the stretch.
+// Because the floor is above every band (alert 38, focused 40, fade 55, good
+// streak 65, Deep Focus 72), each band decision is identical with and without
+// it — Deep Focus, the Flow gate, lapses, recovery and phases do not move. What
+// changes is the number above 75, mean attention, and the Focus Score's quality
+// factor on mixed days, which is why it is its own scoring generation
+// (attentionScoringVersion 3). The half-life, drain rate and floor are product
+// estimates; change them only with a new generation.
 export const EARNED_TOP_FLOOR = 75
-export const EARNED_TOP_HALF_LIFE_MS = 15 * 60_000
-export const EARNED_TOP_DRAIN_RATE = 3
+export const EARNED_TOP_HALF_LIFE_MS = 10 * 60_000
+export const EARNED_TOP_LAPSE_HOLD_MS = 10_000
+export const EARNED_TOP_LAPSE_DRAIN_RATE = 5
 // Past this the ceiling is within 0.4 of 100. Banking more would only make the
-// top of a long session immune to the next distraction.
-export const EARNED_TOP_MAX_MS = 90 * 60_000
+// top of a long session immune to the next lapse.
+export const EARNED_TOP_MAX_MS = 60 * 60_000
+export const EARNED_ATTENTION_REST = Object.freeze({ earnedMs: 0, belowFocusedMs: 0 })
 
 export const SCORE_COMPONENT_LABELS = Object.freeze({
   face_present_base: 'Face present base',
@@ -292,19 +310,25 @@ export function earnedTopCeiling(earnedAttentionMs) {
 }
 
 /**
- * Unbroken attention time behind the earned-top ceiling. It builds on the same
- * condition as the sustained-focus ramp (pre-ramp score at FLOW_SCORE or
- * above), drains at EARNED_TOP_DRAIN_RATE below it, and neither builds nor
- * drains while the signal is held (uncertain tracking, face-loss deadzone).
- * One bad frame drains one frame times three — a few hundred milliseconds of
- * earned time, which cannot move the ceiling visibly (invariant 2). The caller
- * zeroes it on hard transitions: a break, a camera fault, leaving the desk.
+ * Earned attention behind the earned-top ceiling, stepped once per frame on
+ * the smoothed signal (see the zones above). `hold` (uncertain tracking, the
+ * face-loss deadzone) and a camera outage neither earn nor drain: withheld
+ * measurement is not the user's lapse. Only a pause restarts it, in the caller.
  */
-export function stepEarnedAttention({ previousMs, preRampScore, deltaMs, hold }) {
-  const previous = clamp(Number(previousMs) || 0, 0, EARNED_TOP_MAX_MS)
-  if (hold) return previous
+export function stepEarnedAttention(previous, { signalScore, deltaMs, hold }) {
+  const earnedMs = clamp(Number(previous?.earnedMs) || 0, 0, EARNED_TOP_MAX_MS)
+  const belowFocusedMs = Math.max(0, Number(previous?.belowFocusedMs) || 0)
+  if (hold || !Number.isFinite(signalScore)) return { earnedMs, belowFocusedMs }
   const delta = Math.max(0, Number(deltaMs) || 0)
-  return shouldBuildSustainedRamp(preRampScore)
-    ? Math.min(EARNED_TOP_MAX_MS, previous + delta)
-    : Math.max(0, previous - delta * EARNED_TOP_DRAIN_RATE)
+  if (signalScore >= FLOW_SCORE) {
+    return { earnedMs: Math.min(EARNED_TOP_MAX_MS, earnedMs + delta), belowFocusedMs: 0 }
+  }
+  if (signalScore >= FOCUSED_SCORE) return { earnedMs, belowFocusedMs: 0 }
+  const below = belowFocusedMs + delta
+  const lapsing = Math.max(0, below - EARNED_TOP_LAPSE_HOLD_MS)
+  const drainable = Math.min(delta, lapsing)
+  return {
+    earnedMs: Math.max(0, earnedMs - drainable * EARNED_TOP_LAPSE_DRAIN_RATE),
+    belowFocusedMs: below,
+  }
 }

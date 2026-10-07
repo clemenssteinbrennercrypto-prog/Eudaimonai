@@ -158,29 +158,44 @@ describe('looking away from every work zone', () => {
 })
 
 describe('earned top of the scale in the replay', () => {
-  it('makes a calm stretch earn the top of the scale with time and restart after leaving the desk', () => {
+  const framesPerMinute = Math.round(60_000 / PARITY_FRAME_INTERVAL_MS)
+  const calibrationFrames = Math.ceil(CALIBRATION_SECS * 1000 / PARITY_FRAME_INTERVAL_MS)
+  const session = () => {
     const replay = createCameraScoreReplay()
-    const landmarks = makeLandmarks()
-    const framesPerMinute = Math.round(60_000 / PARITY_FRAME_INTERVAL_MS)
-    const calibrationFrames = Math.ceil(CALIBRATION_SECS * 1000 / PARITY_FRAME_INTERVAL_MS)
     let index = 0
-    const run = (frames, record) => {
+    return (frames, landmarks) => {
       let score = null
-      for (let i = 0; i < frames; i += 1) score = replay.step(record, index++)
+      for (let i = 0; i < frames; i += 1) score = replay.step(measuredFrame(landmarks), index++)
       return score
     }
+  }
 
-    run(calibrationFrames, measuredFrame(landmarks))
-    const afterOneMinute = run(framesPerMinute, measuredFrame(landmarks))
-    const afterTwentyMinutes = run(19 * framesPerMinute, measuredFrame(landmarks))
+  it('makes a calm stretch earn the top of the scale with time', () => {
+    const run = session()
+    const landmarks = makeLandmarks()
+    run(calibrationFrames, landmarks)
+    const afterOneMinute = run(framesPerMinute, landmarks)
+    const afterFifteenMinutes = run(14 * framesPerMinute, landmarks)
     expect(afterOneMinute).toBeGreaterThanOrEqual(EARNED_TOP_FLOOR)
     expect(afterOneMinute).toBeLessThan(earnedTopCeiling(1.1 * 60_000))
     // The synthetic face never blinks, so its own signal tops out at 88.
-    expect(afterTwentyMinutes).toBeGreaterThan(afterOneMinute + 10)
-    expect(afterTwentyMinutes).toBeLessThanOrEqual(earnedTopCeiling(20 * 60_000))
+    expect(afterFifteenMinutes).toBeGreaterThan(afterOneMinute + 10)
+  })
 
-    expect(run(Math.ceil(6_000 / PARITY_FRAME_INTERVAL_MS), measuredFrame(null))).toBeLessThan(1)
-    const back = run(Math.ceil(30_000 / PARITY_FRAME_INTERVAL_MS), measuredFrame(landmarks))
-    expect(back).toBeLessThan(earnedTopCeiling(31_000))
+  it('keeps the earned top through a short absence and drains it after a long one', () => {
+    const landmarks = makeLandmarks()
+    const afterAbsence = absentMs => {
+      const run = session()
+      run(calibrationFrames + 20 * framesPerMinute, landmarks)
+      expect(run(Math.ceil(absentMs / PARITY_FRAME_INTERVAL_MS), null)).toBeLessThan(1)
+      // Three minutes back: the ramp (reset by leaving) is full again, so the
+      // signal is no longer what limits the shown score.
+      return run(3 * framesPerMinute, landmarks)
+    }
+    const short = afterAbsence(6_000)
+    const long = afterAbsence(5 * 60_000)
+    // Five minutes away is a lapse long enough to drain 20 earned minutes.
+    expect(long).toBeLessThanOrEqual(earnedTopCeiling(3.1 * 60_000))
+    expect(short).toBeGreaterThan(long + 3)
   })
 })
