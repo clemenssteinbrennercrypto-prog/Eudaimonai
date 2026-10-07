@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  EARNED_ATTENTION_REST,
   EARNED_TOP_FLOOR,
+  EARNED_TOP_LAPSE_DRAIN_RATE,
+  EARNED_TOP_LAPSE_HOLD_MS,
   EARNED_TOP_MAX_MS,
   SCORE_TRACE_VERSION,
   calculateBaseAttentionScore,
@@ -193,12 +196,12 @@ describe('earned top of the scale', () => {
   }))
   const minutes = m => m * 60_000
 
-  it('starts at the floor and halves the distance to 100 every 15 minutes', () => {
+  it('starts at the floor and halves the distance to 100 every 10 minutes', () => {
     expect(earnedTopCeiling(0)).toBe(EARNED_TOP_FLOOR)
-    expect(earnedTopCeiling(minutes(5))).toBeCloseTo(80.2, 1)
-    expect(earnedTopCeiling(minutes(15))).toBeCloseTo(87.5, 5)
-    expect(earnedTopCeiling(minutes(20))).toBeCloseTo(90.1, 1)
-    expect(earnedTopCeiling(minutes(35))).toBeCloseTo(95.0, 1)
+    expect(earnedTopCeiling(minutes(3))).toBeCloseTo(79.7, 1)
+    expect(earnedTopCeiling(minutes(10))).toBeCloseTo(87.5, 5)
+    expect(earnedTopCeiling(minutes(13))).toBeCloseTo(89.8, 1)
+    expect(earnedTopCeiling(minutes(23))).toBeCloseTo(94.9, 1)
     expect(Math.round(earnedTopCeiling(EARNED_TOP_MAX_MS))).toBe(100)
     expect(earnedTopCeiling(minutes(500))).toBe(earnedTopCeiling(EARNED_TOP_MAX_MS))
   })
@@ -240,17 +243,38 @@ describe('earned top of the scale', () => {
     }
   })
 
-  it('builds on the ramp condition, drains three times as fast below it, and holds while the signal is held', () => {
-    expect(stepEarnedAttention({ previousMs: 0, preRampScore: FLOW_SCORE, deltaMs: 100, hold: false })).toBe(100)
-    expect(stepEarnedAttention({ previousMs: 1_000, preRampScore: FLOW_SCORE - 1, deltaMs: 100, hold: false })).toBe(700)
-    expect(stepEarnedAttention({ previousMs: 200, preRampScore: 10, deltaMs: 100, hold: false })).toBe(0)
-    expect(stepEarnedAttention({ previousMs: 1_000, preRampScore: 10, deltaMs: 100, hold: true })).toBe(1_000)
-    expect(stepEarnedAttention({ previousMs: EARNED_TOP_MAX_MS, preRampScore: 90, deltaMs: 100, hold: false })).toBe(EARNED_TOP_MAX_MS)
+  const step = (previous, signalScore, deltaMs = 100, hold = false) =>
+    stepEarnedAttention(previous, { signalScore, deltaMs, hold })
+
+  it('earns in the Deep Focus band and holds through a dip that is not a lapse', () => {
+    expect(step(EARNED_ATTENTION_REST, FLOW_SCORE).earnedMs).toBe(100)
+    // The first version drained here: a glance or a blink cluster cost earned time.
+    let state = { earnedMs: minutes(10), belowFocusedMs: 0 }
+    for (let i = 0; i < 600; i += 1) state = step(state, FLOW_SCORE - 1)
+    expect(state.earnedMs).toBe(minutes(10))
+    for (let i = 0; i < 600; i += 1) state = step(state, FOCUSED_SCORE)
+    expect(state.earnedMs).toBe(minutes(10))
   })
 
-  it('cannot visibly lower the ceiling from one bad frame (invariant 2)', () => {
-    const before = minutes(20)
-    const after = stepEarnedAttention({ previousMs: before, preRampScore: 0, deltaMs: 200, hold: false })
-    expect(earnedTopCeiling(before) - earnedTopCeiling(after)).toBeLessThan(0.05)
+  it('drains only once a stretch below FOCUSED_SCORE has lasted as long as a counted lapse', () => {
+    let state = { earnedMs: minutes(10), belowFocusedMs: 0 }
+    for (let ms = 0; ms < EARNED_TOP_LAPSE_HOLD_MS; ms += 100) state = step(state, 10)
+    expect(state.earnedMs).toBe(minutes(10))
+    for (let ms = 0; ms < 10_000; ms += 100) state = step(state, 10)
+    expect(state.earnedMs).toBe(minutes(10) - 10_000 * EARNED_TOP_LAPSE_DRAIN_RATE)
+    // Coming back resets the lapse clock, so the next dip gets the full grace.
+    state = step(state, FLOW_SCORE)
+    expect(state.belowFocusedMs).toBe(0)
+  })
+
+  it('neither earns nor drains while the signal is held', () => {
+    const state = { earnedMs: 5_000, belowFocusedMs: 12_000 }
+    expect(step(state, 0, 100, true)).toEqual(state)
+    expect(step(state, 95, 100, true)).toEqual(state)
+  })
+
+  it('never banks more than the cap and never goes below zero', () => {
+    expect(step({ earnedMs: EARNED_TOP_MAX_MS, belowFocusedMs: 0 }, 95).earnedMs).toBe(EARNED_TOP_MAX_MS)
+    expect(step({ earnedMs: 100, belowFocusedMs: 60_000 }, 0).earnedMs).toBe(0)
   })
 })

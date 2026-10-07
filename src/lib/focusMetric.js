@@ -8,6 +8,7 @@ import {
   NATIVE_CAMERA_MEASUREMENT_V2,
   NATIVE_CAMERA_MEASUREMENT_V3,
   NATIVE_CAMERA_MEASUREMENT_V4,
+  NATIVE_CAMERA_MEASUREMENT_V5,
   WEBVIEW_CAMERA_MEASUREMENT,
 } from './cameraMeasurement'
 import { activeFocusGeneration } from './historyTrend'
@@ -39,6 +40,7 @@ export const SCOREABLE_SCORING_VERSIONS = Object.freeze([
   NATIVE_CAMERA_MEASUREMENT_V2.attentionScoringVersion,
   NATIVE_CAMERA_MEASUREMENT_V3.attentionScoringVersion,
   NATIVE_CAMERA_MEASUREMENT_V4.attentionScoringVersion,
+  NATIVE_CAMERA_MEASUREMENT_V5.attentionScoringVersion,
 ])
 
 function isScoreableGeneration(version) {

@@ -20,6 +20,7 @@ import {
 import {
   calculateBaseAttentionScore,
   finalizeAttentionScore,
+  EARNED_ATTENTION_REST,
   shouldBuildSustainedRamp,
   stepEarnedAttention,
 } from './attentionScore.js'
@@ -95,7 +96,7 @@ export function createCameraScoreReplay({
     focusScore: 68,
     signalScore: 68,
     sustainedGoodMs: 0,
-    earnedAttentionMs: 0,
+    earnedAttention: EARNED_ATTENTION_REST,
     lastFrameAt: 0,
     penaltyFrames: createPenaltyFrameState(),
   }
@@ -312,7 +313,6 @@ export function createCameraScoreReplay({
       state.lastFrameAt = now
       if (faceAbsentMs >= FACE_ABSENT_HOLD_MS) {
         state.sustainedGoodMs = 0
-        state.earnedAttentionMs = 0
       }
 
       const offTarget = stepOffTarget({
@@ -374,19 +374,18 @@ export function createCameraScoreReplay({
           ? Math.min(120_000, state.sustainedGoodMs + frameDelta)
           : Math.max(0, state.sustainedGoodMs - frameDelta * 3)
       }
-      state.earnedAttentionMs = stepEarnedAttention({
-        previousMs: state.earnedAttentionMs,
-        preRampScore: baseScore.score,
-        deltaMs: frameDelta,
-        hold: trackingUncertain || holdForPenaltyDebounce,
-      })
       const finalized = finalizeAttentionScore({
         base: baseScore,
         rampBonus: state.sustainedGoodMs / 120_000 * 15,
         previousScore: state.signalScore,
-        earnedAttentionMs: state.earnedAttentionMs,
+        earnedAttentionMs: state.earnedAttention.earnedMs,
         trackingUncertain,
         holdForDebounce: holdForPenaltyDebounce,
+      })
+      state.earnedAttention = stepEarnedAttention(state.earnedAttention, {
+        signalScore: finalized.signal,
+        deltaMs: frameDelta,
+        hold: trackingUncertain || holdForPenaltyDebounce,
       })
       state.signalScore = finalized.signal
       state.focusScore = finalized.score

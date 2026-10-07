@@ -288,30 +288,40 @@ scoring or detection.**
     the UI warns that the score used measured time only.
     A selected single historical day may render on its own camera generation;
     multi-day periods still use one generation and never blend camera measurement methods.
-11. **The top of the scale is earned with time (7 Oct 2026).** Face, blinking,
-    a still head and work-zone gaze reach the camera cap of 85 by themselves;
-    with the focus-app bonus and the 2-minute ramp, sitting calmly read 99
-    after ~30 s, so everything above 72 meant "present", never "for how long".
-    The shown score is now `min(signal, earnedTopCeiling(earnedAttentionMs))`
+11. **The top of the scale is earned with time (7 Oct 2026, V3; rule
+    reworked in V5).** Face, a still head and work-zone gaze (plus blinking
+    before V4) score high by themselves; with the focus-app bonus and the
+    2-minute ramp, sitting calmly read 99 after ~30 s, so everything above 72
+    meant "present", never "for how long".
+    The shown score is now `min(signal, earnedTopCeiling(earnedMs))`
     (`attentionScore.js`): the ceiling starts at `EARNED_TOP_FLOOR` (75) and
-    its distance to 100 halves every 15 min of unbroken attention (80 at 5 min,
-    90 at 20, 95 at 35). Earned time builds on the ramp's own condition
-    (pre-ramp score ≥ `FLOW_SCORE`), drains 3× as fast below it, holds while
-    the signal is held, and resets on a break, a camera fault or leaving the
-    desk (invariant 4). Smoothing and holds run on the uncapped signal
-    (`signalScoreRef`), never on the shown score, so the ceiling cannot feed
-    back into the measurement.
+    its distance to 100 halves every 10 min of earned attention (80 at 3 min,
+    90 at 13, 95 at 23). Earned time is stepped on the smoothed signal in the
+    zones the user already sees: the Deep Focus band (≥ 72) earns, a dip
+    between 40 and 72 **holds** (never drains), and only a lapse — below 40 for
+    ≥ 10 s, the definition `sessionMeasures.js` counts, leaving the desk
+    included — drains it at 5×. Uncertain tracking and camera outages hold; a
+    pause resets. Smoothing and holds run on the uncapped signal
+    (`signalScoreRef`), never on the shown score.
+    **Do not key earned time to the raw pre-ramp score again.** V3 and V4
+    earned only while the pre-ramp score was ≥ 72 and drained at 3× on every
+    frame below it. That value dips for a glance or a slight head turn (and in
+    V3 a blink cluster), so in a real session the user never got past ~80.
+    Their 15-minute half-life also read as too slow. V5 is the rule above.
+    The ceiling only ever lowers the shown score, so it cannot leak score after
+    the user returns; that is why leaving the desk drains it instead of
+    zeroing it (invariant 4 is about bonuses).
     **The floor must stay above every band** (38, 40, 55, 65, 72): that is
     what keeps Deep Focus, the Flow gate, focused seconds, lapses, recovery
     and phases bit-for-bit identical, verified on 45,000 real recorded frames
     and pinned by the band test in `attentionScore.test.js`. Lowering the floor
     below 72 to make presence "look like 65" silently redefines Deep Focus,
     which §11 freezes. What the ceiling does change — the number above 75, mean
-    attention, the Focus Score's quality factor on mixed days — is why it is
-    its own generation (`attentionScoringVersion: 3`,
-    `NATIVE_CAMERA_MEASUREMENT_V3`, same camera and models as V2). V2 sessions
-    stay readable and are never compared with V3. Tune the floor, half-life or
-    drain only with a new generation.
+    attention, the Focus Score's quality factor on mixed days — is why each
+    version of the rule is its own generation (V3 introduced it, V5 =
+    `NATIVE_CAMERA_MEASUREMENT_V5` earns in the band; same camera and models as
+    V2). Earlier sessions stay readable and are never compared with V5. Tune
+    the floor, half-life or drain only with a new generation.
 
 ---
 
@@ -579,7 +589,7 @@ hashes and attention-scoring generation; no daily score, trend bucket or pattern
 native frames remain absent measurement; and the real minimize/close score test
 passes. This is a versioned ruler migration, not a claim of equality.
 
-`SCOREABLE_SCORING_VERSIONS` includes V1 through V4 but refuses a missing version.
+`SCOREABLE_SCORING_VERSIONS` includes V1 through V5 but refuses a missing version.
 Per day, `calculateDailyFocus` uses the highest generation present.
 `comparableSessions()` narrows cross-session comparisons to the most recently
 used generation. Earlier history remains stored and readable, but is excluded
@@ -597,6 +607,11 @@ conservative product boundaries, not claims of diagnosing fatigue. The evidence
 and rejected interpretations are in
 `docs/focus-score-evidence-2026-10-07.md`. V3 history keeps the earned-top
 scale with the older ocular rules; it is readable but never blended into V4.
+
+Since the same day, new sessions use `attentionScoringVersion: 5`: V4's signals
+unchanged, with the earned top reworked (§4.11) after a live session under
+V3/V4 never got past ~80. V4 sessions remain readable and are not blended into
+V5.
 
 ### Native V2 status (1 Sep 2026)
 
@@ -735,7 +750,7 @@ and yawning are not score inputs.
 | **Recovery time** (stability) | Median time from the start of a lapse until attention is back at ≥ `FOCUSED_SCORE` for ≥ 10 s; a lapse cut off by a break, gap or the session end is left out | timeline |
 | **Context switches per hour** | Changes of work context (app, plus site in a browser) where each side holds ≥ 10 s, per measured hour. Needs `activity.app` on every sample, recorded since 6 Oct 2026; the older `label` is the window title and changes with every file or page | timeline `activity` |
 | **Longest Deep Focus block** | Longest run of consecutive `deepFocused` samples plus the 90 s qualifying warm-up when `inFlow` proves that run opened a new Flow span | timeline |
-| **Average attention** | Mean score over measured seconds — a supporting number and the Focus Score's quality input, not a headline. Since V3 the part above 75 has to be earned with unbroken time (§4.11), so a clean short session averages in the high 70s, not the high 90s | ledger |
+| **Average attention** | Mean score over measured seconds — a supporting number and the Focus Score's quality input, not a headline. The part above 75 has to be earned with time in the Deep Focus band (§4.11), so a clean short session averages around 80, not the high 90s | ledger |
 | **Session time** | Active session time without breaks (was labelled "Focus time"; it is not focused time) | `actualSeconds` |
 | **Focus Score** | The daily ring, unchanged (§4.9): volume × attention quality | ledger |
 
