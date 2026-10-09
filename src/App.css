@@ -4727,12 +4727,16 @@ select, option { font-family: system-ui, -apple-system, 'SF Pro Text', sans-seri
   .lab-hero { grid-template-columns: 1fr; justify-items: center; }
   .lab-metric-row { justify-self: stretch; }
 }
-@media (max-width: 560px) {
+/* Three instrument columns become too narrow before the rest of the Lab does.
+   Stack them while every label (including its info control) still fits as one
+   unit, instead of waiting for phone width and squeezing Average Attention. */
+@media (max-width: 760px) {
   .lab-metric-row { grid-template-columns: 1fr; }
   .lab-metric,
   .lab-metric-time,
   .lab-metric-attention,
   .lab-metric-deep { border-left: 0; border-top: 1px solid var(--ds-hairline); padding: var(--ds-space-4) 0; }
+  .lab-metric > span { white-space: nowrap; }
 }
 /* Every column starts at the same line: label, number, note, left aligned. */
 .lab-metric-row { justify-self: stretch; align-items: center; }
