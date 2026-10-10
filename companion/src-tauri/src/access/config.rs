@@ -19,9 +19,8 @@ mod staging {
 
 #[cfg_attr(not(eudaimonai_release_build), allow(dead_code))]
 mod production {
-    // Filled in when eudaimonai-production exists.
-    pub const SUPABASE_URL: &str = "";
-    pub const SUPABASE_PUBLISHABLE_KEY: &str = "";
+    pub const SUPABASE_URL: &str = "https://qlrjildmzcocmjqatipj.supabase.co";
+    pub const SUPABASE_PUBLISHABLE_KEY: &str = "sb_publishable_6E_RT6c16zgo9R4J_JFXsQ_i2aPdrNE";
     pub const ENVIRONMENT: &str = "production";
 }
 
@@ -71,11 +70,29 @@ pub const REQUEST_TIMEOUT_SECS: u64 = 10;
 mod tests {
     use super::*;
 
+    #[cfg(not(eudaimonai_release_build))]
     #[test]
     fn local_and_test_builds_talk_to_staging() {
         assert_eq!(ENVIRONMENT, "staging");
         assert_eq!(SUPABASE_URL, staging::SUPABASE_URL);
         assert!(SUPABASE_PUBLISHABLE_KEY.starts_with("sb_publishable_"));
+    }
+
+    #[cfg(eudaimonai_release_build)]
+    #[test]
+    fn release_builds_talk_to_production() {
+        assert_eq!(ENVIRONMENT, "production");
+        assert_eq!(SUPABASE_URL, production::SUPABASE_URL);
+        assert_ne!(SUPABASE_URL, staging::SUPABASE_URL);
+        assert!(SUPABASE_PUBLISHABLE_KEY.starts_with("sb_publishable_"));
+    }
+
+    #[test]
+    fn both_backends_are_filled_in_and_distinct() {
+        assert!(production::SUPABASE_URL.starts_with("https://") && production::SUPABASE_URL.ends_with(".supabase.co"));
+        assert!(production::SUPABASE_PUBLISHABLE_KEY.starts_with("sb_publishable_"));
+        assert!(!same(production::SUPABASE_URL, staging::SUPABASE_URL));
+        assert!(!same(production::SUPABASE_PUBLISHABLE_KEY, staging::SUPABASE_PUBLISHABLE_KEY));
     }
 
     #[test]
