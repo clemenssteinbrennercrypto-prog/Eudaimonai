@@ -55,7 +55,7 @@ select is((select count(*) from public.beta_allocations where email_hash = priva
 select is((select count(*) from public.entitlements where user_id = (select id from ids where name = 'friend')), 1::bigint,
   'exactly one entitlement');
 select is((select ends_at - starts_at from public.entitlements where user_id = (select id from ids where name = 'friend')),
-  interval '30 days', 'beta entitlement lasts 30 days');
+  interval '60 days', 'beta entitlement lasts 60 days');
 select isnt((select accepted_at from public.beta_invitations where email_normalized = 'friend@example.com'), null,
   'invitation is marked accepted');
 

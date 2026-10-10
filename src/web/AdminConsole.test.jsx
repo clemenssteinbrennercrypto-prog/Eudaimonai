@@ -8,7 +8,7 @@ import AdminConsole from './AdminConsole'
 afterEach(cleanup)
 
 const session = { user: { id: 'u-admin', email: 'founder@example.com' } }
-const capacity = { capacity: 20, max_lifetime_capacity: 50, invitations_paused: false, lifetime_allocated: 1, reserved: 1, remaining: 18 }
+const capacity = { capacity: 20, max_lifetime_capacity: 50, invitations_paused: false, reservation_hours: 72, beta_duration_days: 60, lifetime_allocated: 1, reserved: 1, remaining: 18 }
 const people = [
   { email: 'wait@example.com', user_id: null, state: 'WAITLIST', waitlisted_at: '2026-10-05T10:00:00Z', source: 'reddit', campaign: null, invitation_status: null },
   { email: 'open@example.com', user_id: null, state: 'INVITED', invitation_status: 'live', latest_invitation_id: 'inv-1', invitation_expires_at: '2026-10-08T10:00:00Z' },
@@ -45,6 +45,11 @@ describe('AdminConsole', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send code' }))
     await screen.findByText(/8-digit code sent to/)
     expect(api.requestCode).toHaveBeenCalledWith('founder@example.com', { createUser: false })
+  })
+
+  it('states the reservation and beta duration from the live config', async () => {
+    render(<AdminConsole api={makeApi({ capacity: vi.fn().mockResolvedValue({ data: { ...capacity, beta_duration_days: 45 }, error: null }) })} />)
+    expect(await screen.findByText('Reserves one place for 72 hours. Activation grants 45 days of beta access.')).toBeInTheDocument()
   })
 
   it('shows nothing operational to a signed-in non-admin', async () => {

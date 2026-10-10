@@ -167,7 +167,7 @@ check('a beta user cannot invite others', userInvite.status >= 400 && /not_autho
 const userWaitlist = await call('/rest/v1/waitlist_entries?select=*', { token: friend.access_token })
 check('a beta user reads no waitlist rows', Array.isArray(userWaitlist.json) && userWaitlist.json.length === 0, userWaitlist.text)
 check('entitlement unchanged after the attempts',
-  sql(`select ends_at > now() + interval '29 days' and ends_at < now() + interval '31 days' from public.entitlements where id = '${entitlementId}'`) === 't')
+  sql(`select ends_at > now() + interval '59 days' and ends_at < now() + interval '61 days' from public.entitlements where id = '${entitlementId}'`) === 't')
 
 // ── 6. Session restoration via refresh token ─────────────────────────────
 const refreshed = await call('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: friend.refresh_token } })

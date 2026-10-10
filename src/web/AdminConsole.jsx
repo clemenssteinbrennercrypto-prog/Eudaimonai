@@ -288,7 +288,11 @@ function AdminDashboard({ api, user, onSignOut }) {
           value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} disabled={busy} />
         <button className="web-button" type="submit" disabled={busy || !inviteEmail.trim()}>Invite and send email</button>
       </form>
-      <p className="web-note">Reserves one place for 72 hours. Activation grants 30 days of beta access.</p>
+      {capacity && (
+        <p className="web-note">
+          Reserves one place for {capacity.reservation_hours} hours. Activation grants {capacity.beta_duration_days} days of beta access.
+        </p>
+      )}
 
       <h2 className="web-section-title">People</h2>
       <div className="admin-toolbar">

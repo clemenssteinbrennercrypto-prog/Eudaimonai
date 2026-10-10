@@ -10,7 +10,7 @@ insert into ids values ('admin', tests.create_admin('founder@example.com')),
 -- Defaults match the release document.
 select is((select row(capacity, max_lifetime_capacity, reservation_hours, beta_duration_days, invitations_paused)::text
              from public.beta_program_config),
-          '(20,50,72,30,f)', 'defaults: capacity 20, max 50, 72 h reservation, 30 days, not paused');
+          '(20,50,72,60,f)', 'defaults: capacity 20, max 50, 72 h reservation, 60 days, not paused');
 
 -- ── Authorization ────────────────────────────────────────────────────────
 select tests.login_as_anon();

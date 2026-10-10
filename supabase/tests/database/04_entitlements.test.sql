@@ -37,7 +37,7 @@ reset role;
 
 select tests.login_as((select id from ids where name = 'beta'));
 select ok((public.get_my_access() ->> 'server_time') is not null, 'access answer carries server time');
-select is((public.get_my_access() ->> 'access_until')::timestamptz, now() + interval '30 days', 'access_until is the beta end');
+select is((public.get_my_access() ->> 'access_until')::timestamptz, now() + interval '60 days', 'access_until is the beta end');
 
 -- ── Unauthorized mutation by the entitled user ───────────────────────────
 select throws_ok($$ update public.entitlements set ends_at = now() + interval '10 years' $$, '42501', null,
@@ -60,7 +60,7 @@ select throws_ok($$ insert into public.admin_users (user_id) values (auth.uid())
 reset role;
 
 select is((select ends_at from public.entitlements where id = (select id from ids where name = 'beta_ent')),
-          now() + interval '30 days', 'entitlement unchanged after the attempts');
+          now() + interval '60 days', 'entitlement unchanged after the attempts');
 
 -- ── Duplicate entitlement creation ───────────────────────────────────────
 select throws_ok($$ insert into public.entitlements (user_id, kind, ends_at, source, source_ref)
@@ -111,7 +111,7 @@ select tests.login_as((select id from ids where name = 'admin'));
 select public.admin_extend_entitlement((select id from ids where name = 'other_ent'), 7);
 reset role;
 select is((select ends_at from public.entitlements where id = (select id from ids where name = 'other_ent')),
-          now() + interval '37 days', 'extension of an active beta adds to its end date');
+          now() + interval '67 days', 'extension of an active beta adds to its end date');
 
 -- ── Revocation ───────────────────────────────────────────────────────────
 select tests.login_as((select id from ids where name = 'admin'));
