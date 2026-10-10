@@ -28,6 +28,24 @@ Email: clemenssteinbrenner.crypto@gmail.com`,
 //   Update interval       src/lib/useUpdateAvailable.js  (CHECK_INTERVAL_MS)
 //   Model providers off   src/lib/storage.js             (CONTRACT_DEFAULTS)
 //   Metadata only         companion/src-tauri/src/output.rs
+//   Beta records          supabase/migrations/ (what the tables hold)
+//   Waitlist rate limit   supabase/migrations/20261006090000_beta_web_funnel.sql
+//   Erasure on deletion   same migration, erase_beta_records_for_deleted_account
+//   App access check      companion/src-tauri/src/access/ (what the app sends,
+//                         when it checks, what it keeps in the Keychain)
+//
+// Legal bases, transfers and retention below follow Clemens' decisions of
+// 10 Oct 2026. Still open for legal review (do not present as settled):
+//   – Vercel: its DPA (and so the SCC safeguard named below) applies to the
+//     Pro/Enterprise plans; Hobby is limited to non-commercial use. Confirm the
+//     production project is on Pro before external users.
+//   – GitHub (download, update check): the transfer safeguard is stated
+//     generically; confirm the basis GitHub offers for this use.
+//   – Supabase processing locations outside Frankfurt (Singapore, USA) as
+//     Supabase states them on 10 Oct 2026; re-check its subprocessor list.
+//   – The waitlist as a step taken at the visitor's request (Art. 6(1)(b)).
+//   – "Within a reasonable period": no fixed number is promised, and those
+//     deletions are manual (see docs/beta-access-backend.md, "Retention").
 export const DATENSCHUTZ = [
   {
     heading: 'Controller',
@@ -35,7 +53,9 @@ export const DATENSCHUTZ = [
   },
   {
     heading: 'Principle',
-    body: `Eudaimonai runs no server and has no user accounts. Your session data is processed and stored only on your device. The only network connection the public app makes is the update check described below.`,
+    body: `Eudaimonai processes your focus data on your Mac. Focus sessions, session history, camera measurements and activity data are stored only on your device and are not uploaded.
+
+To run the closed beta, we process a small amount of account data on servers: your email address, your invitation and your access status (see “Closed beta”). The macOS app connects to the internet for two things only: the beta access check and the update check, both described below.`,
   },
   {
     heading: 'Camera',
@@ -65,18 +85,70 @@ If you choose a project folder for progress tracking, only metadata is read: fil
 
 The legal basis is our legitimate interest in secure, up-to-date installations (Art. 6(1)(f) GDPR).`,
   },
-  // TODO(legal): Clemens to confirm that Vercel and GitHub match the actual
-  // hosting and download setup, and to name the third-country transfer (USA)
-  // specifically (e.g. the EU-US Data Privacy Framework).
+  {
+    heading: 'Closed beta: waitlist, invitation and access (leaves the device)',
+    body: `When you request beta access, activate an invitation or sign in, we process:
+– your email address,
+– the campaign label of the link you came from, if it had one (for example the name of a post),
+– the dates of your request, invitation, activation and sign-ins,
+– your account ID and your access period (start, end, and whether it was ended early),
+– while you are signed in, technical data of the sign-in session (IP address and browser or app identifier),
+– internal records of administrative changes to your access, which reference your account ID but not your email address.
+
+We use this only to run the closed beta: to manage the waitlist, send invitations and sign-in codes, and decide whether you may use the beta. It is stored with Supabase (Supabase Inc., USA) in its Frankfurt (EU) region; see “Transfers outside the EU”. Supabase also keeps short-lived technical request logs, which include IP addresses.
+
+Your focus sessions, session history, camera data, activity data, window titles and files are not part of this and are never uploaded.
+
+Joining the waitlist does not create an account and does not grant access. An account is created only when you activate an invitation.
+
+Handling your request, creating your account, activating your beta place, signing you in and managing your access are necessary to provide the beta you request (Art. 6(1)(b) GDPR). Rate limiting, abuse prevention and the minimal security and audit records described here serve our legitimate interest in securing and protecting the beta (Art. 6(1)(f) GDPR).`,
+  },
+  {
+    heading: 'Beta access check in the app (leaves the device)',
+    body: `When you request access or sign in inside the macOS app, it sends the email address you enter, and the one-time code you type, to our beta backend. The code is not stored. Your sign-in is kept in your Mac's Keychain, not in the app's other storage.
+
+While you are signed in, the app asks the beta backend whether your access is still valid: when it starts, about once an hour while it runs, and before a session starts. It sends only your sign-in, and receives your access status and the server's time. If the Mac is offline, a previous confirmation keeps working for up to 72 hours, never beyond the end of your access.
+
+No session, history, camera, activity or file data is part of this. Signing out, or losing access, removes only the sign-in from the Keychain; your local history stays on your Mac.`,
+  },
+  {
+    heading: 'Emails',
+    body: `Sign-in codes and invitations are sent through Resend (Resend Inc., USA), using sending infrastructure in Ireland (EU); Resend's own processing takes place primarily in the USA (see “Transfers outside the EU”). Resend processes your email address and the content of these emails to deliver them.
+
+We use your email address only for the beta: invitations and sign-in codes. We do not use it for marketing or newsletters unless there is a separate legal basis for that, such as your consent.`,
+  },
+  {
+    heading: 'Abuse protection',
+    body: `To keep the waitlist form from being flooded, we count requests per network address within one hour. We store only a keyed hash of the IP address, never the address itself. The counters are removed once they are a day old, the next time the form is used. The legal basis is our legitimate interest in protecting the service (Art. 6(1)(f) GDPR).`,
+  },
+  {
+    heading: 'How long we keep beta records',
+    body: `– Waitlist: your email address until we invite you, you ask us to remove it, or the closed beta ends. We then delete it within a reasonable period.
+– Account and access data: as long as it is needed to operate your beta account and access.
+– Minimal security records: a pseudonymised form (a cryptographic hash) of the email address together with the date its free beta place was used, so that the same address cannot receive a free beta place twice, and records of administrative changes to access. We keep these only as long as necessary for abuse prevention, security, legal claims or legal obligations, and then delete or anonymise them.
+– Rate-limit counters: removed once they are a day old, the next time the waitlist form is used.
+
+Apart from the rate-limit counters, these deletions are carried out by us and do not happen automatically. One thing does happen automatically: when an account is deleted, its waitlist entry and open invitations are deleted with it, and its email address is removed from the invitation it accepted.
+
+You can ask us at any time to delete your waitlist entry, invitation or account. If your beta access ends or is revoked, nothing on your Mac is deleted. Your session history stays where it is.`,
+  },
+  {
+    heading: 'Transfers outside the EU',
+    body: `Supabase: your account and access data are hosted in Supabase's Frankfurt (EU) region. According to Supabase, limited processing may also take place outside that region, including in Singapore and the USA. Supabase protects such transfers with appropriate safeguards, including the EU Standard Contractual Clauses.
+
+Resend: processing takes place primarily in the USA. These transfers are protected by the EU Standard Contractual Clauses; Resend also participates in the EU-US Data Privacy Framework.
+
+Vercel (this website) and GitHub (the app download and the update check) may process connection data outside the EEA, in particular in the USA. These transfers rely on the safeguards these providers offer under Art. 44 et seq. GDPR, such as the EU Standard Contractual Clauses.`,
+  },
   {
     heading: 'This website',
     body: `This website is delivered by the hosting provider Vercel Inc. (USA). When you visit it, Vercel processes technically necessary connection data such as IP address, time, page requested and browser identifier in order to deliver the site and protect it from abuse. The app file itself is provided for download by GitHub (USA), which also receives your IP address and standard connection data.
 
-The website itself collects no session, camera or activity data. The legal basis is our legitimate interest in providing the site securely and reliably (Art. 6(1)(f) GDPR).`,
+If you request beta access or activate an invitation here, the data described under “Closed beta” is sent to our beta backend. The website does not record which page you came from and collects no session, camera or activity data. The legal basis for delivering the site is our legitimate interest in providing it securely and reliably (Art. 6(1)(f) GDPR).`,
   },
   {
     heading: 'Cookies',
-    body: `No cookies are set and no analytics or tracking service is used. The localStorage in use serves only the function you requested and therefore does not require consent.`,
+    body: `No cookies are set and no analytics or tracking service is used. When you activate an invitation or sign in as an administrator, the website keeps your sign-in session in your browser's local storage. After an activation it signs you out again straight away and removes it.`,
   },
   {
     heading: 'Support report',
@@ -86,7 +158,9 @@ The website itself collects no session, camera or activity data. The legal basis
     heading: 'Your rights',
     body: `You have the right of access, rectification, erasure, restriction of processing, data portability and objection, as well as the right to lodge a complaint with the Austrian Data Protection Authority (Datenschutzbehörde).
 
-In practice, your session data stays with you alone: we store no session data and cannot identify you from an update request, so we cannot match access or erasure requests to it (Art. 11 GDPR). You delete your local session history yourself under Analytics → Sessions → Clear all history; individual sessions can be deleted there too.`,
+For your beta records (email address, invitation, access), write to the contact address below; we find them by your email address.
+
+Your session data stays with you alone: we store no session data and cannot identify you from an update request, so we cannot match access or erasure requests to it (Art. 11 GDPR). You delete your local session history yourself under Analytics → Sessions → Clear all history; individual sessions can be deleted there too.`,
   },
   {
     heading: 'Contact',

@@ -342,6 +342,40 @@ app and did not publish either release channel.
   CPU/energy gates remain manual checks on the final signed candidate. No claim
   about those gates is inferred from these automated results.
 
+## Beta access in the macOS app (Step 0c): real-hardware validation — 6 October 2026
+
+Build: commit `8628a5e` (PR #71, not merged), `cargo tauri build --bundles app`,
+channel `local`, ad-hoc signed, bundle id `ai.eudonomia.companion`, backend
+`eudaimonai-staging`. ZIP SHA-256
+`b23f1525e666dcd8f173985d3f0314eefd896d3c413ebcfdd4ee6d6e6520ef4c`. Installed
+beside, not over, `/Applications/Eudonomia.app` on Clemens' MacBook (real
+camera, real history), with the installed app quit.
+
+Before the test: in-app full archive export (96 sessions) and a copy of
+`sessions.db`, `-wal`, `-shm` with matching SHA-256 values; the copy reopened
+to 96 sessions.
+
+Reported by Clemens after running the build:
+
+| Check | Result |
+|---|---|
+| Existing history visible after upgrading to the gated build | PASS — 96 sessions |
+| Founder sign-in with an emailed 8-digit code against staging | PASS |
+| INTERNAL access recognised | PASS |
+| Real camera and focus tracking during a session | PASS |
+| Session ended normally and saved | PASS — history 97 |
+| App restart restores sign-in and access without a new code | PASS — still 97 |
+| Sign out | PASS |
+| Read-only history after sign-out | PASS — all 97 sessions |
+| Starting a new session without access | PASS — blocked |
+| Data loss or migration issue | None observed |
+
+Not covered by this run (automated tests only so far): website blocking
+during a gated session, the Rust-side camera refusal when invoked directly
+from the WebView, offline grace and clock rollback on hardware, access ending
+during a running session, and Keychain behaviour of a Developer ID signed
+build.
+
 ## Focus signal evidence correction — 7 October 2026
 
 Attention scoring generation 4 removes the unsupported absolute blink-rate,

@@ -1,4 +1,4 @@
-function getNativeApi() {
+export function getNativeApi() {
   return globalThis.window?.__TAURI__ || null
 }
 

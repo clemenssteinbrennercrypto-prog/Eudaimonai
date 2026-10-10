@@ -3,6 +3,8 @@ dist/
 coverage/
 .env
 .env.*
+# Local function settings without secrets (see the file's header).
+!supabase/functions/.env
 .vercel
 .claude/settings.local.json
 public/mediapipe/

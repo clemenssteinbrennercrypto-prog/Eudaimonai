@@ -46,7 +46,8 @@ function Glyph({ id }) {
 // A macOS source-list window: translucent sidebar under the traffic lights,
 // content to the right. data-tauri-drag-region makes the empty sidebar top
 // and the toolbar drag the window, as a native title bar would.
-export default function AppShell({ active, onNavigate, onLegal, utility, footer, protectionStatus, children }) {
+// `lockedItems`: destinations that need beta access while it is missing.
+export default function AppShell({ active, onNavigate, onLegal, utility, footer, protectionStatus, lockedItems = [], children }) {
   const [collapsed, setCollapsed] = useState(readCollapsed)
   // Whether the collapsed rail is temporarily showing the full sidebar.
   // Driven from JS, not CSS :hover/:has: WebKit (the macOS app's engine) did
@@ -140,8 +141,8 @@ export default function AppShell({ active, onNavigate, onLegal, utility, footer,
               key={item.id}
               type="button"
               className={`app-sidebar-item${active === item.id ? ' is-active' : ''}`}
-              onClick={() => !item.soon && onNavigate(item.id)}
-              disabled={item.soon}
+              onClick={() => !item.soon && !lockedItems.includes(item.id) && onNavigate(item.id)}
+              disabled={item.soon || lockedItems.includes(item.id)}
               aria-current={active === item.id ? 'page' : undefined}
               title={item.soon ? 'AI Companion — coming later' : `${item.label} (⌘${item.key})`}
             >

@@ -1,0 +1,77 @@
+-- Shared helpers, included by every test file with \ir. Everything here is
+-- created inside the test's transaction and rolled back with it.
+
+create extension if not exists pgtap with schema extensions;
+
+create schema tests;
+grant usage on schema tests to anon, authenticated;
+
+create function tests.create_user(p_email text, p_confirmed boolean default true)
+returns uuid
+language sql
+as $$
+  insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at,
+                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+  values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+          p_email, case when p_confirmed then now() end, '{}', '{}', now(), now())
+  returning id
+$$;
+
+create function tests.create_admin(p_email text)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_id uuid := tests.create_user(p_email);
+begin
+  insert into public.admin_users (user_id, note) values (v_id, 'test admin');
+  return v_id;
+end;
+$$;
+
+-- Switches the transaction to the given user as Supabase's API would. Call it
+-- as postgres; return to postgres with a bare `reset role;`.
+create function tests.login_as(p_user_id uuid)
+returns void
+language plpgsql
+as $$
+declare
+  v_email text := (select email from auth.users where id = p_user_id);
+begin
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', p_user_id, 'email', v_email, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+end;
+$$;
+
+create function tests.login_as_anon()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+  perform set_config('role', 'anon', true);
+end;
+$$;
+
+-- Moves an invitation into the past so its 72 h reservation has lapsed.
+create function tests.expire_invitation(p_id uuid)
+returns void
+language sql
+as $$
+  update public.beta_invitations
+     set created_at = now() - interval '100 hours', expires_at = now() - interval '1 second'
+   where id = p_id
+$$;
+
+-- Moves an entitlement into the past so it has ended.
+create function tests.expire_entitlement(p_id uuid)
+returns void
+language sql
+as $$
+  update public.entitlements
+     set starts_at = now() - interval '31 days', ends_at = now() - interval '1 second'
+   where id = p_id
+$$;
+
+grant execute on all functions in schema tests to anon, authenticated;

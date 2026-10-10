@@ -157,6 +157,7 @@ export default function AnalyticsStory({
   onClearAll,
   onUpdateSession,
   onRestoreArchive,
+  readOnly = false,
 }) {
   const story = useMemo(() => buildAnalyticsStory(sessions), [sessions])
 
@@ -164,7 +165,7 @@ export default function AnalyticsStory({
     <div className="analytics-story">
       <RecentOverview sessions={sessions} />
       <PersonalRecordsPanel sessions={sessions} />
-      <OutcomeInbox sessions={story.unratedSessions} onRate={onUpdateSession} />
+      {!readOnly && <OutcomeInbox sessions={story.unratedSessions} onRate={onUpdateSession} />}
       <section className="analytics-history" aria-labelledby="session-history-heading">
         <div className="analytics-section-heading">
           <div>

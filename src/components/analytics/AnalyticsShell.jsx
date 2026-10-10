@@ -66,7 +66,9 @@ export async function clearHistoryAndRefresh({ clearAll, refresh, onHistoryClear
  * session history, Details for the underlying distributions. Owns the one
  * shared load of sessions + the focus ledger and every history mutation.
  */
-export default function AnalyticsShell({ onHistoryCleared = () => {} }) {
+const READ_ONLY_MESSAGE = 'Read-only: your history can be viewed and exported. Changing or deleting it needs beta access.'
+
+export default function AnalyticsShell({ onHistoryCleared = () => {}, readOnly = false }) {
   const [view, setView] = useState('story')
   const [sessions, setSessions] = useState([])
   const [focusLedger, setFocusLedger] = useState(() => emptyFocusLedger())
@@ -114,7 +116,15 @@ export default function AnalyticsShell({ onHistoryCleared = () => {} }) {
     }
   }
 
+  // Read-only history (no beta access): viewing and export only. Every write
+  // is refused here, before the repository, whatever a child view offers.
+  const refuseReadOnly = () => {
+    setMutationError(READ_ONLY_MESSAGE)
+    throw new Error('history is read-only until you sign in with beta access')
+  }
+
   const handleDeleteSession = async (id) => {
+    if (readOnly) refuseReadOnly()
     await sessionRepository.deleteSession(id)
     setMutationError(null)
     if (selectedSessionId === id) setSelectedSessionId(null)
@@ -123,6 +133,7 @@ export default function AnalyticsShell({ onHistoryCleared = () => {} }) {
   }
 
   const handleClearAll = async () => {
+    if (readOnly) refuseReadOnly()
     const result = await clearHistoryAndRefresh({
       clearAll: () => sessionRepository.clearAll(),
       refresh,
@@ -138,12 +149,18 @@ export default function AnalyticsShell({ onHistoryCleared = () => {} }) {
   }
 
   const handleUpdateSession = async (id, patch) => {
+    // Rating controls do not all catch errors, so this one refuses quietly.
+    if (readOnly) {
+      setMutationError(READ_ONLY_MESSAGE)
+      return
+    }
     await sessionRepository.updateSession(id, patch)
     setMutationError(null)
     await refresh()
   }
 
   const handleRestoreArchive = async (archive) => {
+    if (readOnly) refuseReadOnly()
     const result = await sessionRepository.restoreArchive(archive)
     await refresh()
     setMutationError(null)
@@ -204,6 +221,7 @@ export default function AnalyticsShell({ onHistoryCleared = () => {} }) {
                 onClearAll={handleClearAll}
                 onUpdateSession={handleUpdateSession}
                 onRestoreArchive={handleRestoreArchive}
+                readOnly={readOnly}
               />
             )}
             {view === 'data' && (

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import LegalModal from './LegalModal'
+import RequestAccessForm from '../web/RequestAccessForm'
 
 // A session is the unit of the product: focus time only counts inside one, and
 // blocking is an optional rule set the user brings to it. Keep the copy from
@@ -27,16 +28,16 @@ const FAQ = [
   { q: 'Do I have to block anything?', a: 'No. You choose what to keep out during a session, if anything. Measuring your focus works without blocking.' },
   { q: 'What does it ask access to?', a: 'Your camera, to estimate attention during a session. Browser access, to see which app or site is in front and keep blocked ones closed. And your admin password once, to install a small helper that blocks the sites you list.' },
   { q: 'Which Macs are supported?', a: 'Apple Silicon Macs with an M1 chip or newer, running macOS 11 or later, with a camera. The built-in one works. Intel Macs are not supported.' },
-  { q: 'Is it free?', a: 'Free during the beta. No account and no credit card.' },
+  { q: 'How do I get in?', a: 'Eudaimonai is in a closed beta. Request access with your email address and we invite people in small groups. Your invitation email has one link to activate your access, confirmed with a one-time code. There is no password.' },
+  { q: 'What do you store about me?', a: 'Only what runs the beta: your email address, your invitation and how long your access lasts, stored on servers in the EU. Your focus sessions, history and anything from your camera stay on your Mac and are never uploaded.' },
+  { q: 'Is it free?', a: 'Free during the closed beta. You need an invitation, and no credit card.' },
 ]
 
 const font = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif'
-// Until a protected production release exists, the public surface must never
-// fall back to the historical unsigned `latest` release. Internal-test is the
-// moving, signed/notarized beta channel verified by companion-test.yml.
-const DOWNLOAD_URL = 'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/download/internal-test/Eudaimonai-Test.dmg'
 
-export default function LandingPage() {
+// During the closed beta the primary action is requesting access; the
+// download lives on /download for people who were invited.
+export default function LandingPage({ api }) {
   const [legalTab, setLegalTab] = useState(null)
 
   return (
@@ -164,24 +165,15 @@ export default function LandingPage() {
           </p>
 
           {/* CTA */}
-          <a
-            href={DOWNLOAD_URL}
-            className="hero-cta"
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: 'linear-gradient(135deg, var(--ultra) 0%, #243d61 100%)',
-              color: 'var(--text)',
-              border: '1px solid rgba(100,149,237,0.3)',
-              height: 56, padding: '0 40px',
-              borderRadius: 14, fontSize: 16, fontWeight: 600,
-              cursor: 'pointer', fontFamily: font,
-              transition: 'all 0.2s ease',
-              boxShadow: '0 0 0 1px rgba(100,149,237,0.1), 0 4px 20px rgba(122,152,255,0.5)',
-              letterSpacing: '0.01em', textDecoration: 'none',
-            }}
-          >
-            Download for Apple Silicon
-          </a>
+          <div id="request-access" style={{ scrollMarginTop: 120 }}>
+            <RequestAccessForm api={api} onOpenPrivacy={() => setLegalTab('datenschutz')} />
+          </div>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '14px 0 0' }}>
+            Already invited?{' '}
+            <a href="/activate" style={{ color: 'rgba(255,255,255,0.85)' }}>Activate your access</a>
+            {' · '}
+            <a href="/download" style={{ color: 'rgba(255,255,255,0.85)' }}>Download</a>
+          </p>
 
           {/* Trust pills */}
           <div style={{
@@ -191,7 +183,7 @@ export default function LandingPage() {
             {[
               'Camera data stays on your Mac',
               'M1 or newer · macOS 11+',
-              'Free during the beta',
+              'Free during the closed beta',
             ].map((label) => (
               <span key={label} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -281,19 +273,20 @@ export default function LandingPage() {
             fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700,
             color: 'var(--text)', margin: '0 0 18px', letterSpacing: '-0.025em',
           }}>
-            Everything stays on your Mac
+            Your focus data stays on your Mac
           </h2>
           <p style={{
             fontSize: 16, color: 'rgba(255,255,255,0.88)', lineHeight: 1.75,
             margin: '0 auto 36px',
           }}>
             The camera image is analysed in memory on your Mac and thrown
-            away. Your session history stays in a local database you can
-            delete at any time. No account, no cloud. The only thing that
-            leaves your Mac is a regular check for app updates.
+            away. Your sessions and history stay in a local database you can
+            delete at any time; they are never uploaded. Our server only keeps
+            what runs the beta: your email address and your access. Besides
+            that, the app only checks your beta access and looks for updates.
           </p>
           <a
-            href={DOWNLOAD_URL}
+            href="#request-access"
             className="hero-cta"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -305,7 +298,7 @@ export default function LandingPage() {
               letterSpacing: '0.01em', textDecoration: 'none',
             }}
           >
-            Download for Mac
+            Request beta access
           </a>
         </div>
       </section>
@@ -334,7 +327,7 @@ export default function LandingPage() {
           </div>
           <div style={{ textAlign: 'center', marginTop: 48 }}>
             <a
-              href={DOWNLOAD_URL}
+              href="#request-access"
               className="hero-cta"
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -345,10 +338,11 @@ export default function LandingPage() {
                 transition: 'all 0.2s ease', textDecoration: 'none',
               }}
             >
-              Download for Mac
+              Request beta access
             </a>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '14px 0 0' }}>
-              Free during the beta · Apple Silicon · macOS 11 or later
+              Closed beta · Apple Silicon · macOS 11 or later ·{' '}
+              <a href="/download" style={{ color: 'rgba(255,255,255,0.85)' }}>Already invited? Download</a>
             </p>
           </div>
         </div>

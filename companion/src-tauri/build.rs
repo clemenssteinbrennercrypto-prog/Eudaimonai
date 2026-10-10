@@ -5,6 +5,14 @@ fn main() {
         target_os == "macos" && target_arch == "aarch64",
         "Eudonomia Companion supports Apple Silicon macOS only (aarch64-apple-darwin)"
     );
+    // Release-channel builds must not ship the staging beta backend; with
+    // this cfg set, src/access/config.rs refuses to compile while it names
+    // staging.
+    println!("cargo::rustc-check-cfg=cfg(eudaimonai_release_build)");
+    println!("cargo:rerun-if-env-changed=EUDONOMIA_BUILD_CHANNEL");
+    if std::env::var("EUDONOMIA_BUILD_CHANNEL").as_deref() == Ok("release") {
+        println!("cargo:rustc-cfg=eudaimonai_release_build");
+    }
     #[cfg(target_os = "macos")]
     prepare_native_mediapipe();
     tauri_build::build()

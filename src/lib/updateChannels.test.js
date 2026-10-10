@@ -32,12 +32,14 @@ describe('native updater channels', () => {
   })
 
   it('never sends website visitors to the retired unsigned latest release', () => {
-    const landingPage = readText('../components/LandingPage.jsx')
+    // The public download link lives in one module, shared by every page. It
+    // names one exact signed production release, never a moving channel.
+    const downloadLinks = readText('./downloadLinks.js')
 
-    expect(landingPage).toContain(
-      'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/download/internal-test/Eudaimonai-Test.dmg',
-    )
-    expect(landingPage).not.toContain("const DOWNLOAD_URL = 'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/latest'")
+    expect(downloadLinks).toContain('/releases/download/release-v${RELEASE_VERSION}/Eudaimonai-${RELEASE_VERSION}-aarch64.dmg')
+    expect(downloadLinks).toMatch(/RELEASE_VERSION = '\d+\.\d+\.\d+'/)
+    expect(downloadLinks).not.toContain('internal-test')
+    expect(downloadLinks).not.toContain('/releases/latest')
   })
 
   it('applies the production endpoint overlay in the signed release workflow', () => {

@@ -20,10 +20,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:db": "supabase test db && bash supabase/tests/concurrency.sh && node supabase/tests/auth-flow.mjs",
+    "test:app-access": "bash supabase/tests/app-access.sh",
     "lint": "eslint src scripts vite.config.js"
   },
   "dependencies": {
     "@mediapipe/face_mesh": "^0.4.1633559619",
+    "@supabase/supabase-js": "^2.117.2",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "three": "^0.179.1"

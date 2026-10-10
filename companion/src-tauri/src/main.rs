@@ -7,6 +7,9 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod access;
+#[cfg(test)]
+mod access_history_tests;
 mod activity;
 mod app_nap;
 mod blocking;
@@ -266,12 +269,20 @@ fn main() {
             native::uninstall_blocking_helper,
             native::set_output_watch_folder,
             native::get_output_delta,
+            access::access_status,
+            access::access_check,
+            access::access_request_waitlist,
+            access::access_send_code,
+            access::access_verify_code,
+            access::access_sign_out,
+            access::access_forget_pending,
             credentials::set_cloud_api_key,
             credentials::delete_cloud_api_key,
             credentials::has_cloud_api_key,
             credentials::call_cloud_model,
             native_camera::get_native_camera_status,
-            native_camera::start_native_camera_prototype,
+            // Gated wrapper: same command name, access check in front.
+            access::start_native_camera_prototype,
             native_camera::stop_native_camera_prototype,
             native_camera::set_native_camera_preview,
             db::db_load_all,
@@ -332,6 +343,16 @@ fn main() {
 
             app.manage(native_state.clone());
             app.manage(native_camera::NativeCameraState::default());
+
+            // Beta access: Keychain-backed session, checked at launch and
+            // hourly. Independent of the session database above.
+            let access: access::SharedAccess = std::sync::Arc::new(access::AccessManager::new(
+                Box::new(access::client::UreqTransport::new()),
+                Box::new(access::store::Keychain),
+                Box::new(|| chrono::Utc::now().timestamp_millis()),
+            ));
+            app.manage(access.clone());
+            access::spawn_background_checks(app.handle().clone(), access);
             activity::start_polling(native_state, app.handle().clone());
 
             let open = MenuItem::with_id(app, "open", "Open Eudaimonai", true, None::<&str>)?;
