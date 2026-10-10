@@ -618,6 +618,22 @@ describe('LabDashboard personal baseline', () => {
     expect(screen.getByText('+4 vs usual')).toHaveClass('is-up')
   })
 
+  it('shows the earlier method\'s usual as a reference without a comparison after a method change', async () => {
+    vi.setSystemTime(new Date(2026, 9, 20, 16))
+    const { addSessionToFocusLedger, emptyFocusLedger, withSessionFocusMetric } = await import('../lib/focusMetric')
+    const sessions = [
+      ...Array.from({ length: 5 }, (_, i) => withSessionFocusMetric(day(`past${i}`, new Date(2026, 9, 10 + i, 9), { flowMinutes: 30, attention: 70 }))),
+      withSessionFocusMetric({ ...day('today', new Date(2026, 9, 20, 9), { flowMinutes: 45, attention: 74 }), attentionScoringVersion: 5 }),
+    ]
+    const ledger = sessions.reduce((current, item) => addSessionToFocusLedger(current, item), emptyFocusLedger())
+    render(<LabDashboard focusModeEnabled={false} sessions={[...sessions].reverse()} ledger={ledger} />)
+    expect(screen.getByText('Usual day 30m · earlier method')).toBeInTheDocument()
+    expect(screen.getByText('Usual day 70 · earlier method')).toBeInTheDocument()
+    // No delta across methods, and no "returns after" note while a usual shows.
+    expect(screen.queryByText(/vs usual/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Your usual returns/)).not.toBeInTheDocument()
+  })
+
   it('compares every value on a finished day', async () => {
     vi.setSystemTime(new Date(2026, 9, 20, 16))
     const { addSessionToFocusLedger, emptyFocusLedger, withSessionFocusMetric } = await import('../lib/focusMetric')
