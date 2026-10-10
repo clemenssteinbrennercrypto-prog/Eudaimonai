@@ -24,7 +24,7 @@ Prepared 7 October 2026. Read "Starting point" first: re-verify it before step 1
   - The `VITE_` variables only reach a preview after a rebuild (the rebase push does it).
   - The 0c test ZIP is built from `8628a5e` (pre-rebase). It is still fine
     for the staging E2E (same RPCs); the production build replaces it anyway.
-  - Re-run `supabase/tests/remote-verify.sql` before relying on staging.
+  - Re-run `supabase/checks/remote-verify.sql` before relying on staging.
 
 ## Only you can do
 

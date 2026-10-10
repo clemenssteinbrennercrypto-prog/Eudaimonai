@@ -1,5 +1,7 @@
 -- Read-only health check for a hosted beta project (staging or production).
--- Run:  supabase db query --linked -f supabase/tests/remote-verify.sql -o json
+-- Not a pgTAP test, so it lives outside supabase/tests (`supabase test db`
+-- runs every .sql file there).
+-- Run:  supabase db query --linked -f supabase/checks/remote-verify.sql -o json
 -- Everything runs in a READ ONLY transaction and is rolled back. Every row
 -- must have ok = true. It expects the founder bootstrap (one admin with open
 -- internal access) and makes no assumption about how many beta users exist.
