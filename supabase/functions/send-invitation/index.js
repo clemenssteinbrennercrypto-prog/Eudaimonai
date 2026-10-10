@@ -10,18 +10,16 @@
 // Environment:
 //   SUPABASE_URL, SUPABASE_ANON_KEY   provided by Supabase
 //   SITE_URL                          public website origin, e.g. https://eudaimonai.app
-//   MAIL_FROM                         "Eudaimonai <noreply@mail.eudaimonai.app>"
-//   MAIL_TRANSPORT                    "resend" (default) or "mailpit" (local only)
-//   RESEND_API_KEY                    required for "resend"
-//   MAILPIT_SEND_URL                  required for "mailpit"
+//   MAIL_FROM, MAIL_TRANSPORT, ...    see ../_shared/mail.js
 //   ALLOWED_ORIGINS                   optional, comma-separated extra CORS origins
+
+import { deliver, escapeHtml } from '../_shared/mail.js'
 
 const env = name => Deno.env.get(name) ?? ''
 const SUPABASE_URL = env('SUPABASE_URL')
 const ANON_KEY = env('SUPABASE_ANON_KEY')
 const SITE_URL = env('SITE_URL').replace(/\/+$/, '')
 const MAIL_FROM = env('MAIL_FROM')
-const TRANSPORT = env('MAIL_TRANSPORT') || 'resend'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const allowedOrigins = new Set([SITE_URL, ...env('ALLOWED_ORIGINS').split(',').map(o => o.trim())].filter(Boolean))
@@ -38,8 +36,6 @@ function cors(req) {
 
 const reply = (status, body, headers) =>
   new Response(JSON.stringify(body), { status, headers: { ...headers, 'content-type': 'application/json' } })
-
-const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
 export function invitationEmail({ email, expiresAt, siteUrl }) {
   const link = `${siteUrl}/activate?email=${encodeURIComponent(email)}`
@@ -71,32 +67,6 @@ export function invitationEmail({ email, expiresAt, siteUrl }) {
   <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:24px 0 0">If you did not expect this invitation, you can ignore this email.</p>
 </div></body></html>`
   return { subject, text, html, link }
-}
-
-async function deliver({ to, subject, text, html }) {
-  if (TRANSPORT === 'mailpit') {
-    const response = await fetch(env('MAILPIT_SEND_URL'), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        From: { Email: MAIL_FROM.match(/<([^>]+)>/)?.[1] ?? MAIL_FROM, Name: MAIL_FROM.replace(/\s*<[^>]+>/, '') },
-        To: [{ Email: to }],
-        Subject: subject,
-        Text: text,
-        HTML: html,
-      }),
-    })
-    if (!response.ok) throw new Error(`mailpit ${response.status}`)
-    return
-  }
-  const key = env('RESEND_API_KEY')
-  if (!key) throw new Error('mail provider is not configured')
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: MAIL_FROM, to: [to], subject, text, html }),
-  })
-  if (!response.ok) throw new Error(`resend ${response.status}`)
 }
 
 Deno.serve(async req => {

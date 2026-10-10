@@ -27,7 +27,8 @@ fns(sig, anon_ok, auth_ok) as (values
   ('private.within_rate_limit(text,interval,integer)', false, false),
   ('private.waitlist_ip_bucket()', false, false),
   ('private.email_hash(text)', false, false),
-  ('private.erase_beta_records_for_deleted_account()', false, false)),
+  ('private.erase_beta_records_for_deleted_account()', false, false),
+  ('private.send_founder_digest()', false, false)),
 checks(area, item, ok, detail) as (
   select 'RLS enabled', t.name, c.relrowsecurity, c.relrowsecurity::text
     from tbl t join pg_class c on c.relname = t.name and c.relnamespace = 'public'::regnamespace
@@ -53,7 +54,7 @@ checks(area, item, ok, detail) as (
   union all
   select 'private tables locked', t, (select relrowsecurity from pg_class where oid = ('private.' || t)::regclass)
          and not has_table_privilege('anon', 'private.' || t, 'SELECT') and not has_table_privilege('authenticated', 'private.' || t, 'SELECT'), ''
-    from (values ('rate_limit_salt'), ('rate_limit_hits')) x(t)
+    from (values ('rate_limit_salt'), ('rate_limit_hits'), ('founder_digest_state')) x(t)
   union all
   select 'no plaintext email in allocations', 'beta_allocations',
          not exists (select 1 from information_schema.columns where table_schema='public' and table_name='beta_allocations' and column_name='email_normalized'), ''
@@ -67,6 +68,13 @@ checks(area, item, ok, detail) as (
          and exists (select 1 from public.admin_users a join public.entitlements e on e.user_id = a.user_id
                      where e.kind = 'internal' and e.revoked_at is null and e.ends_at is null),
          (select count(*) from public.admin_users)::text || ' admin(s)'
+  union all
+  select 'founder digest', 'scheduled every 15 minutes',
+         exists (select 1 from cron.job where jobname = 'founder-request-digest' and schedule = '*/15 * * * *' and active), ''
+  union all
+  select 'founder digest', 'function URL and token in Vault',
+         (select count(distinct name) from vault.secrets where name in ('founder_digest_url', 'founder_digest_token')) = 2,
+         (select coalesce(string_agg(name, ', ' order by name), 'none') from vault.secrets where name like 'founder_digest_%')
   union all
   select 'capacity never exceeded', 'allocations + live reservations <= capacity',
          (select count(*) from public.beta_allocations)
