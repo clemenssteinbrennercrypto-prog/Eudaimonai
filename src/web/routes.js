@@ -2,7 +2,7 @@
 // the app) renders at all. Kept free of the Supabase client so the app's own
 // entry can import it without pulling the web funnel into its bundle.
 
-export const WEB_ROUTES = ['/', '/activate', '/download', '/admin']
+export const WEB_ROUTES = ['/', '/activate', '/download', '/admin', '/privacy', '/legal']
 
 export function webRoute(pathname = '/') {
   const path = `/${String(pathname).split(/[?#]/)[0].replace(/^\/+|\/+$/g, '')}`
