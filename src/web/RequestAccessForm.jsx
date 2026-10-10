@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { attributionFromSearch } from './attribution'
 
 const MESSAGES = {
@@ -11,7 +11,9 @@ const MESSAGES = {
 // Waitlist signup. Joining never creates an account and never grants access;
 // the confirmation says so. A duplicate address gets the same confirmation,
 // so the form never reveals who is already on the list.
-export default function RequestAccessForm({ api, onOpenPrivacy, search = window.location.search }) {
+export default function RequestAccessForm({ api, onOpenPrivacy, privacyHref, search = window.location.search }) {
+  // The landing page shows the form twice; each copy needs its own input id.
+  const inputId = useId()
   const [email, setEmail] = useState('')
   const [trap, setTrap] = useState('')
   const [status, setStatus] = useState('idle')
@@ -57,9 +59,9 @@ export default function RequestAccessForm({ api, onOpenPrivacy, search = window.
   return (
     <form className="request-form" onSubmit={submit} noValidate={false}>
       <div className="request-form-row">
-        <label htmlFor="request-email" className="request-form-trap">Email address</label>
+        <label htmlFor={inputId} className="request-form-trap">Email address</label>
         <input
-          id="request-email"
+          id={inputId}
           className="web-input"
           type="email"
           name="email"
@@ -84,8 +86,9 @@ export default function RequestAccessForm({ api, onOpenPrivacy, search = window.
       </div>
       {error && <p className="web-message is-error" role="alert">{MESSAGES[error]}</p>}
       <p className="web-note">
-        We only store your email address for the beta. Your focus data never leaves your Mac.{' '}
-        {onOpenPrivacy && (
+        We only store your email address for the beta. Your focus data stays on your Mac.{' '}
+        {privacyHref && <a href={privacyHref}>Privacy policy</a>}
+        {!privacyHref && onOpenPrivacy && (
           <button type="button" className="web-link-button" style={{ textTransform: 'none', letterSpacing: 0, fontSize: 13, textDecoration: 'underline' }} onClick={onOpenPrivacy}>
             Privacy policy
           </button>
