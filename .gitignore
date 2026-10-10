@@ -10,3 +10,6 @@ coverage/
 public/mediapipe/
 companion/webui/mediapipe/
 companion/src-tauri/resources/libmediapipe.dylib
+
+# Website screenshots before conversion (scripts/website-shots)
+.website-shots/

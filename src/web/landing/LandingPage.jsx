@@ -2,7 +2,12 @@ import { useEffect, useRef } from 'react'
 import RequestAccessForm from '../RequestAccessForm'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import labShot from './assets/lab.webp'
+import labScoreShot from './assets/lab-score.webp'
 import reportShot from './assets/session-report.webp'
+import plannerShot from './assets/session-planner.webp'
+import weekShot from './assets/week-review.webp'
+import hoursShot from './assets/best-hours.webp'
+import workspaceShot from './assets/workspace.webp'
 import './landing.css'
 
 // The public landing page. Light page, dark product: the app's own screens are
@@ -28,8 +33,61 @@ const DEMO_DAY = {
 }
 
 const CHAPTERS = [
+  { id: 'session', label: 'Session' },
   { id: 'day', label: 'Your day' },
+  { id: 'week', label: 'First weeks' },
+  { id: 'method', label: 'Method' },
+  { id: 'privacy', label: 'Privacy' },
+  { id: 'why', label: 'Why' },
   { id: 'beta', label: 'Closed beta' },
+]
+
+const SESSION_STEPS = [
+  { title: 'Name it', body: 'What you’re working on, and for how long. A recent setup starts again in one click.' },
+  { title: 'Work', body: 'The camera estimates your attention on your Mac. Nothing asks you a question while a session runs.' },
+  { title: 'Read it', body: 'When it ends: attention over time, lapses, how fast you came back, your longest stretch of deep focus.' },
+]
+
+// Each step is gated by a real threshold: BASELINE_MIN_DAYS (personalBaseline.js),
+// the weekly review (weeklyReview.js), MIN_SESSIONS and MIN_MEANINGFUL_GAP_PCT
+// (calibration.js). Change the copy if one of them changes.
+const FIRST_WEEKS = [
+  { when: 'Day 1', title: 'Set up your desk', body: 'Tell it where your screens are, once. Then your first session and your first report.' },
+  { when: 'Day 5', title: 'Your usual takes shape', body: 'After five days with sessions, each day is compared with your own typical day.' },
+  { when: 'Week 1', title: 'Your week in review', body: 'Deep focus, attention, lapses and your best day, next to the week before.' },
+  { when: 'Week 2+', title: 'Your best hours', body: 'From eight sessions on, it shows which times of day hold your attention, and only when the gap is real. Until then it says nothing.' },
+]
+
+const OBSERVES = [
+  'Whether you are at your desk',
+  'Where you are facing: a screen, your notes, or away',
+  'Eyes closed for longer than a blink',
+  'Which app or website is in front',
+]
+
+const NEVER = [
+  'Record or upload video',
+  'Recognise who you are',
+  'Read your keystrokes or the contents of your files',
+  'Guess your mood or emotions',
+]
+
+const WONT_BUILD = [
+  'Monitoring for employers. It is yours, not your manager’s.',
+  'Selling or uploading your focus data.',
+  'A score that bends to your mood. Same ruler, every day.',
+  'Insights guessed from too little data.',
+]
+
+// Only answers the product and the beta backend actually support.
+const FAQ = [
+  { q: 'Does the camera record video?', a: 'No. Frames are analysed in memory on your Mac and discarded. Only measurements such as where you were facing are kept, and they stay on your Mac.' },
+  { q: 'What data leaves my Mac?', a: 'Your email address, your invitation and your beta access, which sign you in. The app also checks that access and looks for updates. Your sessions, history and anything from the camera stay on your Mac.' },
+  { q: 'Why is access limited?', a: 'We read every request and open the beta in small groups, so we can talk to the first people using it and fix what they find.' },
+  { q: 'Which Macs are supported?', a: 'Apple Silicon Macs (M1 or newer) with macOS 11 or later and a camera. The built-in one works. Intel Macs are not supported.' },
+  { q: 'Is it free?', a: 'Yes, during the closed beta. No credit card.' },
+  { q: 'What happens when the beta ends?', a: 'Beta access runs for 30 days from activation. When access ends, your history stays on your Mac and stays readable. Starting new sessions needs access again.' },
+  { q: 'Do I have to block websites?', a: 'No. Blocking is an optional rule set per session. Measuring your focus works without it.' },
 ]
 
 function useReveal(rootRef) {
@@ -177,6 +235,8 @@ export default function LandingPage({ api }) {
             </div>
             <div className="site-mac-base" />
           </div>
+          {/* A phone cannot read the whole window, so it gets the score panel alone. */}
+          <img className="site-hero-phone-shot" src={labScoreShot} alt="" width="1400" height="417" />
           <div className="site-definition">
             <p className="site-definition-head">
               <span className="site-definition-word" lang="grc">εὐδαιμονία</span>
@@ -197,6 +257,20 @@ export default function LandingPage({ api }) {
           </div>
         </section>
 
+        <section className="site-chapter site-wrap" id="session">
+          <div className="site-ch-head site-rv">
+            <p className="site-label">Session</p>
+            <h2>Start a session. Then just work.</h2>
+            <p>Focus only counts inside a session you start, so the numbers mean what they say. Blocking is up to you: keep out what pulls you away, or nothing at all.</p>
+          </div>
+          <figure className="site-tile site-tile-shot site-rv">
+            <img src={plannerShot} alt="Starting a session: a name, a length of one hour, and recent setups to reuse" width="2000" height="1250" loading="lazy" />
+          </figure>
+          <ol className="site-steps site-steps-plain site-rv">
+            {SESSION_STEPS.map(step => <li key={step.title}><b>{step.title}</b><span>{step.body}</span></li>)}
+          </ol>
+        </section>
+
         <section className="site-chapter site-wrap" id="day">
           <div className="site-ch-head site-rv">
             <p className="site-label">Your day</p>
@@ -214,9 +288,98 @@ export default function LandingPage({ api }) {
               <figcaption>Thursday · usual day {DEMO_DAY.usual}</figcaption>
             </figure>
             <figure className="site-tile site-tile-shot site-rv">
-              <img src={reportShot} alt="A session report: 1 hour 15 minutes, average attention 83, an attention timeline with two short lapses, and a longest Deep Focus block of 21 minutes" width="1800" height="1314" loading="lazy" />
+              <img src={reportShot} alt="A session report: 1 hour 15 minutes, average attention 83, an attention timeline with two short lapses, and a longest Deep Focus block of 21 minutes" width="1800" height="1354" loading="lazy" />
               <figcaption>Every session ends with a report: when attention held, when it slipped, and how quickly it came back.</figcaption>
             </figure>
+          </div>
+        </section>
+
+        <section className="site-chapter site-wrap" id="week">
+          <div className="site-ch-head site-rv">
+            <p className="site-label">First weeks</p>
+            <h2>The longer you use it, the more it can tell you.</h2>
+            <p>And it stays quiet until it has enough to say something true.</p>
+          </div>
+          <ol className="site-timeline site-rv">
+            {FIRST_WEEKS.map(step => (
+              <li key={step.when}>
+                <span className="site-timeline-when">{step.when}</span>
+                <b>{step.title}</b>
+                <span>{step.body}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="site-week-shots">
+            <figure className="site-tile site-tile-shot site-rv">
+              <img src={weekShot} alt="Week in review: 7 hours 34 minutes of Deep Focus, 37 minutes more than the week before, average attention 74, best day Monday" width="1800" height="324" loading="lazy" />
+              <figcaption>Every week, next to the one before.</figcaption>
+            </figure>
+            <figure className="site-tile site-tile-shot site-rv">
+              <img src={hoursShot} alt="Time of day: late morning records 17 points higher average attention than the afternoon" width="1800" height="652" loading="lazy" />
+              <figcaption>When the difference is real, it names your best hours.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section className="site-chapter site-wrap" id="method">
+          <div className="site-ch-head site-rv">
+            <p className="site-label">Method</p>
+            <h2>What it watches, and what it doesn’t.</h2>
+            <p>Eudaimonai observes behaviour, not thoughts. It knows where your screens and desk are, so a look at your second display isn’t counted as looking away.</p>
+          </div>
+          <figure className="site-tile site-tile-shot site-rv">
+            <img src={workspaceShot} alt="The workspace editor: a desk with two displays, a keyboard and the tracking camera in 3D" width="2000" height="1250" loading="lazy" />
+          </figure>
+          <div className="site-two site-rv">
+            <div>
+              <h3>It observes</h3>
+              <ul>{OBSERVES.map(item => <li key={item}>{item}</li>)}</ul>
+            </div>
+            <div>
+              <h3>It never</h3>
+              <ul className="is-never">{NEVER.map(item => <li key={item}>{item}</li>)}</ul>
+            </div>
+          </div>
+          <p className="site-note site-rv">
+            The attention score is a consistent measurement of what the camera observes, the same way every day. It is not a medical or psychological test of concentration.
+          </p>
+        </section>
+
+        <section className="site-chapter site-wrap" id="privacy">
+          <div className="site-ch-head site-rv">
+            <p className="site-label">Privacy</p>
+            <h2>Your focus data stays on your Mac.</h2>
+          </div>
+          <div className="site-priv site-rv">
+            <div><b>Camera</b><span>Frames are analysed in memory and discarded. No video is recorded or uploaded.</span></div>
+            <div><b>Your history</b><span>Sessions, scores and activity live in a local database on your Mac. Delete them whenever you like. They stay readable even after your beta access ends.</span></div>
+            <div><b>Your account</b><span>Our server knows your email address, your invitation and your access. Nothing about your sessions. Stored in Frankfurt.</span></div>
+          </div>
+          <p className="site-perm site-rv">
+            <b>What it asks for:</b> your camera, to measure attention during a session. Only if you use blocking: browser access, to see which site is in front, and your admin password once, to install the small helper that blocks the sites you list.{' '}
+            <a href="/privacy">Privacy policy</a>
+          </p>
+        </section>
+
+        <section className="site-chapter site-wrap" id="why">
+          <div className="site-why site-rv">
+            <p className="site-label">Why</p>
+            <h2>Everything worth doing takes deep focus.</h2>
+            <div className="site-why-body">
+              <p>
+                A company, a thesis, a piece of music, a hard problem in code. Whatever the field, the work that matters
+                gets done in long, unbroken stretches of attention, repeated day after day. The ability to stay with
+                something deeply, and for long, is what turns effort into results.
+              </p>
+              <p>
+                It is also the hardest thing to see. Sleep has a score. Training has a load. Focus only has a feeling.
+                Eudaimonai makes it visible, so you can protect it and build on it.
+              </p>
+            </div>
+            <div className="site-wont">
+              <p className="site-label">What we won’t build</p>
+              <ul>{WONT_BUILD.map(item => <li key={item}>{item}</li>)}</ul>
+            </div>
           </div>
         </section>
 
@@ -239,6 +402,17 @@ export default function LandingPage({ api }) {
               <RequestAccessForm api={api} privacyHref="/privacy" />
               <p className="site-fine">Already invited? <a href="/activate">Activate your access</a></p>
             </div>
+          </div>
+        </section>
+        <section className="site-faq site-wrap" aria-labelledby="faq-title">
+          <h2 id="faq-title" className="site-label">Questions</h2>
+          <div className="site-qa">
+            {FAQ.map(item => (
+              <details key={item.q}>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))}
           </div>
         </section>
       </main>
