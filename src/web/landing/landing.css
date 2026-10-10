@@ -106,9 +106,18 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site-mac-base { height: 16px; margin-inline: -5%; background: linear-gradient(180deg, #E2E3E6, #A9ABB2); border-radius: 0 0 16px 16px; position: relative; }
 .site-mac-base::after { content: ""; position: absolute; left: 50%; top: 0; width: 15%; height: 6px; transform: translateX(-50%); background: #8D8F96; border-radius: 0 0 8px 8px; }
 
-.site-etym { margin: 52px auto 0; display: flex; gap: 14px; justify-content: center; align-items: baseline; flex-wrap: wrap; color: var(--site-text-2); }
-.site-etym-word { font-family: var(--site-serif); font-size: 28px; color: var(--site-text); }
-.site-etym-def { font-family: var(--site-serif); font-style: italic; font-size: 18px; }
+/* The name, as a dictionary entry: the one editorial moment in the hero. */
+.site-definition { margin: 88px auto 0; max-width: 620px; text-align: left; font-family: var(--site-serif); color: var(--site-text); letter-spacing: 0; }
+.site-definition p { margin: 0; }
+.site-definition-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding-bottom: 14px; border-bottom: 1px solid var(--site-hair); }
+.site-definition-word { font-size: clamp(34px, 4vw, 44px); line-height: 1.1; }
+.site-definition-meta { font: 500 12px var(--site-mono); letter-spacing: .04em; color: var(--site-text-3); }
+.site-definition-etym { margin-top: 16px !important; font-size: 17px; font-style: italic; color: var(--site-text-2); }
+.site-definition-body { margin-top: 10px !important; font-size: 20px; line-height: 1.5; }
+.site-definition-quote { margin: 26px 0 0; padding-left: 20px; border-left: 2px solid var(--site-text); }
+.site-definition-quote p { font-size: 18px; line-height: 1.55; font-style: italic; color: #333336; }
+.site-definition-source { margin-top: 10px !important; padding-left: 22px; font: 500 12px var(--site-sans); color: var(--site-text-3); }
+.site-definition-source cite { font-style: italic; }
 
 /* Chapters */
 .site-chapter { padding-block: 150px 0; scroll-margin-top: 52px; }
@@ -269,6 +278,9 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-mac { margin-top: 52px; }
   .site-mac-lid { border-radius: 12px 12px 0 0; }
   .site-mac-base { height: 9px; }
+  .site-definition { margin-top: 64px; }
+  .site-definition-body { font-size: 18px; }
+  .site-definition-quote p { font-size: 17px; }
   .site-chapter { padding-block: 104px 0; }
   .site-ch-head { margin-bottom: 36px; }
   .site-ch-head p:not(.site-label) { font-size: 17px; }

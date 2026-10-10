@@ -177,10 +177,24 @@ export default function LandingPage({ api }) {
             </div>
             <div className="site-mac-base" />
           </div>
-          <p className="site-etym">
-            <span className="site-etym-word">εὐδαιμονία</span>
-            <span className="site-etym-def">a good life, built from what you do every day</span>
-          </p>
+          <div className="site-definition">
+            <p className="site-definition-head">
+              <span className="site-definition-word" lang="grc">εὐδαιμονία</span>
+              <span className="site-definition-meta">eudaimonia · /ˌjuːdɪˈmoʊniə/ · noun, Ancient Greek</span>
+            </p>
+            <p className="site-definition-etym">
+              From <i lang="grc">eu</i>, “good,” and <i lang="grc">daimōn</i>, “spirit.”
+            </p>
+            <p className="site-definition-body">
+              In Aristotle’s ethics, the highest human good. Not a feeling but an activity: the soul at work in
+              accordance with excellence, sustained over a complete life.
+            </p>
+            <blockquote className="site-definition-quote">
+              <p>“For one swallow does not make a summer, nor does one day; and so too one day, or a short time,
+                does not make a man blessed and happy.”</p>
+            </blockquote>
+            <p className="site-definition-source">Aristotle, <cite>Nicomachean Ethics</cite> I.7 · tr. W. D. Ross</p>
+          </div>
         </section>
 
         <section className="site-chapter site-wrap" id="day">
