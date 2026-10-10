@@ -14,7 +14,7 @@ fns(sig, anon_ok, auth_ok) as (values
   ('public.claim_beta_invitation()', false, true),
   ('public.admin_invite(text)', false, true),
   ('public.admin_revoke_invitation(uuid)', false, true),
-  ('public.admin_update_beta_config(integer,boolean)', false, true),
+  ('public.admin_update_beta_config(integer,boolean,integer)', false, true),
   ('public.admin_extend_entitlement(uuid,integer)', false, true),
   ('public.admin_revoke_entitlement(uuid,text)', false, true),
   ('public.admin_grant_internal(uuid)', false, true),
