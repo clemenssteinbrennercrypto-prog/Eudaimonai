@@ -2,6 +2,21 @@
    Everything is scoped under .site: App.css is global and shared with the
    native app, so nothing here may restyle a bare element or an app class. */
 
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("./fonts/instrument-serif-latin-400-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("./fonts/instrument-serif-latin-400-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
 html:has(.site), body:has(.site) { background: #FFFFFF; }
 
 .site {
@@ -15,7 +30,8 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   --site-accent: #2C46FF;
   --site-accent-deep: #1426B8;
   --site-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --site-serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+  --site-serif: "Instrument Serif", ui-serif, "New York", Georgia, serif;
+  --site-greek: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
   --site-mono: ui-monospace, "SF Mono", Menlo, monospace;
   --site-ease: cubic-bezier(.22, .8, .2, 1);
   --site-rail: 196px;
@@ -33,6 +49,13 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site img { display: block; max-width: 100%; height: auto; }
 .site :focus-visible { outline: 2px solid var(--site-accent); outline-offset: 3px; border-radius: 6px; }
 .site h1, .site h2 { margin: 0; text-wrap: balance; }
+/* The editorial voice: one word per headline set in the serif italic. */
+.site h1 em, .site h2 em { font-family: var(--site-serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; font-size: 1.12em; line-height: 0.9; }
+
+/* Chapter marks: Greek letters, numbered like the name. */
+.site-chapter-label { display: flex; align-items: baseline; gap: 12px; }
+.site-mark { font: italic 400 22px/1 var(--site-greek); letter-spacing: 0; text-transform: none; color: var(--site-accent); }
+.site-chapter-label.is-light .site-mark { color: #FFFFFF; }
 
 .site-label {
   font: 600 11px var(--site-mono);
@@ -54,6 +77,7 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   -webkit-backdrop-filter: saturate(180%) blur(22px);
   border-bottom: 1px solid var(--site-hair);
 }
+.site-progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--site-accent); transform: scaleX(0); transform-origin: 0 50%; pointer-events: none; }
 .site-header-bar { height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-inline: 26px; }
 .site-brand { display: flex; align-items: center; gap: 10px; }
 .site-brand img { width: 24px; height: 24px; border-radius: 6px; }
@@ -85,6 +109,8 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 }
 .site-rail a:hover { color: var(--site-text-2); }
 .site-rail a.is-on { color: var(--site-text); border-left-color: var(--site-text); }
+.site-rail-mark { display: inline-block; width: 18px; font: italic 15px/1 var(--site-greek); color: var(--site-text-3); }
+.site-rail a.is-on .site-rail-mark { color: var(--site-accent); }
 .site-main, .site .site-footer { margin-left: var(--site-rail); }
 
 /* Reveal: visible at rest, settles softly */
@@ -107,7 +133,7 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site-mac-base::after { content: ""; position: absolute; left: 50%; top: 0; width: 15%; height: 6px; transform: translateX(-50%); background: #8D8F96; border-radius: 0 0 8px 8px; }
 
 /* The name, as a dictionary entry: the one editorial moment in the hero. */
-.site-definition { margin: 88px auto 0; max-width: 620px; text-align: left; font-family: var(--site-serif); color: var(--site-text); letter-spacing: 0; }
+.site-definition { margin: 88px auto 0; max-width: 620px; text-align: left; font-family: var(--site-greek); color: var(--site-text); letter-spacing: 0; }
 .site-definition p { margin: 0; }
 .site-definition-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding-bottom: 14px; border-bottom: 1px solid var(--site-hair); }
 .site-definition-word { font-size: clamp(34px, 4vw, 44px); line-height: 1.1; }
@@ -221,6 +247,45 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site .request-form .web-message.is-success { border-color: rgba(23, 138, 99, .3); background: rgba(47, 227, 168, .1); color: #0E5E43; text-align: left; }
 .site .request-form .web-message.is-error { border-color: rgba(204, 30, 60, .25); background: rgba(255, 77, 106, .07); color: #9B1630; text-align: left; }
 .site .request-form .web-message.is-info { border-color: var(--site-hair); background: var(--site-tile); color: var(--site-text-2); }
+
+/* Signature: one real session's attention, drawn live */
+.site-trace { position: relative; margin: 72px auto 0; max-width: 960px; text-align: left; }
+.site-trace-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--site-hair); font: 600 11px var(--site-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--site-text-3); }
+.site-trace-live { display: flex; align-items: baseline; gap: 12px; text-transform: none; letter-spacing: 0; }
+.site-trace-live b { font: 200 44px/1 var(--site-sans); letter-spacing: -0.04em; color: var(--site-text); font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
+.site-trace-live i { font: 500 13px var(--site-mono); font-style: normal; color: var(--site-text-2); font-variant-numeric: tabular-nums; }
+.site-trace-plot { position: relative; height: 180px; margin-top: 40px; }
+.site-trace-bracket { position: absolute; top: -12px; height: 7px; border: 1px solid var(--site-text); border-bottom: 0; opacity: 0; transition: opacity .6s var(--site-ease); }
+.site-trace-bracket b { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 7px; font: 500 11px var(--site-mono); white-space: nowrap; color: var(--site-text); }
+.site-trace-bracket.is-on { opacity: 1; }
+.site-trace-plot svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.site-trace-deep { fill: rgba(44, 70, 255, .05); }
+.site-trace-rule { stroke: var(--site-hair-2); stroke-width: 1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.site-trace-line { fill: none; stroke: var(--site-text); stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.site-trace-lapse { fill: var(--site-accent); opacity: 0; transition: opacity .5s var(--site-ease); }
+.site-trace-lapse.is-on { opacity: .18; }
+.site-trace-pen { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--site-accent); box-shadow: 0 0 0 5px rgba(44, 70, 255, .15); }
+.site-trace-notes { position: relative; height: 20px; margin-top: 10px; font: 500 11px var(--site-mono); color: var(--site-text-3); white-space: nowrap; }
+.site-trace-notes span { position: absolute; top: 0; }
+.site-trace-notes .is-lapse { transform: translateX(-50%); opacity: 0; transition: opacity .6s var(--site-ease); }
+.site-trace-notes .is-lapse { color: var(--site-accent); }
+.site-trace-notes .is-on { opacity: 1; }
+.site-trace-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px !important; font: 500 11px var(--site-mono) !important; color: var(--site-text-3) !important; }
+.site-trace-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.site-trace-legend i { display: inline-block; width: 14px; height: 8px; }
+.site-trace-legend .is-band { background: rgba(44, 70, 255, .1); }
+.site-trace-legend .is-rule { height: 0; border-top: 1px dashed var(--site-text-3); }
+.site-trace-legend .is-lapse { background: rgba(44, 70, 255, .3); }
+
+/* Instrument: the data sheet */
+/* Columns, not a grid, so groups of different length pack without holes. */
+.site-spec { column-count: 2; column-gap: 48px; border-top: 2px solid var(--site-text); padding-top: 22px; }
+.site-spec-group { break-inside: avoid; padding-bottom: 30px; }
+.site-spec-group h3 { margin: 0 0 8px; font: 600 11px var(--site-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--site-accent); }
+.site-spec dl { margin: 0; }
+.site-spec dl div { display: grid; grid-template-columns: 9.5em 1fr; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--site-hair); }
+.site-spec dt { font-size: 15px; font-weight: 600; }
+.site-spec dd { margin: 0; font: 400 13.5px/1.5 var(--site-mono); color: var(--site-text-2); letter-spacing: -0.01em; }
 
 /* Session */
 .site-steps-plain { margin-top: 36px; }
@@ -341,10 +406,12 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-rail nav::-webkit-scrollbar { display: none; }
   .site-rail a { flex: none; border: 1px solid var(--site-hair-2); border-radius: 999px; padding: 6px 13px; white-space: nowrap; }
   .site-rail a.is-on { border-color: var(--site-text); background: var(--site-text); color: #FFFFFF; }
+  .site-rail a.is-on .site-rail-mark { color: #FFFFFF; }
   .site-wrap { padding-inline: 22px; }
   .site-header-bar { padding-inline: 22px; }
   .site-day { grid-template-columns: 1fr; }
   .site-timeline { grid-template-columns: 1fr 1fr; row-gap: 36px; }
+  .site-spec { column-count: 1; }
   .site-chapter { scroll-margin-top: 100px; }
 }
 
@@ -367,6 +434,12 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-metrics dd { font-size: 21px; }
   .site-steps { grid-template-columns: 1fr; gap: 22px; }
   .site-mac { display: none; }
+  .site-trace { margin-top: 52px; }
+  .site-trace-plot { height: 130px; }
+  .site-trace-head > span:first-child { max-width: 60%; line-height: 1.5; }
+  .site-trace-notes .is-end { display: none; }
+  .site-trace-bracket b { font-size: 10px; }
+  .site-spec dl div { grid-template-columns: 1fr; gap: 4px; }
   .site-hero-phone-shot { display: block !important; margin: 44px auto 0; border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, .22); }
   .site-timeline { grid-template-columns: 1fr; border-top: 0; border-left: 1px solid var(--site-hair-2); gap: 28px; margin-left: 4px; }
   .site-timeline li { padding: 0 0 0 22px; }

@@ -14,8 +14,8 @@
 // After a UI change, rerun all three and check that the numbers quoted in
 // src/web/landing/LandingPage.jsx (DEMO_DAY) still match the Lab screenshot.
 // The page.evaluate callbacks below run in the browser.
-/* global document, location, scrollX, scrollY */
-import { mkdirSync, readFileSync } from 'node:fs'
+/* global document, location, localStorage, scrollX, scrollY */
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { webkit } from 'playwright-core'
 
 const BASE = process.env.SHOTS_BASE || 'http://localhost:5191'
@@ -38,6 +38,19 @@ const seeded = await page.evaluate(async ({ source, today }) => {
   return (await import(url)).seed({ today })
 }, { source: seedSource, today: TODAY })
 console.log('seeded', seeded)
+
+// The landing page draws one real session's attention trace (the same session
+// as the report screenshot), so export its timeline next to the images.
+const trace = await page.evaluate(task => {
+  const session = JSON.parse(localStorage.getItem('eudaimonia_sessions') || '[]').find(item => item.task === task)
+  return {
+    task: session.task,
+    startedAt: session.startedAt,
+    intervalSeconds: 5,
+    scores: session.timeline.map(sample => sample.score),
+  }
+}, seeded.today[1])
+writeFileSync(new URL('../../src/web/landing/assets/demo-session.json', import.meta.url), `${JSON.stringify(trace)}\n`)
 
 // The unreleased "AI Companion · Soon" item and the dev build tag are not
 // product, so they stay out of the pictures.

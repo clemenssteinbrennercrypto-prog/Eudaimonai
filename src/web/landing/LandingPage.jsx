@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import RequestAccessForm from '../RequestAccessForm'
 import { SiteFooter, SiteHeader } from './SiteChrome'
+import AttentionTrace from './AttentionTrace'
 import labShot from './assets/lab.webp'
 import labScoreShot from './assets/lab-score.webp'
 import reportShot from './assets/session-report.webp'
@@ -32,14 +33,81 @@ const DEMO_DAY = {
   rings: [1, 0.78, 0.66],
 }
 
+// Chapters are numbered with Greek letters, after the name: one word each.
 const CHAPTERS = [
-  { id: 'session', label: 'Session' },
-  { id: 'day', label: 'Your day' },
-  { id: 'week', label: 'First weeks' },
-  { id: 'method', label: 'Method' },
-  { id: 'privacy', label: 'Privacy' },
-  { id: 'why', label: 'Why' },
-  { id: 'beta', label: 'Closed beta' },
+  { id: 'session', mark: 'α', label: 'Session' },
+  { id: 'score', mark: 'β', label: 'Score' },
+  { id: 'patterns', mark: 'γ', label: 'Patterns' },
+  { id: 'instrument', mark: 'δ', label: 'Instrument' },
+  { id: 'method', mark: 'ε', label: 'Method' },
+  { id: 'privacy', mark: 'ζ', label: 'Privacy' },
+  { id: 'why', mark: 'η', label: 'Why' },
+  { id: 'access', mark: 'θ', label: 'Access' },
+]
+
+function ChapterLabel({ id, light = false }) {
+  const chapter = CHAPTERS.find(item => item.id === id)
+  return (
+    <p className={`site-label site-chapter-label${light ? ' is-light' : ''}`}>
+      <span className="site-mark" lang="grc">{chapter.mark}</span>
+      {chapter.label}
+    </p>
+  )
+}
+
+// Every value here is a constant in the app. Sources: FOCUSED_SCORE and
+// FLOW_SCORE (attention.js), FLOW_ENTRY_MS (attentionSampling.js), the 10 s hold
+// (sessionMeasures.js), alertDelayMs (SessionScreen.jsx), BASELINE_* (personalBaseline.js),
+// MIN_SESSIONS / MIN_MEANINGFUL_GAP_PCT (calibration.js). Update the copy with them.
+const SPEC = [
+  {
+    group: 'Measurement',
+    rows: [
+      ['Attention', '0–100, scored continuously, a sample every 5 s'],
+      ['Focused', '40 and above'],
+      ['Deep Focus', '72 and above, held for 90 s'],
+      ['Lapse', 'Under 40 for 10 s or more'],
+      ['Recovery', 'Time until attention holds again for 10 s'],
+      ['Drift alert', 'After about 90 s of drift; 120 s with a second screen'],
+    ],
+  },
+  {
+    group: 'Sessions',
+    rows: [
+      ['Start', 'Quick start in the Lab, or plan it; recent setups in one click'],
+      ['Length', '15 min to 1 h 30, custom, or no limit'],
+      ['Report', 'Timeline, lapses, recovery, longest Deep Focus block'],
+      ['Check-in', 'Afterwards only: goal reached, partly or missed'],
+    ],
+  },
+  {
+    group: 'Analysis',
+    rows: [
+      ['Focus Score', 'One number per day; Lab by day, week and month'],
+      ['Your usual', 'Median of your last 28 days, from 5 days on'],
+      ['Week in review', 'Each week against the last, one notification'],
+      ['Patterns', 'Time of day, from 8 sessions and a 12-point gap'],
+      ['Records', 'Longest Deep Focus block, most in a day, best day'],
+    ],
+  },
+  {
+    group: 'Environment',
+    rows: [
+      ['Workspace', '3D desk: screens, laptop, iPad, notes, books, phone'],
+      ['Calibration', 'Per object, so your second screen counts as work'],
+      ['Protection', 'Optional: block apps and sites, named setups, strict mode'],
+      ['Menu bar', 'Eudaimonai one click away'],
+    ],
+  },
+  {
+    group: 'Your data',
+    rows: [
+      ['Storage', 'A local database on your Mac'],
+      ['Export', 'CSV, or a full archive as JSON'],
+      ['Restore', 'Merges an archive back in, overwrites nothing'],
+      ['Delete', 'One session, or all history'],
+    ],
+  },
 ]
 
 const SESSION_STEPS = [
@@ -209,7 +277,9 @@ export default function LandingPage({ api }) {
       <aside className="site-rail" aria-label="On this page">
         <nav>
           {CHAPTERS.map(chapter => (
-            <a key={chapter.id} href={`#${chapter.id}`} data-chapter={chapter.id}>{chapter.label}</a>
+            <a key={chapter.id} href={`#${chapter.id}`} data-chapter={chapter.id}>
+              <span className="site-rail-mark" lang="grc">{chapter.mark}</span>{chapter.label}
+            </a>
           ))}
         </nav>
       </aside>
@@ -217,7 +287,7 @@ export default function LandingPage({ api }) {
       <main id="top" className="site-main">
         <section className="site-hero site-wrap">
           <p className="site-label site-label-accent">Focus sessions for Mac · Closed beta</p>
-          <h1>Focus you can see.<br /><span className="site-dim">Day after day.</span></h1>
+          <h1>Focus you can <em>see</em>.<br /><span className="site-dim">Day after day.</span></h1>
           <p className="site-hero-sub">
             A Mac app that measures your attention during focus sessions (focus time, attention, deep focus)
             and sums up your day in one number. Your focus data stays on your Mac.
@@ -229,6 +299,7 @@ export default function LandingPage({ api }) {
             Free during the beta · Apple Silicon, macOS 11 or later ·{' '}
             Already invited? <a href="/activate">Activate your access</a>
           </p>
+          <AttentionTrace />
           <div className="site-mac" ref={macRef}>
             <div className="site-mac-lid">
               <img src={labShot} alt="The Eudaimonai Lab: a Focus Score of 78 with session time, average attention and Deep Focus for the day" width="2400" height="1500" />
@@ -259,8 +330,8 @@ export default function LandingPage({ api }) {
 
         <section className="site-chapter site-wrap" id="session">
           <div className="site-ch-head site-rv">
-            <p className="site-label">Session</p>
-            <h2>Start a session. Then just work.</h2>
+            <ChapterLabel id="session" />
+            <h2>Start a session. Then just <em>work</em>.</h2>
             <p>Focus only counts inside a session you start, so the numbers mean what they say. Blocking is up to you: keep out what pulls you away, or nothing at all.</p>
           </div>
           <figure className="site-tile site-tile-shot site-rv">
@@ -271,10 +342,10 @@ export default function LandingPage({ api }) {
           </ol>
         </section>
 
-        <section className="site-chapter site-wrap" id="day">
+        <section className="site-chapter site-wrap" id="score">
           <div className="site-ch-head site-rv">
-            <p className="site-label">Your day</p>
-            <h2>One number for your day.</h2>
+            <ChapterLabel id="score" />
+            <h2>One number for your <em>day</em>.</h2>
             <p>Focus time, attention and deep focus add up to one daily score, compared with your own usual day. Never with anyone else.</p>
           </div>
           <div className="site-day">
@@ -294,10 +365,10 @@ export default function LandingPage({ api }) {
           </div>
         </section>
 
-        <section className="site-chapter site-wrap" id="week">
+        <section className="site-chapter site-wrap" id="patterns">
           <div className="site-ch-head site-rv">
-            <p className="site-label">First weeks</p>
-            <h2>The longer you use it, the more it can tell you.</h2>
+            <ChapterLabel id="patterns" />
+            <h2>The longer you use it, the more it can <em>tell</em> you.</h2>
             <p>And it stays quiet until it has enough to say something true.</p>
           </div>
           <ol className="site-timeline site-rv">
@@ -321,10 +392,30 @@ export default function LandingPage({ api }) {
           </div>
         </section>
 
+        <section className="site-chapter site-wrap" id="instrument">
+          <div className="site-ch-head site-rv">
+            <ChapterLabel id="instrument" />
+            <h2>Every number, and how it’s <em>made</em>.</h2>
+            <p>No black box. These are the thresholds and tools the app actually uses.</p>
+          </div>
+          <div className="site-spec site-rv">
+            {SPEC.map(block => (
+              <section key={block.group} className="site-spec-group" aria-label={block.group}>
+                <h3>{block.group}</h3>
+                <dl>
+                  {block.rows.map(([name, value]) => (
+                    <div key={name}><dt>{name}</dt><dd>{value}</dd></div>
+                  ))}
+                </dl>
+              </section>
+            ))}
+          </div>
+        </section>
+
         <section className="site-chapter site-wrap" id="method">
           <div className="site-ch-head site-rv">
-            <p className="site-label">Method</p>
-            <h2>What it watches, and what it doesn’t.</h2>
+            <ChapterLabel id="method" />
+            <h2>What it watches, and what it <em>doesn’t</em>.</h2>
             <p>Eudaimonai observes behaviour, not thoughts. It knows where your screens and desk are, so a look at your second display isn’t counted as looking away.</p>
           </div>
           <figure className="site-tile site-tile-shot site-rv">
@@ -347,8 +438,8 @@ export default function LandingPage({ api }) {
 
         <section className="site-chapter site-wrap" id="privacy">
           <div className="site-ch-head site-rv">
-            <p className="site-label">Privacy</p>
-            <h2>Your focus data stays on your Mac.</h2>
+            <ChapterLabel id="privacy" />
+            <h2>Your focus data stays on your <em>Mac</em>.</h2>
           </div>
           <div className="site-priv site-rv">
             <div><b>Camera</b><span>Frames are analysed in memory and discarded. No video is recorded or uploaded.</span></div>
@@ -363,8 +454,8 @@ export default function LandingPage({ api }) {
 
         <section className="site-chapter site-wrap" id="why">
           <div className="site-why site-rv">
-            <p className="site-label">Why</p>
-            <h2>Everything worth doing takes deep focus.</h2>
+            <ChapterLabel id="why" light />
+            <h2>Everything worth doing takes <em>deep focus</em>.</h2>
             <div className="site-why-body">
               <p>
                 A company, a thesis, a piece of music, a hard problem in code. Whatever the field, the work that matters
@@ -383,10 +474,10 @@ export default function LandingPage({ api }) {
           </div>
         </section>
 
-        <section className="site-chapter site-wrap" id="beta">
+        <section className="site-chapter site-wrap" id="access">
           <div className="site-ch-head site-rv">
-            <p className="site-label">Closed beta</p>
-            <h2>20 places to start.</h2>
+            <ChapterLabel id="access" />
+            <h2>20 places to <em>start</em>.</h2>
             <p>
               We open Eudaimonai to a small first group and read every request ourselves. It is built for work that
               needs long stretches of attention: founders, engineers, researchers, writers.
