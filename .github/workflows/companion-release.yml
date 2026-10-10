@@ -274,7 +274,13 @@ jobs:
           tag="release-v${VERSION}"
           bundle_root="companion/src-tauri/target/aarch64-apple-darwin/release/bundle"
           dmg="$(find "$bundle_root" -type f -name '*.dmg' | head -n 1)"
-          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}")"
+          # /releases/tags/{tag} never returns drafts, and this release is still
+          # a draft here, so look it up in the (authenticated) release list.
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq "map(select(.tag_name == \"${tag}\" and .draft)) | first")"
+          if [ -z "$release_json" ] || [ "$release_json" = "null" ]; then
+            echo "No draft release found for ${tag}." >&2
+            exit 1
+          fi
           asset_count="$(jq '[.assets[] | select(.name | endswith(".dmg"))] | length' <<< "$release_json")"
           if [ "$asset_count" -ne 1 ]; then
             echo "Expected exactly one DMG asset in the public draft, found $asset_count." >&2
