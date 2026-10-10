@@ -57,6 +57,35 @@ describe('legal copy', () => {
   })
 })
 
+describe('closed-beta privacy decisions (10 Oct 2026)', () => {
+  it('names the agreed legal bases', () => {
+    const output = html()
+    expect(output).toContain('necessary to provide the beta you request (Art. 6(1)(b) GDPR)')
+    expect(output).toContain('securing and protecting the beta (Art. 6(1)(f) GDPR)')
+  })
+
+  it('never uses the email for marketing without a separate basis', () => {
+    expect(html()).toContain('We do not use it for marketing or newsletters unless there is a separate legal basis')
+  })
+
+  it('discloses transfers outside the EU for Supabase, Resend, Vercel and GitHub', () => {
+    const output = html()
+    expect(output).toContain('Transfers outside the EU')
+    expect(output).toContain('including in Singapore and the USA')
+    expect(output).toContain('Resend also participates in the EU-US Data Privacy Framework')
+    expect(output).toContain('Vercel (this website) and GitHub')
+  })
+
+  // The code deletes automatically only the rate-limit counters and, on
+  // account deletion, the waitlist entry and open invitations. The policy
+  // must not promise more.
+  it('promises automatic deletion only where the code performs it', () => {
+    const output = html()
+    expect(output).toContain('these deletions are carried out by us and do not happen automatically')
+    expect(output).not.toMatch(/automatically (deleted|removed) after/i)
+  })
+})
+
 describe('legal modal keyboard behavior', () => {
   it('focuses Back, closes on Escape, and returns focus to the opener', () => {
     const onClose = vi.fn()

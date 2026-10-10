@@ -142,6 +142,25 @@ Step 0b.
 - `join_waitlist` has no rate limit of its own. A form flood would insert
   junk emails; mitigation (CAPTCHA or an edge check) is a Step 0b decision.
 
+## Retention (operational, manual)
+
+The privacy policy (`LegalModal.jsx`, "How long we keep beta records")
+promises these deletions; only the rate-limit counters and the account-deletion
+cascade are automatic. Run the rest by hand, as the database owner, on the
+project concerned.
+
+- **Waitlist entries of invited people**, and the whole waitlist when the
+  closed beta ends:
+  `delete from public.waitlist_entries where email_normalized in (select email_normalized from public.beta_invitations);`
+- **A person asks to be removed:** delete their account in the dashboard
+  (Authentication → Users). The trigger then deletes the waitlist entry and
+  open invitations and clears the email from the accepted invitation. Without
+  an account: delete the waitlist row and any unaccepted invitations by email.
+- **Allocation hashes and audit records** are protected against UPDATE/DELETE
+  by triggers on purpose. Deleting or anonymising them when no longer needed
+  is a deliberate migration that disables the trigger for that statement only;
+  never a casual dashboard edit.
+
 ## Accepted advisor findings (staging, 6 October 2026)
 
 `supabase db advisors` reports these on purpose; each was reviewed:
@@ -247,7 +266,7 @@ Rust owns the beta identity (`companion/src-tauri/src/access/`):
 
 | File | Role |
 |---|---|
-| `config.rs` | backend URL + publishable key (**staging**), grace constants. A build with `EUDONOMIA_BUILD_CHANNEL=release` refuses to compile while this names staging. |
+| `config.rs` | backend URL + publishable key per channel: local and internal-test builds → **staging**, `EUDONOMIA_BUILD_CHANNEL=release` → **production**. A release build refuses to compile while the production values are empty or equal staging's. Grace constants. |
 | `client.rs` | the same Auth/RPC calls as the website, over HTTPS (`ureq`); every failure becomes a short code, never server text |
 | `store.rs` | Keychain items `beta-auth-session` (tokens) and `beta-access-cache` (last verification, pending waitlist email, clock high-water mark), service `ai.eudonomia.companion` |
 | `grace.rs` | the access decision from the last server answer and the clock (pure, tested) |
