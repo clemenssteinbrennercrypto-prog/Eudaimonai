@@ -87,12 +87,11 @@ describe('buildDayBaseline', () => {
 describe('buildDayBaselineProgress', () => {
   // After a scoring change the usual goes silent; the Lab must be able to say
   // why instead of the comparison simply vanishing.
-  it('counts scored days on an earlier method without comparing them', () => {
+  it('counts scored days on an earlier method separately from the current one', () => {
     const { sessions, ledger } = history([
       ...[11, 12, 13, 14, 15, 16].map(day => session(`old${day}`, day)),
       session('new', 19, { version: 5 }),
     ])
-    expect(buildDayBaseline({ ledger, sessions, dayStart: DAY_20, now: NOW })).toBeNull()
     expect(buildDayBaselineProgress({ ledger, sessions, dayStart: DAY_20, now: NOW }))
       .toEqual({ days: 1, required: 5, earlierMethodDays: 6 })
   })
@@ -101,6 +100,48 @@ describe('buildDayBaselineProgress', () => {
     const { sessions, ledger } = history([1, 2].map(day => session(`s${day}`, 10 + day)))
     expect(buildDayBaselineProgress({ ledger, sessions, dayStart: DAY_20, now: NOW }))
       .toEqual({ days: 2, required: 5, earlierMethodDays: 0 })
+  })
+})
+
+// 10 Oct 2026: after the switch to the updated measurement the Lab showed no
+// usual for days. The earlier method's usual comes back as a labelled
+// reference until the current method has five scored days of its own.
+describe('buildDayBaseline after a method change', () => {
+  it('returns the earlier method\'s usual, marked, while the current method has fewer than five days', () => {
+    const { sessions, ledger } = history([
+      ...[11, 12, 13, 14, 15, 16].map(day => session(`old${day}`, day, { flowMinutes: 20, attention: 70 })),
+      session('new', 19, { version: 5, flowMinutes: 50, attention: 90 }),
+    ])
+    expect(buildDayBaseline({ ledger, sessions, dayStart: DAY_20, now: NOW })).toMatchObject({
+      onEarlierMethod: true,
+      days: 6,
+      currentMethodDays: 1,
+      required: 5,
+      deepFocusSeconds: 20 * 60,
+      averageAttention: 70,
+    })
+  })
+
+  it('reads the earlier usual on one method only, never a mix', () => {
+    const { sessions, ledger } = history([
+      ...[5, 6, 7].map(day => session(`v1-${day}`, day, { version: 1, flowMinutes: 50 })),
+      ...[11, 12, 13].map(day => session(`v2-${day}`, day, { flowMinutes: 20 })),
+      session('new', 19, { version: 5 }),
+    ])
+    // Three V1 days and three V2 days: neither method alone has five.
+    expect(buildDayBaseline({ ledger, sessions, dayStart: DAY_20, now: NOW })).toBeNull()
+  })
+
+  it('moves to the current method once it has five scored days', () => {
+    const { sessions, ledger } = history([
+      ...[5, 6, 7, 8, 9, 10].map(day => session(`old${day}`, day, { flowMinutes: 20 })),
+      ...[13, 14, 15, 16, 17].map(day => session(`new${day}`, day, { version: 5, flowMinutes: 40 })),
+    ])
+    expect(buildDayBaseline({ ledger, sessions, dayStart: DAY_20, now: NOW })).toMatchObject({
+      onEarlierMethod: false,
+      days: 5,
+      deepFocusSeconds: 40 * 60,
+    })
   })
 })
 

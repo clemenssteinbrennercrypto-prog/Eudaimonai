@@ -608,11 +608,20 @@ has enough usable sessions (records 10, Details and the Overview average
 has, labelled "earlier method". Each view still reads exactly one generation.
 Comparisons across periods — personal baseline, week against week, the
 Details delta and record announcements in the debrief — keep refusing across
-a generation change, but say so instead of going blank: the Lab shows "Your
-usual returns after 5 scored days on the updated measurement (n of 5)"
-(`buildDayBaselineProgress`), the week review "Last week used the earlier
-measurement method" (`previousOnEarlierMethod`), and the Focus Score names
-the method change as the reason a period's score starts mid-period.
+a generation change, but say so instead of going blank: the week review says
+"Last week used the earlier measurement method" (`previousOnEarlierMethod`),
+and the Focus Score names the method change as the reason a period's score
+starts mid-period.
+
+The Lab's usual is the one exception, decided by the user on 10 Oct 2026
+after three days without it: while the current method has fewer than 5
+scored days, `buildDayBaseline` returns the usual of the most recent earlier
+method that has 5 (one method, never a mix) with `onEarlierMethod: true`.
+The Lab shows it as "Usual day 62 · earlier method" with **no +/− delta** —
+V5 reads Deep Focus higher and average attention lower than V2 for the same
+work, so a delta would partly be a measurement effect. Do not add the delta
+back. With no method at 5 days the Lab says "Your usual returns after 5
+scored days on the updated measurement (n of 5)" (`buildDayBaselineProgress`).
 
 Workspaces are compared as places, not layout revisions (Details, Patterns):
 editing the desk keeps one "Schreibtisch" row instead of "v2 / v3 / v4".
@@ -812,8 +821,9 @@ never rewritten.
 
 - **Personal baseline** (`personalBaseline.js`, Lab day view): a day against
   the user's own usual — the median of the previous 28 days that have a
-  current Focus Score on the current camera generation, silent below 5 such
-  days. Rest days are left out, not counted as zero. Today is still running,
+  current Focus Score on the current camera generation; below 5 such days,
+  an earlier method's usual as a labelled reference without a delta (§10),
+  otherwise silent. Rest days are left out, not counted as zero. Today is still running,
   so cumulative values (score, Deep Focus) show the usual as a reference, not
   a gap that would read as a deficit every morning; average attention is
   compared at any time. Gains are green, shortfalls stay neutral. Session

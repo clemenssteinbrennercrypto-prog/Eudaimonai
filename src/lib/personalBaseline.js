@@ -8,7 +8,15 @@
 // left out rather than counted as zero — a rest day is not a bad day, and a
 // median of zeros would make every working day look exceptional.
 //
-// Below five such days there is no "usual" yet, and the baseline says nothing.
+// Below five such days there is no "usual" yet.
+//
+// After a scoring change the method in use starts with no scored days. Until
+// it has five, the usual of the most recent earlier method that has five is
+// returned with `onEarlierMethod: true` (one method, never a mix). The Lab
+// shows it as a labelled reference without a +/− delta: the methods read
+// differently (V5 Deep Focus higher, average attention lower for the same
+// work), so a delta would show progress that is partly a measurement effect.
+// Chosen by the user on 10 Oct 2026 over three days of an empty Lab.
 import { getFocusPeriodWindow } from './focusMetric'
 import { buildVersionedFocusPeriod } from './focusMetricV2'
 import { FOCUS_SCORE } from './focusScore'
@@ -31,19 +39,45 @@ function medianIfEnough(values) {
 
 /**
  * The usual day before `dayStart`: { days, focusScore, deepFocusSeconds,
- * averageAttention }, each a median, or null when fewer than five scored days
- * exist in the window. A value is also null on its own when fewer than five
- * of those days carry it.
+ * averageAttention, onEarlierMethod, currentMethodDays, required }, each value
+ * a median, or null when no single method has five scored days in the window.
+ * A value is also null on its own when fewer than five of those days carry it.
+ * `onEarlierMethod` marks a usual read on an earlier method while the current
+ * one still has fewer than five days; it is a reference, never a comparison.
  */
 export function buildDayBaseline(options) {
-  const { scores, deepFocus, attention } = scoredDays(options)
-  if (scores.length < BASELINE_MIN_DAYS) return null
-  return {
-    days: scores.length,
-    focusScore: median(scores),
-    deepFocusSeconds: medianIfEnough(deepFocus),
-    averageAttention: medianIfEnough(attention),
+  const days = scoredDays(options)
+  const current = days.filter(day => day.current)
+  if (current.length >= BASELINE_MIN_DAYS) {
+    return usualOf(current, { onEarlierMethod: false, currentMethodDays: current.length })
   }
+  const earlier = mostRecentEarlierMethod(days.filter(day => !day.current))
+  return earlier
+    ? usualOf(earlier, { onEarlierMethod: true, currentMethodDays: current.length })
+    : null
+}
+
+function usualOf(days, extra) {
+  const finite = key => days.map(day => day[key]).filter(Number.isFinite)
+  return {
+    days: days.length,
+    focusScore: median(days.map(day => day.score)),
+    deepFocusSeconds: medianIfEnough(finite('deepFocusSeconds')),
+    averageAttention: medianIfEnough(finite('averageAttention')),
+    required: BASELINE_MIN_DAYS,
+    ...extra,
+  }
+}
+
+// The earlier method whose latest scored day is most recent among those with
+// enough days. Days arrive newest first, so Map insertion order is recency.
+function mostRecentEarlierMethod(days) {
+  const byGeneration = new Map()
+  for (const day of days) {
+    if (!byGeneration.has(day.generation)) byGeneration.set(day.generation, [])
+    byGeneration.get(day.generation).push(day)
+  }
+  return [...byGeneration.values()].find(group => group.length >= BASELINE_MIN_DAYS) || null
 }
 
 /**
@@ -54,17 +88,21 @@ export function buildDayBaseline(options) {
  * returns once the new method has `required` scored days of its own.
  */
 export function buildDayBaselineProgress(options) {
-  const { scores, earlierMethodDays } = scoredDays(options)
-  return { days: scores.length, required: BASELINE_MIN_DAYS, earlierMethodDays }
+  const days = scoredDays(options)
+  return {
+    days: days.filter(day => day.current).length,
+    required: BASELINE_MIN_DAYS,
+    earlierMethodDays: days.filter(day => !day.current).length,
+  }
 }
 
+// Every scored day in the window before `dayStart`, newest first, each read on
+// its own method: { generation, current, score, averageAttention,
+// deepFocusSeconds }.
 function scoredDays({ ledger, sessions = [], dayStart, now = Date.now(), metricVersion = FOCUS_SCORE.metricVersion }) {
   const reference = new Date(dayStart ?? now)
   const generation = activeFocusGeneration(sessions)
-  const scores = []
-  const deepFocus = []
-  const attention = []
-  let earlierMethodDays = 0
+  const days = []
   for (let offset = 1; offset <= BASELINE_WINDOW_DAYS; offset += 1) {
     const { start } = getFocusPeriodWindow('day', -offset, reference)
     const period = buildVersionedFocusPeriod(ledger, {
@@ -75,14 +113,14 @@ function scoredDays({ ledger, sessions = [], dayStart, now = Date.now(), metricV
       metricVersion,
     })
     if (period?.score == null) continue
-    if (period.generation !== generation) {
-      earlierMethodDays += 1
-      continue
-    }
-    scores.push(period.score)
-    if (Number.isFinite(period.averageAttention)) attention.push(period.averageAttention)
     const time = buildPeriodTimeSummary(sessions, period, now)
-    if (Number.isFinite(time.deepFocusSeconds)) deepFocus.push(time.deepFocusSeconds)
+    days.push({
+      generation: period.generation,
+      current: period.generation === generation,
+      score: period.score,
+      averageAttention: Number.isFinite(period.averageAttention) ? period.averageAttention : null,
+      deepFocusSeconds: Number.isFinite(time.deepFocusSeconds) ? time.deepFocusSeconds : null,
+    })
   }
-  return { scores, deepFocus, attention, earlierMethodDays }
+  return days
 }

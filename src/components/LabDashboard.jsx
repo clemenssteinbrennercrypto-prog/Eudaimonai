@@ -161,12 +161,25 @@ function Metric({ label, value, suffix, detail, status = null, tone, compare = n
 // A day against the user's own usual (personalBaseline.js). Today is still
 // running, so cumulative values show the usual as a reference instead of a
 // gap that would look like a deficit every morning. Average attention is not
-// cumulative and can be compared at any time.
-function BaselineNote({ value, usual, format, unit = 1, cumulative, isToday, days }) {
+// cumulative and can be compared at any time. A usual read on an earlier
+// measurement method is only ever a labelled reference: the methods read
+// differently, so a +/− against it would partly be a measurement effect.
+function BaselineNote({ value, usual, format, unit = 1, cumulative, isToday, baseline }) {
   if (usual == null) return null
   // Round both sides to the unit shown before subtracting, so "+4 · 70"
   // never reads 74 against a median of 69.5 as "+5".
   const shown = number => Math.round(number / unit) * unit
+  const { days, onEarlierMethod, currentMethodDays, required } = baseline
+  if (onEarlierMethod) {
+    const title = `The median of ${days} scored days on the earlier measurement method, shown for reference only: ` +
+      `the methods read differently, so today is not compared with it. ` +
+      `Your usual moves to the updated measurement after ${required} scored days on it (${currentMethodDays} of ${required}).`
+    return (
+      <small className="lab-baseline is-earlier-method" title={title}>
+        Usual day {format(shown(usual))} · earlier method
+      </small>
+    )
+  }
   const title = `Your usual: the median of your last ${days} scored days`
   if (value == null || (cumulative && isToday)) {
     return <small className="lab-baseline" title={title}>Usual day {format(shown(usual))}</small>
@@ -425,7 +438,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
         <div className="lab-ring-column">
           <ScoreRings score={period.score} caption={period.score == null ? focusScoreLabel(period) : 'of 100'} rings={rings} />
           {baseline && (
-            <BaselineNote value={period.score} usual={baseline.focusScore} format={formatPoints} cumulative isToday={isToday} days={baseline.days} />
+            <BaselineNote value={period.score} usual={baseline.focusScore} format={formatPoints} cumulative isToday={isToday} baseline={baseline} />
           )}
           {baselineProgress?.earlierMethodDays > 0 && (
             <small className="lab-baseline" title="Earlier days used an earlier measurement method and are never compared with the current one.">
@@ -450,7 +463,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
             suffix="/100"
             detail="Average while the camera could see you"
             compare={baseline && (
-              <BaselineNote value={period.averageAttention} usual={baseline.averageAttention} format={formatPoints} isToday={isToday} days={baseline.days} />
+              <BaselineNote value={period.averageAttention} usual={baseline.averageAttention} format={formatPoints} isToday={isToday} baseline={baseline} />
             )}
           />
           <Metric
@@ -460,7 +473,7 @@ export default function LabDashboard({ focusModeEnabled, sessions = [], ledger =
             detail="Stretches of 90 s or more of steady attention"
             status={time.deepFocusSeconds == null ? deepFocusDetail : null}
             compare={baseline && (
-              <BaselineNote value={time.deepFocusSeconds} usual={baseline.deepFocusSeconds} format={formatSeconds} unit={60} cumulative isToday={isToday} days={baseline.days} />
+              <BaselineNote value={time.deepFocusSeconds} usual={baseline.deepFocusSeconds} format={formatSeconds} unit={60} cumulative isToday={isToday} baseline={baseline} />
             )}
           />
         </div>
