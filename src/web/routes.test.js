@@ -7,6 +7,8 @@ describe('webRoute', () => {
     expect(webRoute('/activate/')).toBe('/activate')
     expect(webRoute('/download?x=1')).toBe('/download')
     expect(webRoute('/admin')).toBe('/admin')
+    expect(webRoute('/privacy')).toBe('/privacy')
+    expect(webRoute('/legal/')).toBe('/legal')
     expect(webRoute('/anything-else')).toBe('/')
     expect(webRoute('')).toBe('/')
   })
@@ -16,7 +18,7 @@ describe('shouldRenderWebsite', () => {
   const base = { isNative: false, isDev: false, pathname: '/', search: '' }
 
   it('never renders the website inside the native app, on any path', () => {
-    for (const pathname of ['/', '/activate', '/download', '/admin']) {
+    for (const pathname of ['/', '/activate', '/download', '/admin', '/privacy', '/legal']) {
       expect(shouldRenderWebsite({ ...base, isNative: true, pathname })).toBe(false)
       expect(shouldRenderWebsite({ ...base, isNative: true, isDev: true, pathname })).toBe(false)
     }

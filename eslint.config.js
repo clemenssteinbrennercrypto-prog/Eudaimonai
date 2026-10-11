@@ -54,6 +54,16 @@ export default [
     },
   },
   {
+    // Runs inside the dev page, not in Node.
+    files: ['scripts/website-shots/seed.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.browser, ...globals.es2024 },
+    },
+    rules: correctnessRules,
+  },
+  {
     files: ['scripts/**/*.mjs', 'vite.config.js'],
     languageOptions: {
       ecmaVersion: 'latest',

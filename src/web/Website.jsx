@@ -1,23 +1,34 @@
 import { useEffect, useMemo } from 'react'
-import LandingPage from '../components/LandingPage'
+import LandingPage from './landing/LandingPage'
+import LegalPage from './LegalPage'
 import ActivatePage from './ActivatePage'
 import DownloadPage from './DownloadPage'
 import AdminConsole from './AdminConsole'
 import { webRoute } from './routes'
 import { createBetaApi } from './betaApi'
 import { getSupabase } from './supabaseClient'
+import { startAnalytics } from './analytics'
 import './web.css'
 
+// The landing and legal pages are silver; the funnel and admin pages are dark.
+const LIGHT = '#EEF0F3'
+const DARK = '#080A0F'
+
 const PAGES = {
-  '/': { title: 'Eudaimonai · Focus sessions for Mac', index: true },
-  '/activate': { title: 'Activate your beta access · Eudaimonai', index: false },
-  '/download': { title: 'Download · Eudaimonai', index: true },
-  '/admin': { title: 'Beta admin · Eudaimonai', index: false },
+  '/': { title: 'Eudaimonai · The focus instrument for Mac', index: true, theme: LIGHT },
+  '/activate': { title: 'Activate your beta access · Eudaimonai', index: false, theme: DARK },
+  '/download': { title: 'Download · Eudaimonai', index: true, theme: DARK },
+  '/admin': { title: 'Beta admin · Eudaimonai', index: false, theme: DARK },
+  '/privacy': { title: 'Privacy Policy · Eudaimonai', index: true, theme: LIGHT },
+  '/legal': { title: 'Legal Notice · Eudaimonai', index: true, theme: LIGHT },
 }
 
-function useDocumentMeta({ title, index }) {
+function useDocumentMeta({ title, index, theme }) {
   useEffect(() => {
     document.title = title
+    let themeColor = document.querySelector('meta[name="theme-color"]')
+    themeColor ??= document.head.appendChild(Object.assign(document.createElement('meta'), { name: 'theme-color' }))
+    themeColor.content = theme
     let robots = document.querySelector('meta[name="robots"]')
     if (!index) {
       robots ??= Object.assign(document.createElement('meta'), { name: 'robots' })
@@ -26,7 +37,7 @@ function useDocumentMeta({ title, index }) {
     } else {
       robots?.remove()
     }
-  }, [title, index])
+  }, [title, index, theme])
 }
 
 export default function Website({ api: injectedApi, pathname = window.location.pathname }) {
@@ -37,9 +48,11 @@ export default function Website({ api: injectedApi, pathname = window.location.p
     return client ? createBetaApi(client) : { configured: false }
   }, [injectedApi])
   useDocumentMeta(PAGES[route])
+  useEffect(() => { startAnalytics() }, [])
 
   if (route === '/activate') return <ActivatePage api={api} />
   if (route === '/download') return <DownloadPage />
   if (route === '/admin') return <AdminConsole api={api} />
+  if (route === '/privacy' || route === '/legal') return <LegalPage route={route} />
   return <LandingPage api={api} />
 }

@@ -44,6 +44,10 @@ Email: clemenssteinbrenner.crypto@gmail.com`,
 //   – Supabase processing locations outside Frankfurt (Singapore, USA) as
 //     Supabase states them on 10 Oct 2026; re-check its subprocessor list.
 //   – The waitlist as a step taken at the visitor's request (Art. 6(1)(b)).
+//   – Website analytics (Vercel Web Analytics, added 11 Oct 2026 at Clemens'
+//     request): cookieless and without device storage, on Art. 6(1)(f).
+//     Confirm that basis, and that no consent is needed under § 165 TKG 2021.
+//     What it receives is set in src/web/analytics.js (no query strings).
 //   – "Within a reasonable period": no fixed number is promised, and those
 //     deletions are manual (see docs/beta-access-backend.md, "Retention").
 export const DATENSCHUTZ = [
@@ -144,11 +148,15 @@ Vercel (this website) and GitHub (the app download and the update check) may pro
     heading: 'This website',
     body: `This website is delivered by the hosting provider Vercel Inc. (USA). When you visit it, Vercel processes technically necessary connection data such as IP address, time, page requested and browser identifier in order to deliver the site and protect it from abuse. The app file itself is provided for download by GitHub (USA), which also receives your IP address and standard connection data.
 
-If you request beta access or activate an invitation here, the data described under “Closed beta” is sent to our beta backend. The website does not record which page you came from and collects no session, camera or activity data. The legal basis for delivering the site is our legitimate interest in providing it securely and reliably (Art. 6(1)(f) GDPR).`,
+If you request beta access or activate an invitation here, the data described under “Closed beta” is sent to our beta backend. Apart from the anonymous visitor statistics described under “Website statistics”, the website collects no session, camera or activity data. The legal basis for delivering the site is our legitimate interest in providing it securely and reliably (Art. 6(1)(f) GDPR).`,
+  },
+  {
+    heading: 'Website statistics',
+    body: `To understand how this website is used, for example how many visitors request beta access, we use Vercel Web Analytics, provided by Vercel Inc. (USA). It sets no cookies and stores nothing on your device. For each page view it receives the page address without any parameters, the referring website, your country, and your browser, operating system and device type, plus a few named steps such as “beta access requested” or “download started”, never your email address or anything you type. Visitors are counted with a temporary identifier derived from the request, which is reset every day, so you cannot be recognised across days. Your IP address is not stored. The results are aggregated statistics. The legal basis is our legitimate interest in understanding and improving the website (Art. 6(1)(f) GDPR). You can object at any time by writing to the contact address below, or by blocking the script in your browser.`,
   },
   {
     heading: 'Cookies',
-    body: `No cookies are set and no analytics or tracking service is used. When you activate an invitation or sign in as an administrator, the website keeps your sign-in session in your browser's local storage. After an activation it signs you out again straight away and removes it.`,
+    body: `No cookies are set. When you activate an invitation or sign in as an administrator, the website keeps your sign-in session in your browser's local storage. After an activation it signs you out again straight away and removes it.`,
   },
   {
     heading: 'Support report',

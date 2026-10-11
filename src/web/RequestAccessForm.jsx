@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { attributionFromSearch } from './attribution'
+import { EVENTS, trackEvent } from './analytics'
 
 const MESSAGES = {
   invalid_email: 'That doesn’t look like a complete email address.',
@@ -11,7 +12,10 @@ const MESSAGES = {
 // Waitlist signup. Joining never creates an account and never grants access;
 // the confirmation says so. A duplicate address gets the same confirmation,
 // so the form never reveals who is already on the list.
-export default function RequestAccessForm({ api, onOpenPrivacy, search = window.location.search }) {
+// `place` names where the form sits on the page, for the statistics only.
+export default function RequestAccessForm({ api, onOpenPrivacy, privacyHref, place = 'page', search = window.location.search }) {
+  // The landing page shows the form twice; each copy needs its own input id.
+  const inputId = useId()
   const [email, setEmail] = useState('')
   const [trap, setTrap] = useState('')
   const [status, setStatus] = useState('idle')
@@ -33,13 +37,21 @@ export default function RequestAccessForm({ api, onOpenPrivacy, search = window.
       setStatus('done')
       return
     }
+    // The browser's own check normally stops an empty field; this is the fallback.
+    if (!email.trim()) {
+      setError('invalid_email')
+      return
+    }
     setStatus('submitting')
     const { error: code } = await api.joinWaitlist(email.trim(), attributionFromSearch(search))
     if (code) {
-      setError(code === 'invalid_email' || code === 'rate_limited' || code === 'network' ? code : 'unknown')
+      const reason = code === 'invalid_email' || code === 'rate_limited' || code === 'network' ? code : 'unknown'
+      trackEvent(EVENTS.betaRequestFailed, { place, reason })
+      setError(reason)
       setStatus('idle')
       return
     }
+    trackEvent(EVENTS.betaRequested, { place })
     setStatus('done')
   }
 
@@ -57,9 +69,9 @@ export default function RequestAccessForm({ api, onOpenPrivacy, search = window.
   return (
     <form className="request-form" onSubmit={submit} noValidate={false}>
       <div className="request-form-row">
-        <label htmlFor="request-email" className="request-form-trap">Email address</label>
+        <label htmlFor={inputId} className="request-form-trap">Email address</label>
         <input
-          id="request-email"
+          id={inputId}
           className="web-input"
           type="email"
           name="email"
@@ -72,7 +84,9 @@ export default function RequestAccessForm({ api, onOpenPrivacy, search = window.
           onChange={event => setEmail(event.target.value)}
           disabled={status === 'submitting'}
         />
-        <button className="web-button" type="submit" disabled={status === 'submitting' || !email.trim()}>
+        {/* Never greyed out when empty: the primary call to action must look
+            available. The required email field lets the browser explain. */}
+        <button className="web-button" type="submit" disabled={status === 'submitting'}>
           {status === 'submitting' ? 'Sending…' : 'Request beta access'}
         </button>
       </div>
@@ -84,8 +98,9 @@ export default function RequestAccessForm({ api, onOpenPrivacy, search = window.
       </div>
       {error && <p className="web-message is-error" role="alert">{MESSAGES[error]}</p>}
       <p className="web-note">
-        We only store your email address for the beta. Your focus data never leaves your Mac.{' '}
-        {onOpenPrivacy && (
+        We only store your email address for the beta. Your focus data stays on your Mac.{' '}
+        {privacyHref && <a href={privacyHref}>Privacy policy</a>}
+        {!privacyHref && onOpenPrivacy && (
           <button type="button" className="web-link-button" style={{ textTransform: 'none', letterSpacing: 0, fontSize: 13, textDecoration: 'underline' }} onClick={onOpenPrivacy}>
             Privacy policy
           </button>

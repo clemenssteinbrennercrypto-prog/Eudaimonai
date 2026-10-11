@@ -59,4 +59,14 @@ describe('RequestAccessForm', () => {
     expect(screen.getByText('Beta requests open soon.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Request beta access' })).not.toBeInTheDocument()
   })
+
+  it('keeps the button available when the field is empty and asks for an address', async () => {
+    const api = apiReturning({ data: null, error: null })
+    render(<RequestAccessForm api={api} search="" />)
+    const button = screen.getByRole('button', { name: 'Request beta access' })
+    expect(button).toBeEnabled()
+    fireEvent.submit(button.closest('form'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('complete email address')
+    expect(api.joinWaitlist).not.toHaveBeenCalled()
+  })
 })
