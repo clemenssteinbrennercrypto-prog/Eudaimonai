@@ -11,18 +11,18 @@ const icon = `data:image/png;base64,${readFileSync(new URL('public/apple-touch-i
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   * { box-sizing: border-box; margin: 0; }
-  body { width: 1200px; height: 630px; background: #fff; color: #1D1D1F; overflow: hidden;
+  body { width: 1200px; height: 630px; background: linear-gradient(180deg, #F7F8FA, #E4E7EC); color: #0B0C10; overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
   .brand { position: absolute; top: 56px; left: 72px; display: flex; align-items: center; gap: 14px;
     font-weight: 600; font-size: 16px; letter-spacing: .32em; text-transform: uppercase; }
   .brand img { width: 36px; height: 36px; border-radius: 9px; }
-  h1 { position: absolute; top: 126px; left: 72px; font-size: 62px; line-height: 1; letter-spacing: -0.045em; font-weight: 700; white-space: nowrap; }
+  h1 { position: absolute; top: 120px; left: 72px; font-size: 72px; line-height: 1; letter-spacing: -0.045em; font-weight: 700; white-space: nowrap; }
   h1 span { color: #86868B; }
   .shot { position: absolute; left: 72px; right: 72px; bottom: 56px; border-radius: 18px; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,.22); }
   .shot img { display: block; width: 100%; }
 </style></head><body>
   <div class="brand"><img src="${icon}" alt="">Eudaimonai</div>
-  <h1>Focus you can see. <span>Day after day.</span></h1>
+  <h1>The focus instrument.</h1>
   <div class="shot"><img src="${asset('lab-score.webp')}" alt=""></div>
 </body></html>`
 

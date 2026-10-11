@@ -1,7 +1,8 @@
 import { useRef } from 'react'
 import RequestAccessForm from '../RequestAccessForm'
 import { SiteFooter, SiteHeader } from './SiteChrome'
-import HeroRing from './HeroRing'
+import LogoMark from './LogoMark'
+import SpecBand from './SpecBand'
 import AppShowcase from './AppShowcase'
 import HowItWorks from './HowItWorks'
 import WhySection from './WhySection'
@@ -9,13 +10,15 @@ import PrivacyMap from './PrivacyMap'
 import { useReveal, useSeen } from './motion'
 import './landing.css'
 
-// The public landing page: product first, with the idea as its climax.
-//   Hero        what it is, the request form, the ring drawing a real day
-//   The app     a Mac growing into place, showing each part of the app
+// The public landing page, with a category leader's posture: one sentence,
+// the product on silver, then hard facts. Light silver ground with strong dark
+// accents (the spec band, the scenes, why on ultramarine, the closing band).
+//   Hero        the claim, the request form, and the Mac touring the app
+//   Specs       four true numbers on black
 //   How         five scenes: plan, work, the camera's focus zones, the score, sound
 //   Why         the thesis, on ultramarine
 //   Privacy     what the camera does with a frame, and where each kind of data lives
-//   Access      the four steps to the app, the form again, the questions
+//   Access      on black: the four steps, the form again; then the questions
 //
 // Claims stay inside what the product measures (AGENTS.md §5): it observes
 // behaviour, not thoughts, and the score is the user's own daily summary, not
@@ -68,38 +71,27 @@ export default function LandingPage({ api }) {
       <SiteHeader />
 
       <main id="top">
-        <section className="site-hero">
-          <div className="site-wrap site-hero-grid">
-            <div className="site-hero-copy">
-              <p className="site-label site-label-accent">Closed beta · for Mac</p>
-              <h1>Focus you can see.</h1>
-              <p className="site-hero-sub">
-                Everything worth doing takes long, unbroken stretches of attention. Eudaimonai measures yours during
-                focus sessions, on your Mac, and turns it into one number for your day.
-              </p>
-              <div className="site-hero-form">
-                <RequestAccessForm api={api} privacyHref="/privacy" />
-              </div>
-              <p className="site-fine">
-                Free during the beta · Apple Silicon Mac · Already invited? <a href="/activate">Activate your access</a>
-              </p>
+        <section className="site-hero" id="app">
+          <div className="site-wrap site-hero-copy">
+            <p className="site-eyebrow"><LogoMark size={22} tone="ink" />Eudaimonai for Mac</p>
+            <h1>The focus instrument.</h1>
+            <p className="site-hero-sub">
+              Built for work that needs your full attention. Eudaimonai measures yours, second by second,
+              and shows you exactly how to get more of it.
+            </p>
+            <div className="site-hero-form">
+              <RequestAccessForm api={api} privacyHref="/privacy" />
             </div>
-            <HeroRing />
+            <p className="site-scarcity"><i />Closed beta · Limited places · Already invited? <a href="/activate">Activate your access</a></p>
           </div>
-        </section>
-
-        <section className="site-band" id="app">
-          <div className="site-wrap">
-            <div className="site-head site-head-center site-rv">
-              <p className="site-label">The app</p>
-              <h2>Everything for your focus, in one Mac app.</h2>
-              <p>Sessions, live measurement, reports and your history over weeks. Here is what’s inside.</p>
-            </div>
+          <div className="site-wrap site-hero-stage">
             <AppShowcase />
           </div>
         </section>
 
-        <section className="site-band is-mist" id="how">
+        <SpecBand />
+
+        <section className="site-band" id="how">
           <div className="site-wrap">
             <div className="site-head site-rv">
               <p className="site-label">How it works</p>
@@ -130,12 +122,12 @@ export default function LandingPage({ api }) {
           </div>
         </section>
 
-        <section className="site-band is-dawn" id="access">
+        <section className="site-band is-night" id="access">
           <div className="site-wrap">
             <div className="site-head site-head-center site-rv">
-              <p className="site-label">Closed beta</p>
-              <h2>Limited places to start.</h2>
-              <p>Built for work that needs long stretches of attention: founders, engineers, researchers, writers.</p>
+              <p className="site-label">Closed beta · Limited places</p>
+              <h2>Your best work deserves to be measured.</h2>
+              <p>Built for work that needs long stretches of attention: students, founders, engineers, researchers, writers.</p>
             </div>
             <AccessSteps />
             <div className="site-access-form site-rv">
@@ -145,8 +137,12 @@ export default function LandingPage({ api }) {
                 <a href="/activate">Activate your access</a>
               </p>
             </div>
+          </div>
+        </section>
 
-            <div className="site-faq" id="faq">
+        <section className="site-band is-faq" id="faq">
+          <div className="site-wrap">
+            <div className="site-faq">
               <h2 className="site-label">Questions</h2>
               <div className="site-qa">
                 {FAQ.map(item => (
