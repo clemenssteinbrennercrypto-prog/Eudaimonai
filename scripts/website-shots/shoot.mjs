@@ -52,23 +52,6 @@ const trace = await page.evaluate(task => {
 }, seeded.today[1])
 writeFileSync(new URL('../../src/web/landing/assets/demo-session.json', import.meta.url), `${JSON.stringify(trace)}\n`)
 
-// The data art: every session of the last seven days with a full trace,
-// oldest first, each resampled to 160 points (mean per bucket).
-const art = await page.evaluate(today => {
-  const end = new Date(today).getTime()
-  const sessions = JSON.parse(localStorage.getItem('eudaimonia_sessions') || '[]')
-    .filter(item => end - item.startedAt < 7 * 86400000 && item.timeline?.length > 40)
-    .sort((a, b) => a.startedAt - b.startedAt)
-  const resample = (scores, n) => Array.from({ length: n }, (_, index) => {
-    const from = Math.floor((index * scores.length) / n)
-    const to = Math.max(from + 1, Math.floor(((index + 1) * scores.length) / n))
-    const slice = scores.slice(from, to)
-    return Math.round(slice.reduce((sum, value) => sum + value, 0) / slice.length)
-  })
-  return sessions.map(item => ({ startedAt: item.startedAt, minutes: Math.round(item.actualSeconds / 60), scores: resample(item.timeline.map(sample => sample.score), 160) }))
-}, TODAY)
-writeFileSync(new URL('../../src/web/landing/assets/demo-art.json', import.meta.url), `${JSON.stringify(art)}\n`)
-
 
 
 // The unreleased "AI Companion · Soon" item and the dev build tag are not
