@@ -162,9 +162,9 @@ export default function AttentionTrace() {
         <span className="is-end" style={{ right: '0%' }}>{clock(startedAt + facts.seconds * 1000)} end</span>
       </div>
       <figcaption className="site-trace-legend">
-        <span><i className="is-band" />Deep Focus band, 72+</span>
-        <span><i className="is-rule" />Focused, 40+</span>
-        <span><i className="is-lapse" />Lapse, under 40 for 10 s or more</span>
+        <span><i className="is-band" />Deep Focus</span>
+        <span><i className="is-rule" />Focused</span>
+        <span><i className="is-lapse" />Lapse</span>
       </figcaption>
     </figure>
   )

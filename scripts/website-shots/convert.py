@@ -21,6 +21,8 @@ WIDTHS = {
     'week-review': 1800,
     'best-hours': 1800,
     'workspace': 2000,
+    'protection': 1800,
+    'analytics': 2000,
 }
 
 TARGET.mkdir(parents=True, exist_ok=True)

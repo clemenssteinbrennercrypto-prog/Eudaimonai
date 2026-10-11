@@ -119,6 +119,22 @@ await settle(600)
 await tidy()
 await shot('session-planner')
 
+// Protection: the optional blocking setup.
+await page.getByText('Protection', { exact: true }).first().click()
+await settle()
+for (const name of ['VS Code', 'Notion', 'Figma', 'YouTube', 'Instagram', 'TikTok', 'Reddit']) {
+  await page.getByRole('button', { name: `+ ${name}` }).first().click()
+  await page.waitForTimeout(200)
+}
+await settle(800)
+await tidy()
+// The rules only; the status row above them reports the dev build's missing
+// companion, which no installed app shows.
+await shot('protection', { clip: { x: 500, y: 300, width: 880, height: 500 } })
+// Protection edits a draft; save it so leaving the screen isn't held up.
+await page.getByRole('button', { name: 'Save setup' }).click()
+await settle(800)
+
 // Analytics: time of day, and one session's report.
 await page.getByText('Analytics', { exact: true }).first().click()
 await settle()
@@ -127,6 +143,8 @@ await settle(2000)
 await shot('best-hours', { fullPage: true, clip: pad(await panelBox('Time of day', { minWidth: 1000, minHeight: 300 }), 28) })
 await page.getByText('Overview', { exact: true }).first().click()
 await settle()
+await tidy()
+await shot('analytics')
 const reportTask = seeded.today[1]
 await page.getByText(reportTask).first().scrollIntoViewIfNeeded()
 await page.getByText(reportTask).first().click()

@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
@@ -54,6 +54,17 @@ describe('Website routes', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Legal Notice' })).toBeInTheDocument()
     expect(screen.getByText(/Heinrich-Casper-Gasse 17, 8010 Graz, Austria/)).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Privacy Policy' })[0]).toHaveAttribute('href', '/privacy')
+  })
+})
+
+describe('the features explorer', () => {
+  it('shows one part of the app at a time and lets the visitor choose', () => {
+    render(<Website api={{ configured: true, joinWaitlist: vi.fn() }} pathname="/" />)
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs.map(tab => tab.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false', 'false', 'false'])
+    fireEvent.click(screen.getByRole('tab', { name: /Workspace/ }))
+    expect(screen.getByRole('tab', { name: /Workspace/ })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName(/Workspace/)
   })
 })
 
