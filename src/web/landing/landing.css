@@ -84,7 +84,7 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
 .site-hero { position: relative; overflow: hidden; padding-top: 112px; background: radial-gradient(110% 60% at 50% 0%, #FFFFFF 0%, rgba(255, 255, 255, 0) 70%); }
 .site-hero-copy { position: relative; display: grid; justify-items: center; text-align: center; gap: 24px; }
 .site-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--site-text-2); }
-.site-hero h1 { max-width: 10ch; font-size: clamp(56px, 9.4vw, 148px); font-weight: 700; letter-spacing: -0.06em; line-height: .92; background: linear-gradient(180deg, #2A2D35 0%, #0B0C10 55%, #3B3F49 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.site-hero h1 { max-width: 10ch; font-size: clamp(56px, 9.4vw, 148px); font-weight: 700; letter-spacing: -0.06em; line-height: .92; padding: .06em .04em .1em; margin-block: -.06em -.1em; background: linear-gradient(180deg, #2A2D35 0%, #0B0C10 55%, #3B3F49 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .site-hero-sub { max-width: 34em; font-size: clamp(18px, 1.7vw, 22px); line-height: 1.45; color: var(--site-text-2); }
 .site-hero-form { width: 100%; max-width: 480px; }
 .site-scarcity { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--site-text-2); }
@@ -99,12 +99,15 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
 .site-specs-kicker { font-size: 15px; font-weight: 600; color: #C9CEDB; }
 .site-specs h2 { margin-top: 12px; max-width: 16ch; font-size: clamp(36px, 4.6vw, 64px); font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; }
 .site-specs-grid { margin: 64px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; }
-.site-specs-grid div { display: grid; gap: 10px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, .14); }
+.site-specs-grid div { display: grid; grid-template-rows: auto 1fr; align-content: start; gap: 12px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, .14); }
 .site-specs-grid dt { display: flex; align-items: baseline; gap: 10px; }
-.site-specs-grid b { font-size: clamp(64px, 7vw, 104px); font-weight: 600; letter-spacing: -0.06em; line-height: .9; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, #FFFFFF 20%, #B4BBC6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* Text painted by background-clip needs its whole glyph inside the line box:
+   line-height 1 plus a little padding keeps tops and the tight left edge intact. */
+.site-specs-grid b { font-size: clamp(64px, 7vw, 104px); font-weight: 600; letter-spacing: -0.05em; line-height: 1.04; padding: .04em .06em .02em .02em; margin-left: -.02em; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, #FFFFFF 20%, #B4BBC6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .site-specs-grid dt span { font-size: 16px; font-weight: 600; color: #7A84AE; }
 .site-specs-grid dd { margin: 0; font-size: 16px; line-height: 1.45; color: #A9B1D6; }
-.site-specs-foot { margin-top: 40px; font-size: 14px; color: #7A84AE; }
+/* .site p resets margins, so this needs the extra specificity. */
+.site .site-specs-foot { margin-top: 56px; font-size: 14px; color: #7A84AE; }
 
 /* Bands */
 .site-band { position: relative; padding-block: 140px; }
@@ -252,7 +255,7 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
 .site-why-fields { position: relative; height: 1.4em; font-size: clamp(20px, 2.2vw, 28px); font-weight: 500; color: #8C9DFF; overflow: hidden; }
 .site-why-fields span { position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; transform: translateY(70%); filter: blur(6px); transition: opacity .7s var(--site-ease), transform .7s var(--site-ease), filter .7s var(--site-ease); }
 .site-why-fields span.is-on { opacity: 1; transform: none; filter: none; }
-.site-why h2 { max-width: 13ch; font-size: clamp(44px, 6.8vw, 100px); font-weight: 700; letter-spacing: -0.055em; line-height: .98; background: linear-gradient(180deg, #FFFFFF 30%, #9AA8FF 130%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.site-why h2 { max-width: 13ch; font-size: clamp(44px, 6.8vw, 100px); font-weight: 700; letter-spacing: -0.055em; line-height: .98; padding-bottom: .1em; margin-bottom: -.1em; background: linear-gradient(180deg, #FFFFFF 30%, #9AA8FF 130%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .site-why-body { max-width: 34em; }
 .site-why-body p { font-size: clamp(17px, 1.6vw, 21px); line-height: 1.55; color: #B3BBDC; }
 .site-why-lines { margin-top: 24px; display: grid; gap: 2px; font-size: clamp(28px, 3.6vw, 52px); font-weight: 600; letter-spacing: -0.04em; line-height: 1.12; }
