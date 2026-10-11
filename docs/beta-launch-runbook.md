@@ -62,7 +62,7 @@ Prepared 7 October 2026. Read "Starting point" first: re-verify it before step 1
 7. Preview `/admin` → founder code sign-in → capacity 20/20.
 8. Invite `clemenssteinbrenner.crypto+friend1@gmail.com` → email from
    "Eudaimonai (staging)" via Resend → link opens preview `/activate`.
-9. Activate (8-digit code) → BETA 30 days; admin shows BETA.
+9. Activate (8-digit code) → BETA for `beta_duration_days` (60); admin shows BETA.
 10. MacBook test app: sign in as `+friend1` → BETA → a session may start;
     optional: revoke in admin → next check blocks.
 11. Preview landing: request access as `+friend2` → admin shows WAITLIST + source.
