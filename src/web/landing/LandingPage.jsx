@@ -134,7 +134,7 @@ export default function LandingPage({ api }) {
           <div className="site-wrap">
             <div className="site-head site-head-center site-rv">
               <p className="site-label">Closed beta</p>
-              <h2>20 places to start.</h2>
+              <h2>Limited places to start.</h2>
               <p>Built for work that needs long stretches of attention: founders, engineers, researchers, writers.</p>
             </div>
             <AccessSteps />
