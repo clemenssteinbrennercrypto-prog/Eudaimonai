@@ -41,7 +41,7 @@ const FAQ = [
   { q: 'Why does it need the camera?', a: 'To estimate your attention during a session. It only runs while a session you started is running.' },
   { q: 'Which Macs are supported?', a: 'Apple Silicon Macs (M1 or newer) with macOS 11 or later and a camera. The built-in one works. Intel Macs, Windows and phones are not supported.' },
   { q: 'How does the closed beta work?', a: 'Request access with your email. We invite people in small groups. Your invitation has one link to activate your access with a one-time code, then you download the app and sign in with the same email.' },
-  { q: 'How long does beta access last, and is it free?', a: 'It is free, and runs for 30 days from activation.' },
+  { q: 'How long does beta access last, and is it free?', a: 'It is free. Access runs for a set period from activation, 60 days for the first group, and you see your exact end date when you activate.' },
   { q: 'What happens to my history when access ends?', a: 'It stays on your Mac and stays readable in the app. Starting new sessions needs access again.' },
   { q: 'Can I use it on another Mac?', a: 'Yes, sign in with the same email. Your history stays on the Mac where it was recorded; it does not sync between Macs.' },
   { q: 'Do I have to block websites?', a: 'No. Blocking is optional for each session. Measuring your focus works without it.' },
