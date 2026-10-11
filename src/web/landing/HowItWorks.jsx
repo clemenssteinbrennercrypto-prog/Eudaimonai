@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEMO_DAY, DEMO_SESSION } from './demoData'
-import { prefersReducedMotion, useOnScreen, useProgress, useSeen } from './motion'
+import { prefersReducedMotion, useOnScreen, useProgress } from './motion'
 
-// How it works, as five scenes. Each scene is drawn in the app's own look
-// (night ground, silver ring, green for attention) and moves only while it is
-// on screen. Everything shown is something the app does; nothing claims more.
+// How it works, as five scenes on one stage. Each scene is drawn in the app's
+// own look (night ground, silver ring, green for attention) and moves only
+// while it is on screen. Everything shown is something the app does; nothing claims more.
 
 // Runs `tick` every `ms` while `on`; a stand-in for setInterval tied to view.
 function useTicker(on, ms, tick) {
@@ -165,7 +165,7 @@ function SoundScene({ on }) {
   )
 }
 
-const SCENES = [
+export const SCENES = [
   { id: 'plan', title: 'Plan the session', body: 'Name what you’re working on and pick a length. Choose what to keep out, or block nothing at all. A recent setup starts again in one click.', Scene: PlanScene },
   { id: 'work', title: 'Work on your task', body: 'The session runs with its timer in view. Nothing asks you a question while you work; you only focus on the task in front of you.', Scene: SessionScene },
   { id: 'zones', title: 'The camera reads your focus', body: 'You set up your desk once: screens, notes, laptop. During a session the camera on your Mac reads where your eyes and head are pointed. Inside a focus zone counts as focus; your phone or the window does not.', Scene: ZonesScene },
@@ -173,29 +173,75 @@ const SCENES = [
   { id: 'sound', title: 'Sound that keeps you in it', body: 'Optional rain, white or brown noise while you work. A soft two-note bell marks the start and the end, and a gentle reminder brings you back if you drift for too long.', Scene: SoundScene },
 ]
 
-function Step({ scene, number }) {
-  const ref = useRef(null)
-  const seen = useSeen(ref, 0.35)
-  const on = useOnScreen(ref, 0.25)
-  const { Scene } = scene
-  return (
-    <li className="site-how-step site-rv" ref={ref}>
-      <div className="site-how-copy">
-        <span className="site-how-number">{String(number).padStart(2, '0')}</span>
-        <h3>{scene.title}</h3>
-        <p>{scene.body}</p>
-      </div>
-      <div className="site-how-visual">
-        <Scene run={seen} on={on} />
-      </div>
-    </li>
-  )
-}
+const SHORT = ['Plan', 'Work', 'Camera', 'Score', 'Sound']
+const STEP_MS = 5200
 
+// One stage, the steps playing through like stories while it is on screen.
+// Choosing a step takes over; every scene stays mounted and the active one is
+// remounted so its animation replays. With reduced motion nothing advances.
 export default function HowItWorks() {
+  const ref = useRef(null)
+  const on = useOnScreen(ref, 0.3)
+  const [active, setActive] = useState(0)
+  const [cycle, setCycle] = useState(0)
+  const [held, setHeld] = useState(false)
+
+  useEffect(() => {
+    if (!on || held) return undefined
+    const timer = window.setTimeout(() => {
+      setActive(value => (value + 1) % SCENES.length)
+      setCycle(value => value + 1)
+    }, STEP_MS)
+    return () => window.clearTimeout(timer)
+  }, [on, held, active])
+
+  const choose = index => {
+    setActive(index)
+    setCycle(value => value + 1)
+    setHeld(true)
+  }
+  const running = on && !held
+  const scene = SCENES[active]
+
   return (
-    <ol className="site-how">
-      {SCENES.map((scene, index) => <Step key={scene.id} scene={scene} number={index + 1} />)}
-    </ol>
+    <div className="site-story" ref={ref}>
+      <div className="site-story-copy">
+        <div className="site-story-text" key={active} id="how-step" role="tabpanel" aria-labelledby={`how-tab-${scene.id}`}>
+          <span className="site-how-number">{String(active + 1).padStart(2, '0')} / {String(SCENES.length).padStart(2, '0')}</span>
+          <h3>{scene.title}</h3>
+          <p>{scene.body}</p>
+        </div>
+        <div className="site-story-steps" role="tablist" aria-label="Steps of a session">
+          {SCENES.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              id={`how-tab-${item.id}`}
+              aria-selected={index === active}
+              aria-controls="how-step"
+              className={index === active ? 'is-on' : index < active ? 'is-done' : ''}
+              onClick={() => choose(index)}
+            >
+              <span className="site-story-bar" aria-hidden="true">
+                <i key={`${active}-${running}`} className={index === active && running ? 'is-running' : ''} style={{ animationDuration: `${STEP_MS}ms` }} />
+              </span>
+              {SHORT[index]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="site-story-stage" aria-hidden="true">
+        {SCENES.map((item, index) => {
+          const { Scene } = item
+          const isOn = index === active
+          return (
+            <div key={item.id} className={`site-story-layer${isOn ? ' is-on' : ''}`}>
+              <Scene key={isOn ? `on-${cycle}` : 'off'} run={isOn && on} on={isOn && on} />
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import React from 'react'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
@@ -60,14 +60,16 @@ describe('Website routes', () => {
 describe('the landing page explains the app', () => {
   it('lets the visitor pick a part of the app, and walks through a session in five steps', () => {
     render(<Website api={{ configured: true, joinWaitlist: vi.fn() }} pathname="/" />)
-    const tabs = screen.getAllByRole('tab')
+    const tabs = within(screen.getByRole('tablist', { name: 'Parts of the app' })).getAllByRole('tab')
     expect(tabs.map(tab => tab.textContent)).toEqual(['Lab', 'Sessions', 'Reports', 'Weekly review', 'Analytics', 'Best hours', 'History', 'Workspace', 'Protection'])
     fireEvent.click(screen.getByRole('tab', { name: 'Reports' }))
     expect(screen.getByRole('tab', { name: 'Reports' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('img', { name: 'Eudaimonai, Reports' })).toBeInTheDocument()
-    for (const step of ['Plan the session', 'Work on your task', 'The camera reads your focus', 'Your score builds itself', 'Sound that keeps you in it']) {
-      expect(screen.getByRole('heading', { level: 3, name: step })).toBeInTheDocument()
-    }
+    const steps = within(screen.getByRole('tablist', { name: 'Steps of a session' })).getAllByRole('tab')
+    expect(steps.map(tab => tab.textContent)).toEqual(['Plan', 'Work', 'Camera', 'Score', 'Sound'])
+    expect(screen.getByRole('heading', { level: 3, name: 'Plan the session' })).toBeInTheDocument()
+    fireEvent.click(steps[2])
+    expect(screen.getByRole('heading', { level: 3, name: 'The camera reads your focus' })).toBeInTheDocument()
     // Students are a core audience; the idea names studying.
     expect(document.body.textContent).toMatch(/Studying for an exam/)
   })

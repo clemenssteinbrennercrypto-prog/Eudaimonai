@@ -141,15 +141,25 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site-showcase-text { max-width: 640px; min-height: 3.2em; text-align: center; font-size: 18px; line-height: 1.55; color: var(--site-text-2); }
 .site-showcase-also { font-size: 13px; color: var(--site-text-3); }
 
-/* How it works: five scenes, alternating sides */
-.site-how { list-style: none; margin: 0; padding: 0; display: grid; gap: 28px; }
-.site-how-step { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 56px; align-items: center; padding: 28px; border-radius: 28px; background: rgba(255, 255, 255, .7); box-shadow: 0 1px 0 var(--site-hair), 0 24px 60px rgba(20, 30, 90, .06); }
-.site-how-step:nth-child(even) .site-how-copy { order: 2; }
-.site-how-copy { display: grid; gap: 12px; padding-inline: 12px; }
+/* How it works: one stage, the steps playing through like stories */
+.site-story { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 56px; align-items: center; }
+.site-story-copy { display: grid; gap: 36px; align-content: center; }
+.site-story-text { display: grid; gap: 14px; min-height: 230px; align-content: start; animation: site-story-in .7s var(--site-ease); }
+@keyframes site-story-in { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
 .site-how-number { font: 600 12px var(--site-mono); letter-spacing: .1em; color: var(--site-accent); }
-.site-how-copy h3 { font-size: clamp(26px, 2.6vw, 34px); letter-spacing: -0.035em; line-height: 1.08; }
-.site-how-copy p { font-size: 16px; line-height: 1.55; color: var(--site-text-2); max-width: 30em; }
-.site-how-visual { position: relative; aspect-ratio: 16 / 11; border-radius: 20px; overflow: hidden; background: radial-gradient(120% 110% at 30% 0%, #151D4A, var(--site-night) 68%); color: var(--site-night-text); }
+.site-story-text h3 { font-size: clamp(30px, 3.2vw, 44px); letter-spacing: -0.04em; line-height: 1.04; }
+.site-story-text p { font-size: 17px; line-height: 1.55; color: var(--site-text-2); max-width: 30em; }
+.site-story-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.site-story-steps button { appearance: none; border: 0; background: none; padding: 0; text-align: left; display: grid; gap: 10px; font: 500 13px var(--site-sans); color: var(--site-text-3); cursor: pointer; }
+.site-story-steps button:hover, .site-story-steps button.is-on { color: var(--site-text); }
+.site-story-bar { height: 3px; border-radius: 2px; background: var(--site-hair-2); overflow: hidden; }
+.site-story-bar i { display: block; height: 100%; background: var(--site-accent); transform: scaleX(0); transform-origin: 0 50%; }
+.is-done .site-story-bar i { transform: scaleX(1); background: var(--site-text-3); }
+.is-on .site-story-bar i:not(.is-running) { transform: scaleX(1); }
+.site-story-bar i.is-running { animation: site-fill linear forwards; }
+.site-story-stage { position: relative; aspect-ratio: 16 / 11; border-radius: 22px; overflow: hidden; background: radial-gradient(120% 110% at 30% 0%, #151D4A, var(--site-night) 68%); color: var(--site-night-text); box-shadow: 0 40px 100px rgba(10, 20, 80, .2); }
+.site-story-layer { position: absolute; inset: 0; opacity: 0; transform: scale(1.03); filter: blur(8px); transition: opacity .8s var(--site-ease), transform 1.1s var(--site-ease), filter .8s var(--site-ease); pointer-events: none; }
+.site-story-layer.is-on { opacity: 1; transform: none; filter: none; }
 .site-scene { position: absolute; inset: 0; padding: 24px; }
 .site-scene-label { display: block; font: 500 11px var(--site-mono); letter-spacing: .06em; color: var(--site-night-text-3); margin: 0 0 8px; }
 
@@ -384,8 +394,9 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 @media (max-width: 1080px) {
   .site-hero-grid { grid-template-columns: 1fr; gap: 56px; }
   .site-hero-ring { max-width: 640px; }
-  .site-how-step { grid-template-columns: 1fr; gap: 24px; }
-  .site-how-step:nth-child(even) .site-how-copy { order: 0; }
+  .site-story { grid-template-columns: 1fr; gap: 24px; }
+  .site-story-copy { order: 2; gap: 24px; }
+  .site-story-text { min-height: 0; }
   .site-camera { grid-template-columns: 1fr; gap: 18px; }
   .site-camera-arrow { display: none; }
   .site-camera-step { grid-template-columns: 120px 1fr; grid-template-rows: auto auto; column-gap: 18px; align-items: center; }
@@ -415,15 +426,12 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-band { padding-block: 96px; }
   .site-head { margin-bottom: 36px; }
   .site-head p:not(.site-label) { font-size: 17px; }
-  .site-how-step { padding: 16px; border-radius: 22px; }
-  .site-how-copy { padding-inline: 4px; }
-  .site-how-visual { aspect-ratio: auto; }
-  .site-scene { position: relative; inset: auto; padding: 18px 16px; min-height: 260px; }
-  .site-session-ring { height: 210px; }
-  .site-scene.is-zones svg { height: auto; }
-  .site-sound-wave { height: 110px; }
+  .site-story-stage { aspect-ratio: 4 / 3.6; }
+  .site-scene { padding: 16px; }
+  .site-story-text { min-height: 11em; }
+  .site-story-text h3 { font-size: 28px; }
+  .site-story-text p { font-size: 16px; }
   .site-scene.is-score { grid-template-columns: 1fr; }
-  .site-score-line { height: 170px; }
   .site-score-total { grid-template-columns: auto 1fr; justify-items: start; text-align: left; column-gap: 14px; padding: 12px 16px; }
   .site-score-total b { grid-row: span 2; font-size: 48px; }
   .site-why { padding-block: 112px; }
@@ -449,5 +457,6 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-rv, .site-step-layer, .site-path::after, .site-path li::before, .site-mac-screen img { transition: none !important; }
   .site-rv.is-pre { opacity: 1; transform: none; filter: none; }
   .site-hero-ring .site-dial-arc, .site-why-mark circle, .site-caret, .site-session-attention, .site-sound-wave i { animation: none !important; }
-  .site-face circle, .site-camera-reads li, .site-camera-bin span, .site-camera-bin i::before, .site-camera-bin i::after, .site-why-fields span, .site-why-swap span, .site-zone-gaze, .site-plan-chips span { transition: none !important; }
+  .site-face circle, .site-camera-reads li, .site-camera-bin span, .site-camera-bin i::before, .site-camera-bin i::after, .site-why-fields span, .site-why-swap span, .site-zone-gaze, .site-plan-chips span, .site-story-layer { transition: none !important; }
+  .site-story-text { animation: none !important; }
 }
