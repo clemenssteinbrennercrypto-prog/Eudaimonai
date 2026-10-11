@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import RequestAccessForm from '../RequestAccessForm'
 import { SiteFooter, SiteHeader } from './SiteChrome'
-import HeroRing from './HeroRing'
+import WeekPortrait from './WeekPortrait'
 import AppShowcase from './AppShowcase'
 import HowItWorks from './HowItWorks'
 import WhySection from './WhySection'
@@ -10,7 +10,7 @@ import { useReveal, useSeen } from './motion'
 import './landing.css'
 
 // The public landing page: product first, with the idea as its climax.
-//   Hero        what it is, the request form, the ring drawing a real day
+//   Hero        what it is, the request form, a sample week drawn as rings
 //   The app     a Mac growing into place, showing each part of the app
 //   How         five scenes: plan, work, the camera's focus zones, the score, sound
 //   Why         the thesis, on ultramarine
@@ -84,7 +84,7 @@ export default function LandingPage({ api }) {
                 Free during the beta · Apple Silicon Mac · Already invited? <a href="/activate">Activate your access</a>
               </p>
             </div>
-            <HeroRing />
+            <WeekPortrait />
           </div>
         </section>
 

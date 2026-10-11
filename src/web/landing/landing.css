@@ -85,20 +85,18 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site-hero-sub { font-size: clamp(18px, 1.6vw, 21px); line-height: 1.5; color: var(--site-text-2); max-width: 30em; }
 .site-hero .site-fine { margin-top: 0; }
 
-.site-hero-ring { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 36px; align-items: center; }
-.site-hero-ring-dial { position: relative; aspect-ratio: 1; max-width: 440px; width: 100%; }
-.site-hero-ring-dial svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
-.site-dial-track { fill: none; stroke: #ECEDF2; stroke-width: 9; }
-.site-dial-arc { fill: none; stroke-width: 9; stroke-linecap: round; }
-.is-ink .site-dial-arc { stroke: var(--site-text); }
-.is-ultra .site-dial-arc { stroke: var(--site-accent); }
-.is-sky .site-dial-arc { stroke: var(--site-sky); }
-/* Once drawn, the deep focus ring breathes, as it does in the app during Deep Focus. */
-.site-hero-ring.is-done .is-sky .site-dial-arc { animation: site-breathe 6s ease-in-out infinite; }
-@keyframes site-breathe { 50% { opacity: .5; } }
-.site-dial-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 6px; }
-.site-dial-center b { font-size: clamp(72px, 9vw, 128px); font-weight: 200; letter-spacing: -0.06em; line-height: .9; font-variant-numeric: tabular-nums; }
-.site-dial-center span { font: 600 11px var(--site-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--site-text-3); }
+.site-portrait { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center; }
+.site-portrait-art { position: relative; aspect-ratio: 1; width: 100%; max-width: 480px; }
+.site-portrait-art canvas { width: 100%; height: 100%; display: block; }
+.site-portrait-core { position: absolute; left: 50%; top: 50%; width: 32%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; display: grid; place-content: center; text-align: center; gap: 4px; background: #FFFFFF; box-shadow: 0 0 0 10px #FFFFFF, 0 0 0 11px var(--site-hair), 0 20px 50px rgba(20, 30, 90, .12); }
+.site-portrait-core b { font-size: clamp(44px, 5vw, 64px); font-weight: 200; letter-spacing: -0.06em; line-height: .9; font-variant-numeric: tabular-nums; }
+.site-portrait-core span { font: 600 9px var(--site-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--site-text-3); }
+.site-portrait figcaption { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--site-text-3); }
+.site-portrait-key { display: inline-flex; align-items: center; gap: 6px; color: var(--site-text-2); }
+.site-portrait-key i { width: 14px; height: 3px; border-radius: 2px; }
+.site-portrait-key .is-deep { background: #2C46FF; }
+.site-portrait-key .is-focused { background: #9AA8FF; }
+.site-portrait-key .is-low { background: #E8B10A; }
 .site-hero-measures { margin: 0; display: grid; gap: 22px; min-width: 150px; }
 .site-hero-measures div { display: grid; gap: 4px; padding-left: 14px; border-left: 3px solid; }
 .site-hero-measures .is-ink { border-color: var(--site-text); }
@@ -107,7 +105,6 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site-hero-measures dt { font: 600 10px var(--site-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--site-text-3); }
 .site-hero-measures dd { margin: 0; font-size: 30px; font-weight: 300; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .site-hero-measures small { font-size: 14px; color: var(--site-text-3); letter-spacing: 0; }
-.site-hero-ring figcaption { grid-column: 1 / -1; font-size: 13px; color: var(--site-text-3); }
 
 /* Bands */
 .site-band { position: relative; padding-block: 140px; }
@@ -186,6 +183,7 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site-session-track { fill: none; stroke: rgba(170, 186, 255, .1); stroke-width: 5; }
 .site-session-elapsed { fill: none; stroke: #E6E9F2; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
 .site-session-attention { fill: none; stroke: #FFFFFF; stroke-width: 5; stroke-linecap: round; animation: site-breathe 6s ease-in-out infinite; }
+@keyframes site-breathe { 50% { opacity: .5; } }
 .site-session-time { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 6px; }
 .site-session-time b { font-size: clamp(36px, 4.4vw, 56px); font-weight: 200; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; line-height: 1; }
 .site-session-time span { justify-self: center; font: 600 10px var(--site-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--site-high); padding: 4px 8px; border-radius: 999px; background: rgba(47, 227, 168, .1); }
@@ -243,9 +241,14 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 /* Why: the idea on ultramarine, with the mark large behind it */
 .site-band.is-ultra { padding-block: 0; }
 .site-why { position: relative; overflow: hidden; padding-block: 160px; }
-.site-why-mark { position: absolute; right: -16%; top: 50%; width: min(980px, 95vw); height: auto; transform: translateY(-50%); opacity: .09; pointer-events: none; }
-.site-why-mark circle:last-child { transform-origin: 50px 50px; animation: site-pulse 6s ease-in-out infinite; }
-@keyframes site-pulse { 50% { transform: scale(1.18); } }
+.site-why-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 48px; align-items: center; }
+.site-why-text { display: grid; gap: 26px; min-width: 0; }
+.site-ridge { margin: 0; display: grid; gap: 12px; }
+.site-ridge svg { width: 100%; height: auto; overflow: visible; }
+.site-ridge-fill { fill: #2238E0; }
+.site-ridge-line { fill: none; stroke: #FFFFFF; stroke-width: 1.3; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.6s var(--site-ease); transition-delay: calc(var(--i) * 70ms); }
+.site-ridge.is-drawn .site-ridge-line { stroke-dashoffset: 0; }
+.site-ridge figcaption { font: 500 12px var(--site-mono); color: rgba(255, 255, 255, .65); }
 .site-why-inner { position: relative; display: grid; gap: 26px; }
 .site-why .site-label { color: rgba(255, 255, 255, .7); }
 .site-why-fields { position: relative; height: 1.4em; font-size: clamp(20px, 2.2vw, 28px); font-weight: 500; color: #C9D1FF; overflow: hidden; }
@@ -393,7 +396,8 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 
 @media (max-width: 1080px) {
   .site-hero-grid { grid-template-columns: 1fr; gap: 56px; }
-  .site-hero-ring { max-width: 640px; }
+  .site-portrait { max-width: 640px; }
+  .site-why-grid { grid-template-columns: 1fr; }
   .site-story { grid-template-columns: 1fr; gap: 24px; }
   .site-story-copy { order: 2; gap: 24px; }
   .site-story-text { min-height: 0; }
@@ -411,8 +415,8 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-wrap, .site-header-bar { padding-inline: 16px; }
   .site-header-nav { display: none; }
   .site-hero { padding-block: 48px 88px; }
-  .site-hero-ring { grid-template-columns: 1fr; justify-items: center; gap: 24px; }
-  .site-hero-ring-dial { max-width: 320px; }
+  .site-portrait { grid-template-columns: 1fr; justify-items: center; gap: 24px; }
+  .site-portrait-art { max-width: 360px; }
   .site-band#app { padding-top: 16px; }
   .site-mac-lid { border-radius: 12px 12px 0 0; }
   .site-mac-base { height: 9px; }
@@ -422,7 +426,7 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-showcase-text { font-size: 16px; min-height: 4.8em; }
   .site-hero-measures { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; }
   .site-hero-measures dd { font-size: 21px; }
-  .site-hero-ring figcaption { text-align: center; }
+  .site-portrait figcaption { justify-content: center; text-align: center; }
   .site-band { padding-block: 96px; }
   .site-head { margin-bottom: 36px; }
   .site-head p:not(.site-label) { font-size: 17px; }
@@ -435,7 +439,6 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-score-total { grid-template-columns: auto 1fr; justify-items: start; text-align: left; column-gap: 14px; padding: 12px 16px; }
   .site-score-total b { grid-row: span 2; font-size: 48px; }
   .site-why { padding-block: 112px; }
-  .site-why-mark { right: -60%; width: 150vw; }
   .site-where-mac ul, .site-where-never ul { grid-template-columns: 1fr; }
   .site-path { grid-template-columns: 1fr; gap: 22px; padding-left: 4px; }
   .site-path::before, .site-path::after { top: 8px; bottom: 8px; left: 11px; right: auto; width: 2px; height: auto; }
@@ -456,7 +459,7 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 @media (prefers-reduced-motion: reduce) {
   .site-rv, .site-step-layer, .site-path::after, .site-path li::before, .site-mac-screen img { transition: none !important; }
   .site-rv.is-pre { opacity: 1; transform: none; filter: none; }
-  .site-hero-ring .site-dial-arc, .site-why-mark circle, .site-caret, .site-session-attention, .site-sound-wave i { animation: none !important; }
-  .site-face circle, .site-camera-reads li, .site-camera-bin span, .site-camera-bin i::before, .site-camera-bin i::after, .site-why-fields span, .site-why-swap span, .site-zone-gaze, .site-plan-chips span, .site-story-layer { transition: none !important; }
+  .site-ridge-line, .site-caret, .site-session-attention, .site-sound-wave i { animation: none !important; }
+  .site-face circle, .site-camera-reads li, .site-camera-bin span, .site-camera-bin i::before, .site-camera-bin i::after, .site-why-fields span, .site-why-swap span, .site-zone-gaze, .site-plan-chips span, .site-story-layer, .site-ridge-line { transition: none !important; }
   .site-story-text { animation: none !important; }
 }
