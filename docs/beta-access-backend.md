@@ -113,6 +113,7 @@ non-local URL). It is not part of `npm test`, so the app's CI is unchanged.
 - `supabase/tests/database/*.test.sql` — pgTAP, one rolled-back transaction per file.
 - `supabase/tests/concurrency.sh` — real parallel connections racing for the last slot and for one invitation.
 - `supabase/tests/auth-flow.mjs` — real Auth + PostgREST + local mail catcher: invite-only sign-up, email codes, claim, REST tampering attempts, refresh, revocation.
+- `supabase/tests/founder-digest.mjs` — database job → pg_net → `founder-digest` → Mailpit; refuses missing, wrong and partial tokens; no requester address in the mail.
 
 ## Staging setup (manual, owner only)
 
@@ -269,6 +270,37 @@ Secrets per environment (`supabase secrets set`, never in the repo):
 
 Locally the function sends to the mail catcher instead (`[edge_runtime.secrets]`
 in `config.toml`); it can never reach Resend from a local run.
+
+### Founder digest: Edge Function `founder-digest`
+
+During the beta the admins get one email when new access requests or
+activations arrived: counts, sources, people waiting, places remaining and a
+link to `/admin`. **Never a requester's address**, so nothing about
+requesters lands in a mailbox. At most one every 15 minutes, and only when
+something is new.
+
+pg_cron runs `private.send_founder_digest()` every 15 minutes. It counts what
+arrived since `private.founder_digest_state.covered_until`, reads the admin
+addresses and posts them with a shared token via pg_net to the function, which
+only sends mail (`_shared/mail.js`, same transport as invitations). Delivery
+is at most once: if the function or Resend fails, that digest is gone (the
+admin console still shows everything); see `net._http_response` and the
+function logs. Without both Vault entries the job does nothing.
+
+Setup per project (staging and production, owner-approved):
+1. `supabase db push` (migration `20261011150000_founder_request_digest.sql`).
+2. `supabase functions deploy founder-digest` and redeploy `send-invitation`
+   (it now imports `_shared/mail.js`). `SITE_URL`, `MAIL_FROM`,
+   `RESEND_API_KEY` are project-wide secrets that already exist.
+3. One random token, never printed or written to a file, set in both places:
+   `supabase secrets set FOUNDER_DIGEST_TOKEN=…` and
+   `select vault.create_secret('<token>', 'founder_digest_token');`
+   plus `select vault.create_secret('https://<ref>.supabase.co/functions/v1/founder-digest', 'founder_digest_url');`
+4. `remote-verify.sql` (the two "founder digest" rows), then a real request on
+   the website with a plus address: the email arrives within 15 minutes.
+
+To stop it after the beta: `select cron.unschedule('founder-request-digest');`
+(or delete the Vault entries).
 
 ### Staging rollout of Step 0b (owner-approved, in order)
 

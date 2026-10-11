@@ -20,7 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:db": "supabase test db && bash supabase/tests/concurrency.sh && node supabase/tests/auth-flow.mjs",
+    "test:db": "supabase test db && bash supabase/tests/concurrency.sh && node supabase/tests/auth-flow.mjs && node supabase/tests/founder-digest.mjs",
     "test:app-access": "bash supabase/tests/app-access.sh",
     "lint": "eslint src scripts vite.config.js"
   },

@@ -439,3 +439,10 @@ enabled = true
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/send-invitation/index.js"
+
+# Called only by the database (pg_cron + pg_net) with a shared token from
+# Vault; the function checks that token itself.
+[functions.founder-digest]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/founder-digest/index.js"
