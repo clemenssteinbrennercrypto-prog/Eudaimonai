@@ -25,8 +25,6 @@ WIDTHS = {
     'mac-protection': 2000,
     # Crops.
     'lab-score': 1400,
-    'session-report': 1800,
-    'week-review': 1800,
 }
 
 TARGET.mkdir(parents=True, exist_ok=True)

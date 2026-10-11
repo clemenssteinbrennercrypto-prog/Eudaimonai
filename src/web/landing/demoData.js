@@ -1,7 +1,6 @@
 import session from './assets/demo-session.json'
-import week from './assets/demo-week.json'
 
-// Sample data behind the landing page's graphics. Both files are exported by
+// Sample data behind the landing page's graphics. The session is exported by
 // scripts/website-shots/shoot.mjs from the same seeded history as the
 // screenshots, through the app's own scoring, so graphics and screens agree.
 //
@@ -25,14 +24,6 @@ export const DEMO_DAY = {
   rings: [1, 0.78, 0.66],
 }
 
-export const DEMO_WEEK = {
-  days: week.days,
-  thisWeek: week.thisWeek,
-  lastWeek: week.lastWeek,
-  totalMinutes: week.thisWeek.reduce((sum, value) => sum + value, 0),
-  deltaMinutes: week.thisWeek.reduce((sum, value) => sum + value, 0) - week.lastWeek.reduce((sum, value) => sum + value, 0),
-}
-
 function runs(scores, test) {
   const found = []
   let start = null
@@ -49,14 +40,20 @@ function runs(scores, test) {
 
 function analyseSession({ scores, intervalSeconds, startedAt, task }) {
   const lapses = runs(scores, score => score < FOCUSED).filter(run => run.end - run.start >= 2)
-  const recoveries = lapses.map(lapse => {
+  const recoveredAt = lapse => {
     for (let index = lapse.end; index < scores.length - 1; index++) {
-      if (scores[index] >= FOCUSED && scores[index + 1] >= FOCUSED) return (index - lapse.start) * intervalSeconds
+      if (scores[index] >= FOCUSED && scores[index + 1] >= FOCUSED) return index
     }
     return null
+  }
+  const recoveries = lapses.map(lapse => {
+    const index = recoveredAt(lapse)
+    return index === null ? null : (index - lapse.start) * intervalSeconds
   }).filter(Number.isFinite)
   const sorted = [...recoveries].sort((a, b) => a - b)
-  const longestDeep = runs(scores, score => score >= DEEP).reduce((best, run) => (run.end - run.start > best ? run.end - run.start : best), 0)
+  const longestDeepRun = runs(scores, score => score >= DEEP).reduce((best, run) => (!best || run.end - run.start > best.end - best.start ? run : best), null)
+  const longestDeep = longestDeepRun ? longestDeepRun.end - longestDeepRun.start : 0
+  const firstLapse = lapses[0] ? { ...lapses[0], recoveredAt: recoveredAt(lapses[0]) } : null
   const band = score => (score >= HIGH ? 'high' : score >= FOCUSED ? 'focused' : 'low')
   const segments = scores.reduce((list, score, index) => {
     const kind = band(score)
@@ -75,6 +72,8 @@ function analyseSession({ scores, intervalSeconds, startedAt, task }) {
     lapses,
     recoverySeconds: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null,
     longestDeepMinutes: Math.round((longestDeep * intervalSeconds) / 60),
+    longestDeepRun,
+    firstLapse,
     segments,
   }
 }

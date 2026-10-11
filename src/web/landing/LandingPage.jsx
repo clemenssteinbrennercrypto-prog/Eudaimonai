@@ -3,17 +3,17 @@ import RequestAccessForm from '../RequestAccessForm'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import HeroRing from './HeroRing'
 import AppShowcase from './AppShowcase'
-import Loop from './Loop'
-import PrivacyFlow from './PrivacyFlow'
+import SessionWalkthrough from './SessionWalkthrough'
+import PrivacyMap from './PrivacyMap'
 import { useReveal, useSeen } from './motion'
 import './landing.css'
 
 // The public landing page: product first, with the idea as its climax.
 //   Hero        what it is, the request form, the ring drawing a real day
 //   The app     a Mac growing into place, showing each part of the app
-//   How         a session step by step, then Measure → Understand → Improve
+//   How         one sample session, read moment by moment
 //   Why         the thesis, on ultramarine
-//   Privacy     where the data goes, drawn as a flow
+//   Privacy     what the camera does with a frame, and where each kind of data lives
 //   Access      the four steps to the app, the form again, the questions
 //
 // Claims stay inside what the product measures (AGENTS.md §5): it observes
@@ -21,13 +21,6 @@ import './landing.css'
 // a validated measure of cognition. Focus data stays on the Mac; account and
 // access data does not, so never write "nothing leaves your device". The page
 // describes what the app does, not its scoring thresholds.
-
-const SESSION_STEPS = [
-  { title: 'Set up your desk once', body: 'Tell it where your screens and notes are, so it knows what counts as work.' },
-  { title: 'Start a session', body: 'Name what you’re working on, pick a length, and block distractions if you like.' },
-  { title: 'Work as usual', body: 'The camera estimates your attention on your Mac. If you drift for too long, it lets you know.' },
-  { title: 'Read the result', body: 'A report when it ends. Your days and weeks add up, and patterns appear.' },
-]
 
 const ACCESS_STEPS = [
   { title: 'Request access', body: 'Leave your email. Joining the list doesn’t create an account.' },
@@ -109,15 +102,10 @@ export default function LandingPage({ api }) {
           <div className="site-wrap">
             <div className="site-head site-rv">
               <p className="site-label">How it works</p>
-              <h2>Measure. Understand. Improve.</h2>
-              <p>Every session adds to a picture of how you actually work. All of it measured, and kept, on your Mac.</p>
+              <h2>What happens during a session.</h2>
+              <p>One sample session of 75 minutes, the way Eudaimonai reads it. Every moment below is something the app measures on your Mac.</p>
             </div>
-            <ol className="site-steps site-rv">
-              {SESSION_STEPS.map(step => (
-                <li key={step.title}><b>{step.title}</b><span>{step.body}</span></li>
-              ))}
-            </ol>
-            <Loop />
+            <SessionWalkthrough />
           </div>
         </section>
 
@@ -154,9 +142,9 @@ export default function LandingPage({ api }) {
             <div className="site-head site-rv">
               <p className="site-label">Privacy</p>
               <h2>Your focus data stays on your Mac.</h2>
-              <p>A camera on your desk should earn its place. This is exactly where everything goes.</p>
+              <p>A camera on your desk should earn its place. Here is exactly what it does, and where every piece of data lives.</p>
             </div>
-            <PrivacyFlow />
+            <PrivacyMap />
             <p className="site-perm site-rv">
               <b>What it asks for:</b> your camera, to measure attention during a session. Only if you use blocking:
               browser access, to see which site is in front, and your admin password once, to install the small helper

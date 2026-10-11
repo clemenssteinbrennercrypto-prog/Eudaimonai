@@ -57,14 +57,16 @@ describe('Website routes', () => {
   })
 })
 
-describe('how it works', () => {
-  it('shows each step as a graphic and lets the visitor switch to the real app screen', () => {
+describe('the landing page explains the app', () => {
+  it('lets the visitor pick a part of the app and reads a sample session moment by moment', () => {
     render(<Website api={{ configured: true, joinWaitlist: vi.fn() }} pathname="/" />)
-    const toggles = screen.getAllByRole('button', { name: 'See it in the app' })
-    expect(toggles).toHaveLength(3)
-    fireEvent.click(toggles[1])
-    expect(screen.getByRole('button', { name: 'Back to the graphic' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('img', { name: /session report/i })).toBeInTheDocument()
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs.map(tab => tab.textContent)).toEqual(['Lab', 'Sessions', 'Reports', 'Weekly review', 'History', 'Workspace', 'Protection'])
+    fireEvent.click(screen.getByRole('tab', { name: 'Reports' }))
+    expect(screen.getByRole('tab', { name: 'Reports' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('img', { name: 'Eudaimonai, Reports' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'You check your phone' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'A look at your second screen' })).toBeInTheDocument()
   })
 })
 
