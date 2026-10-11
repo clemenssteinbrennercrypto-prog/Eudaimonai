@@ -57,14 +57,14 @@ describe('Website routes', () => {
   })
 })
 
-describe('the features explorer', () => {
-  it('shows one part of the app at a time and lets the visitor choose', () => {
+describe('how it works', () => {
+  it('shows each step as a graphic and lets the visitor switch to the real app screen', () => {
     render(<Website api={{ configured: true, joinWaitlist: vi.fn() }} pathname="/" />)
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs.map(tab => tab.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false', 'false', 'false'])
-    fireEvent.click(screen.getByRole('tab', { name: /Workspace/ }))
-    expect(screen.getByRole('tab', { name: /Workspace/ })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('tabpanel')).toHaveAccessibleName(/Workspace/)
+    const toggles = screen.getAllByRole('button', { name: 'See it in the app' })
+    expect(toggles).toHaveLength(3)
+    fireEvent.click(toggles[1])
+    expect(screen.getByRole('button', { name: 'Back to the graphic' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('img', { name: /session report/i })).toBeInTheDocument()
   })
 })
 

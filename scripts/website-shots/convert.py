@@ -12,17 +12,13 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / '.website-shots'
 TARGET = ROOT / 'src' / 'web' / 'landing' / 'assets'
 
-# name -> output width in pixels (2x the largest size the page shows it at)
+# name -> output width in pixels (2x the largest size the page shows it at).
+# lab-score is used by og.mjs for the link preview, not by the page.
 WIDTHS = {
-    'lab': 2400,
     'lab-score': 1400,
     'session-report': 1800,
     'session-planner': 2000,
     'week-review': 1800,
-    'best-hours': 1800,
-    'workspace': 2000,
-    'protection': 1800,
-    'analytics': 2000,
 }
 
 TARGET.mkdir(parents=True, exist_ok=True)

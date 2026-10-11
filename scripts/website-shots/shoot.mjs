@@ -52,6 +52,24 @@ const trace = await page.evaluate(task => {
 }, seeded.today[1])
 writeFileSync(new URL('../../src/web/landing/assets/demo-session.json', import.meta.url), `${JSON.stringify(trace)}\n`)
 
+// Deep Focus (flowSeconds, as the Lab sums it) per day for the week the Lab reviews (Mon 28 Sep to Sun 4 Oct)
+// and the week before, for the week chart.
+const week = await page.evaluate(() => {
+  const sessions = JSON.parse(localStorage.getItem('eudaimonia_sessions') || '[]')
+  const day = (offset) => {
+    const start = new Date(2026, 8, 28 + offset).getTime()
+    const end = start + 86400000
+    const inDay = sessions.filter(item => item.startedAt >= start && item.startedAt < end)
+    return Math.round(inDay.reduce((sum, item) => sum + (item.flowSeconds ?? 0), 0) / 60)
+  }
+  return {
+    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    thisWeek: [0, 1, 2, 3, 4, 5, 6].map(day),
+    lastWeek: [-7, -6, -5, -4, -3, -2, -1].map(day),
+  }
+})
+writeFileSync(new URL('../../src/web/landing/assets/demo-week.json', import.meta.url), `${JSON.stringify(week)}\n`)
+
 // The unreleased "AI Companion · Soon" item and the dev build tag are not
 // product, so they stay out of the pictures.
 async function tidy() {
