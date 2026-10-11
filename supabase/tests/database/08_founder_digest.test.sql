@@ -18,6 +18,10 @@ select tests.login_as((select id from ids where name = 'admin'));
 select throws_ok($$ select private.send_founder_digest() $$, '42501', null, 'even an admin cannot trigger it through the API');
 reset role;
 
+select ok((select relrowsecurity from pg_class where oid = 'private.founder_digest_state'::regclass)
+          and not has_table_privilege('anon', 'private.founder_digest_state', 'SELECT')
+          and not has_table_privilege('authenticated', 'private.founder_digest_state', 'SELECT'),
+  'the digest state is closed to the API roles, with RLS as a second wall');
 select is((select schedule from cron.job where jobname = 'founder-request-digest'), '*/15 * * * *',
   'the digest runs every 15 minutes');
 
