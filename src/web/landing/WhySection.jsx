@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import Ridgeline from './Ridgeline'
+import LogoMark from './LogoMark'
 import { prefersReducedMotion, useOnScreen, useSeen } from './motion'
 
 // The idea, on ultramarine. The fields cycle so every reader finds their own
 // work in it (studying included: students are a core audience), the three
 // scores land one by one, and the last line turns from a feeling into a
-// number when it scrolls in. A week of real sessions is drawn beside it.
+// number when it scrolls in. The mark sits large behind it, turning slowly.
 const FIELDS = [
   'Studying for an exam.',
   'Building a company.',
@@ -34,33 +34,29 @@ export default function WhySection() {
 
   return (
     <div className="site-why" ref={ref}>
+      <LogoMark className="site-why-mark" size={900} tone="white" />
       <div className="site-wrap site-why-inner">
-        <div className="site-why-grid">
-          <div className="site-why-text">
-            <p className="site-label">Why</p>
-            <p className="site-why-fields" aria-label={FIELDS.join(' ')}>
-              {FIELDS.map((text, index) => (
-                <span key={text} className={index === field ? 'is-on' : ''} aria-hidden="true">{text}</span>
-              ))}
-            </p>
-            <h2 className="site-rv">Everything worth doing takes deep focus.</h2>
-            <div className="site-why-body site-rv">
-              <p>
-                An exam, a company, a thesis, a piece of music, a hard problem in code. Whatever you are working towards,
-                it gets done in long, unbroken stretches of attention, day after day. The ability to stay with something
-                deeply, and for long, is what turns effort into results.
-              </p>
-            </div>
-            <div className={`site-why-lines${turned ? ' is-turned' : ''}`} ref={linesRef}>
-              <p>Sleep has a score.</p>
-              <p>Training has a load.</p>
-              <p className="site-why-swap">
-                <span className="is-before">Focus only has a feeling.</span>
-                <span className="is-after">Now focus has a number.</span>
-              </p>
-            </div>
-          </div>
-          <Ridgeline />
+        <p className="site-label">Why</p>
+        <p className="site-why-fields" aria-label={FIELDS.join(' ')}>
+          {FIELDS.map((text, index) => (
+            <span key={text} className={index === field ? 'is-on' : ''} aria-hidden="true">{text}</span>
+          ))}
+        </p>
+        <h2 className="site-rv">Everything worth doing takes deep focus.</h2>
+        <div className="site-why-body site-rv">
+          <p>
+            An exam, a company, a thesis, a piece of music, a hard problem in code. Whatever you are working towards,
+            it gets done in long, unbroken stretches of attention, day after day. The ability to stay with something
+            deeply, and for long, is what turns effort into results.
+          </p>
+        </div>
+        <div className={`site-why-lines${turned ? ' is-turned' : ''}`} ref={linesRef}>
+          <p>Sleep has a score.</p>
+          <p>Training has a load.</p>
+          <p className="site-why-swap">
+            <span className="is-before">Focus only has a feeling.</span>
+            <span className="is-after">Now focus has a number.</span>
+          </p>
         </div>
         <figure className="site-why-name site-rv">
           <p><span lang="grc">εὐδαιμονία</span> · eudaimonia</p>
