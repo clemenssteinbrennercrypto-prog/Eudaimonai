@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEMO_DAY, DEMO_SESSION } from './demoData'
 import { prefersReducedMotion, useOnScreen, useProgress } from './motion'
-import { Brackets } from './ReadingSession'
 
 // How it works, as five scenes on one stage. Each scene is drawn in the app's
 // own look (night ground, silver ring, green for attention) and moves only
@@ -232,8 +231,7 @@ export default function HowItWorks() {
           ))}
         </div>
       </div>
-      <div className="site-story-stage site-framed" aria-hidden="true">
-        <Brackets />
+      <div className="site-story-stage" aria-hidden="true">
         {SCENES.map((item, index) => {
           const { Scene } = item
           const isOn = index === active

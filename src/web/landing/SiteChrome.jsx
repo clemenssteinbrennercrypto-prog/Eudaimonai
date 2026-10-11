@@ -1,9 +1,8 @@
 import LogoMark from './LogoMark'
-import { ReadingBadge } from './ReadingSession'
 
 // Header and footer shared by the landing page and the legal pages. The
 // funnel pages (/activate, /download, /admin) keep their own WebShell.
-export function SiteHeader({ reading = false }) {
+export function SiteHeader() {
   return (
     <header className="site-header">
       <div className="site-header-bar">
@@ -17,7 +16,6 @@ export function SiteHeader({ reading = false }) {
           <a href="/#privacy">Privacy</a>
           <a href="/#faq">Questions</a>
         </nav>
-        {reading && <ReadingBadge />}
         <a className="site-pill site-pill-sm" href="/#access">Request access</a>
       </div>
     </header>

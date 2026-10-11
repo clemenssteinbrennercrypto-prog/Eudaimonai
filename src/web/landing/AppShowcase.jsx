@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { prefersReducedMotion, useOnScreen } from './motion'
-import { Brackets } from './ReadingSession'
 import labShot from './assets/lab.webp'
 import plannerShot from './assets/session-planner.webp'
 import reportShot from './assets/mac-report.webp'
@@ -72,7 +71,7 @@ export default function AppShowcase() {
   return (
     <div className="site-showcase" ref={rootRef}>
       <div className="site-mac" ref={macRef}>
-        <div className="site-mac-lid site-framed"><Brackets />
+        <div className="site-mac-lid">
           <div className="site-mac-screen" id="app-screen" role="tabpanel" aria-labelledby={`app-tab-${part.id}`}>
             {PARTS.map((item, index) => (
               <img
