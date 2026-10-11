@@ -3,20 +3,6 @@
    Everything is scoped under .site: App.css is global and shared with the
    native app, so nothing here may restyle a bare element or an app class. */
 
-@font-face {
-  font-family: "Instrument Serif";
-  src: url("./fonts/instrument-serif-latin-400-normal.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Instrument Serif";
-  src: url("./fonts/instrument-serif-latin-400-italic.woff2") format("woff2");
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-}
 
 html:has(.site), body:has(.site) { background: #FFFFFF; }
 
@@ -33,7 +19,6 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   --site-accent-text: #2C46FF;
   --site-green: #178A63;
   --site-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --site-serif: "Instrument Serif", ui-serif, "New York", Georgia, serif;
   --site-greek: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
   --site-mono: ui-monospace, "SF Mono", Menlo, monospace;
   --site-ease: cubic-bezier(.22, .8, .2, 1);
@@ -52,8 +37,6 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site img { display: block; max-width: 100%; height: auto; }
 .site :focus-visible { outline: 2px solid var(--site-accent); outline-offset: 3px; border-radius: 6px; }
 .site h1, .site h2 { margin: 0; text-wrap: balance; }
-/* The editorial voice: one word per headline set in the serif italic. */
-.site h1 em, .site h2 em { font-family: var(--site-serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; font-size: 1.12em; line-height: 0.9; }
 
 .site-label {
   font: 600 11px var(--site-mono);

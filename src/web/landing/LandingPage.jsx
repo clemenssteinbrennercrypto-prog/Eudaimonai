@@ -284,7 +284,7 @@ export default function LandingPage({ api }) {
         <div className="site-band" data-tone="light">
           <section className="site-hero site-wrap">
             <p className="site-label site-label-accent">Focus sessions for Mac · Closed beta</p>
-            <h1>Focus you can <em>see</em>.<br /><span className="site-dim">Day after day.</span></h1>
+            <h1>Focus you can see.<br /><span className="site-dim">Day after day.</span></h1>
             <p className="site-hero-sub">
               A Mac app that measures your attention during focus sessions (focus time, attention, deep focus)
               and sums up your day in one number. Your focus data stays on your Mac.
@@ -330,7 +330,7 @@ export default function LandingPage({ api }) {
           <section className="site-chapter site-wrap" id="session" data-chapter-id="session">
             <div className="site-ch-head site-rv">
               <ChapterLabel id="session" />
-              <h2>Start a session. Then just <em>work</em>.</h2>
+              <h2>Start a session. Then just work.</h2>
               <p>Focus only counts inside a session you start, so the numbers mean what they say. Blocking is up to you: keep out what pulls you away, or nothing at all.</p>
             </div>
             <Shot src={plannerShot} alt="Starting a session: a name, a length of one hour, and recent setups to reuse" width="2000" height="1250" />
@@ -344,7 +344,7 @@ export default function LandingPage({ api }) {
           <section className="site-chapter site-wrap" id="score" data-chapter-id="score">
             <div className="site-ch-head site-rv">
               <ChapterLabel id="score" />
-              <h2>One number for your <em>day</em>.</h2>
+              <h2>One number for your day.</h2>
               <p>Focus time, attention and deep focus add up to one daily score, compared with your own usual day. Never with anyone else.</p>
             </div>
             <div className="site-day">
@@ -364,7 +364,7 @@ export default function LandingPage({ api }) {
           <section className="site-chapter site-wrap" id="patterns" data-chapter-id="patterns">
             <div className="site-ch-head site-rv">
               <ChapterLabel id="patterns" />
-              <h2>The longer you use it, the more it can <em>tell</em> you.</h2>
+              <h2>The longer you use it, the more it can tell you.</h2>
               <p>And it stays quiet until it has enough to say something true.</p>
             </div>
             <ol className="site-timeline site-rv">
@@ -387,7 +387,7 @@ export default function LandingPage({ api }) {
           <section className="site-chapter site-wrap" id="features" data-chapter-id="features">
             <div className="site-ch-head site-rv">
               <ChapterLabel id="features" />
-              <h2>Everything in the <em>app</em>.</h2>
+              <h2>Everything in the app.</h2>
               <p>Six places, one job: making your focus visible.</p>
             </div>
             <FeatureExplorer />
@@ -396,7 +396,7 @@ export default function LandingPage({ api }) {
           <section className="site-chapter site-wrap" id="method" data-chapter-id="method">
             <div className="site-ch-head site-rv">
               <ChapterLabel id="method" />
-              <h2>What it watches, and what it <em>doesn’t</em>.</h2>
+              <h2>What it watches, and what it doesn’t.</h2>
               <p>Eudaimonai observes behaviour, not thoughts. It knows where your screens and desk are, so a look at your second display isn’t counted as looking away.</p>
             </div>
             <Shot src={workspaceShot} alt="The workspace editor: a desk with two displays, a keyboard and the tracking camera in 3D" width="2000" height="1250" />
@@ -418,7 +418,7 @@ export default function LandingPage({ api }) {
           <section className="site-chapter site-wrap" id="privacy" data-chapter-id="privacy">
             <div className="site-ch-head site-rv">
               <ChapterLabel id="privacy" />
-              <h2>Your focus data stays on your <em>Mac</em>.</h2>
+              <h2>Your focus data stays on your Mac.</h2>
             </div>
             <div className="site-priv site-rv">
               <div><b>Camera</b><span>Frames are analysed in memory and discarded. No video is recorded or uploaded.</span></div>
@@ -435,7 +435,7 @@ export default function LandingPage({ api }) {
         <div className="site-band is-ultra" data-tone="ultra">
           <section className="site-chapter site-wrap site-why" id="why" data-chapter-id="why">
             <ChapterLabel id="why" />
-            <h2 className="site-rv">Everything worth doing takes <em>deep focus</em>.</h2>
+            <h2 className="site-rv">Everything worth doing takes deep focus.</h2>
             <div className="site-why-body site-rv">
               <p>
                 A company, a thesis, a piece of music, a hard problem in code. Whatever the field, the work that matters
@@ -458,7 +458,7 @@ export default function LandingPage({ api }) {
           <section className="site-chapter site-wrap" id="access" data-chapter-id="access">
             <div className="site-ch-head site-rv">
               <ChapterLabel id="access" />
-              <h2>20 places to <em>start</em>.</h2>
+              <h2>20 places to start.</h2>
               <p>
                 We open Eudaimonai to a small first group and read every request ourselves. It is built for work that
                 needs long stretches of attention: founders, engineers, researchers, writers.
