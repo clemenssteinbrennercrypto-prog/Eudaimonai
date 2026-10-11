@@ -80,7 +80,7 @@ export default function LandingPage({ api }) {
               and shows you exactly how to get more of it.
             </p>
             <div className="site-hero-form">
-              <RequestAccessForm api={api} privacyHref="/privacy" />
+              <RequestAccessForm api={api} privacyHref="/privacy" place="hero" />
             </div>
             <p className="site-scarcity"><i />Closed beta · Limited places · Already invited? <a href="/activate">Activate your access</a></p>
           </div>
@@ -131,7 +131,7 @@ export default function LandingPage({ api }) {
             </div>
             <AccessSteps />
             <div className="site-access-form site-rv">
-              <RequestAccessForm api={api} privacyHref="/privacy" />
+              <RequestAccessForm api={api} privacyHref="/privacy" place="closing" />
               <p className="site-fine">
                 Apple Silicon Mac (M1 or newer) · macOS 11 or later · a camera · Already invited?{' '}
                 <a href="/activate">Activate your access</a>

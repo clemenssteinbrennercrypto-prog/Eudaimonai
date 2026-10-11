@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import { attributionFromSearch } from './attribution'
+import { EVENTS, trackEvent } from './analytics'
 
 const MESSAGES = {
   invalid_email: 'That doesn’t look like a complete email address.',
@@ -11,7 +12,8 @@ const MESSAGES = {
 // Waitlist signup. Joining never creates an account and never grants access;
 // the confirmation says so. A duplicate address gets the same confirmation,
 // so the form never reveals who is already on the list.
-export default function RequestAccessForm({ api, onOpenPrivacy, privacyHref, search = window.location.search }) {
+// `place` names where the form sits on the page, for the statistics only.
+export default function RequestAccessForm({ api, onOpenPrivacy, privacyHref, place = 'page', search = window.location.search }) {
   // The landing page shows the form twice; each copy needs its own input id.
   const inputId = useId()
   const [email, setEmail] = useState('')
@@ -43,10 +45,13 @@ export default function RequestAccessForm({ api, onOpenPrivacy, privacyHref, sea
     setStatus('submitting')
     const { error: code } = await api.joinWaitlist(email.trim(), attributionFromSearch(search))
     if (code) {
-      setError(code === 'invalid_email' || code === 'rate_limited' || code === 'network' ? code : 'unknown')
+      const reason = code === 'invalid_email' || code === 'rate_limited' || code === 'network' ? code : 'unknown'
+      trackEvent(EVENTS.betaRequestFailed, { place, reason })
+      setError(reason)
       setStatus('idle')
       return
     }
+    trackEvent(EVENTS.betaRequested, { place })
     setStatus('done')
   }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import WebShell from './WebShell'
+import { EVENTS, trackEvent } from './analytics'
 import { formatDate } from './format'
 import { CONTACT_EMAIL } from './contact'
 
@@ -72,12 +73,15 @@ export default function ActivatePage({ api, search = window.location.search }) {
       setError(REQUEST_ERRORS[requestError] ? requestError : 'unknown')
       return
     }
+    trackEvent(EVENTS.activationCodeSent)
     setCode('')
     setCooldown(RESEND_AFTER_SECONDS)
     setStep('code')
   }
 
   const finish = async outcome => {
+    const ok = outcome.kind === 'activated' || outcome.kind === 'already_active'
+    trackEvent(ok ? EVENTS.activated : EVENTS.activationRefused, { result: outcome.kind })
     await api.signOut()
     setResult(outcome)
     setStep('done')

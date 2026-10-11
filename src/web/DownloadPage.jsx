@@ -2,6 +2,7 @@ import { useState } from 'react'
 import WebShell from './WebShell'
 import { DOWNLOAD_URL } from '../lib/downloadLinks'
 import { CONTACT_EMAIL } from './contact'
+import { EVENTS, trackEvent } from './analytics'
 
 // Install and permission steps in product language. Each permission line must
 // match what the app really asks for (Info.plist / Entitlements.plist and the
@@ -67,7 +68,7 @@ export default function DownloadPage({ notMac = isNotAMac() }) {
       {notMac && <OpenOnMac />}
 
       <div className="web-card">
-        <a className="web-button" href={DOWNLOAD_URL}>Download for Apple Silicon</a>
+        <a className="web-button" href={DOWNLOAD_URL} onClick={() => trackEvent(EVENTS.downloadStarted, { device: notMac ? 'not-mac' : 'mac' })}>Download for Apple Silicon</a>
         <p className="web-note">Requires an M1 chip or newer, macOS 11 or later and a camera. Intel Macs are not supported. Signed and notarized by Apple.</p>
       </div>
 

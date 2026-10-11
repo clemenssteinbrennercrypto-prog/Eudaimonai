@@ -7,6 +7,7 @@ import AdminConsole from './AdminConsole'
 import { webRoute } from './routes'
 import { createBetaApi } from './betaApi'
 import { getSupabase } from './supabaseClient'
+import { startAnalytics } from './analytics'
 import './web.css'
 
 // The landing and legal pages are silver; the funnel and admin pages are dark.
@@ -47,6 +48,7 @@ export default function Website({ api: injectedApi, pathname = window.location.p
     return client ? createBetaApi(client) : { configured: false }
   }, [injectedApi])
   useDocumentMeta(PAGES[route])
+  useEffect(() => { startAnalytics() }, [])
 
   if (route === '/activate') return <ActivatePage api={api} />
   if (route === '/download') return <DownloadPage />
