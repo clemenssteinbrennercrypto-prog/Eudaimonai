@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import RequestAccessForm from '../RequestAccessForm'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import HeroRing from './HeroRing'
+import AppShowcase from './AppShowcase'
 import Loop from './Loop'
 import PrivacyFlow from './PrivacyFlow'
 import { useReveal, useSeen } from './motion'
@@ -9,7 +10,8 @@ import './landing.css'
 
 // The public landing page: product first, with the idea as its climax.
 //   Hero        what it is, the request form, the ring drawing a real day
-//   How         Measure → Understand → Improve, each with its own graphic
+//   The app     a Mac growing into place, showing each part of the app
+//   How         a session step by step, then Measure → Understand → Improve
 //   Why         the thesis, on ultramarine
 //   Privacy     where the data goes, drawn as a flow
 //   Access      the four steps to the app, the form again, the questions
@@ -19,6 +21,13 @@ import './landing.css'
 // a validated measure of cognition. Focus data stays on the Mac; account and
 // access data does not, so never write "nothing leaves your device". The page
 // describes what the app does, not its scoring thresholds.
+
+const SESSION_STEPS = [
+  { title: 'Set up your desk once', body: 'Tell it where your screens and notes are, so it knows what counts as work.' },
+  { title: 'Start a session', body: 'Name what you’re working on, pick a length, and block distractions if you like.' },
+  { title: 'Work as usual', body: 'The camera estimates your attention on your Mac. If you drift for too long, it lets you know.' },
+  { title: 'Read the result', body: 'A report when it ends. Your days and weeks add up, and patterns appear.' },
+]
 
 const ACCESS_STEPS = [
   { title: 'Request access', body: 'Leave your email. Joining the list doesn’t create an account.' },
@@ -85,6 +94,17 @@ export default function LandingPage({ api }) {
           </div>
         </section>
 
+        <section className="site-band" id="app">
+          <div className="site-wrap">
+            <div className="site-head site-head-center site-rv">
+              <p className="site-label">The app</p>
+              <h2>Everything for your focus, in one Mac app.</h2>
+              <p>Sessions, live measurement, reports and your history over weeks. Here is what’s inside.</p>
+            </div>
+            <AppShowcase />
+          </div>
+        </section>
+
         <section className="site-band is-mist" id="how">
           <div className="site-wrap">
             <div className="site-head site-rv">
@@ -92,6 +112,11 @@ export default function LandingPage({ api }) {
               <h2>Measure. Understand. Improve.</h2>
               <p>Every session adds to a picture of how you actually work. All of it measured, and kept, on your Mac.</p>
             </div>
+            <ol className="site-steps site-rv">
+              {SESSION_STEPS.map(step => (
+                <li key={step.title}><b>{step.title}</b><span>{step.body}</span></li>
+              ))}
+            </ol>
             <Loop />
           </div>
         </section>

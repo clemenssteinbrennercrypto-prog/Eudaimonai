@@ -131,7 +131,10 @@ export async function seed({ today }) {
         trackingFaulted: false,
         scoreMeasured: true,
         // Browser storage holds ~5 MB; only the last week keeps its per-5 s trace.
-        timeline: (end - startedAt) < 8 * 86400000 ? sim.timeline : [],
+        // The Lab's week view also draws the week before, so keep those at half density.
+        timeline: (end - startedAt) < 8 * 86400000
+          ? sim.timeline
+          : (end - startedAt) < 12 * 86400000 ? sim.timeline.filter((_, index) => index % 2 === 0) : [],
         distractionLog: [],
         protectionEvents: [],
         focusPhases: {

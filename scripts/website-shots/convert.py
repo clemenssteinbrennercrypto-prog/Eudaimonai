@@ -15,9 +15,17 @@ TARGET = ROOT / 'src' / 'web' / 'landing' / 'assets'
 # name -> output width in pixels (2x the largest size the page shows it at).
 # lab-score is used by og.mjs for the link preview, not by the page.
 WIDTHS = {
+    # Whole windows for the Mac on the landing page.
+    'lab': 2000,
+    'mac-week': 2000,
+    'session-planner': 2000,
+    'mac-report': 2000,
+    'analytics': 2000,
+    'workspace': 2000,
+    'mac-protection': 2000,
+    # Crops.
     'lab-score': 1400,
     'session-report': 1800,
-    'session-planner': 2000,
     'week-review': 1800,
 }
 

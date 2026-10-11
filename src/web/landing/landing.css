@@ -119,6 +119,35 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 .site-head p:not(.site-label) { font-size: 19px; line-height: 1.5; color: var(--site-text-2); }
 .site-head-center { margin-inline: auto; text-align: center; justify-items: center; }
 
+/* The app: a Mac that grows into place, its screen changing part by part */
+.site-band#app { padding-top: 40px; }
+.site-showcase { display: grid; justify-items: center; gap: 22px; }
+.site-mac { width: 100%; max-width: 1000px; transform-origin: 50% 0; will-change: transform; }
+.site-mac-lid { background: #0B0B0D; border-radius: 22px 22px 0 0; padding: 2.1% 2.1% 2.6%; box-shadow: 0 0 0 1px #2B2B30 inset, 0 60px 120px rgba(10, 20, 60, .18); }
+.site-mac-screen { position: relative; aspect-ratio: 16 / 10; border-radius: 6px; overflow: hidden; background: var(--site-night); }
+.site-mac-screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.02); transition: opacity .9s var(--site-ease), transform 1.4s var(--site-ease); }
+.site-mac-screen img.is-on { opacity: 1; transform: none; }
+.site-mac-base { height: 16px; margin-inline: -5%; background: linear-gradient(180deg, #E2E3E6, #A9ABB2); border-radius: 0 0 16px 16px; position: relative; }
+.site-mac-base::after { content: ""; position: absolute; left: 50%; top: 0; width: 15%; height: 6px; transform: translateX(-50%); background: #8D8F96; border-radius: 0 0 8px 8px; }
+.site-showcase-tabs { margin-top: 26px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 100%; }
+.site-showcase-tabs button { position: relative; appearance: none; border: 1px solid var(--site-hair); background: #FFFFFF; color: var(--site-text-2); font: 500 14px var(--site-sans); padding: 9px 16px 11px; border-radius: 999px; cursor: pointer; overflow: hidden; transition: color .4s var(--site-ease), background .4s var(--site-ease), border-color .4s var(--site-ease); }
+.site-showcase-tabs button:hover { color: var(--site-text); }
+.site-showcase-tabs button.is-on { color: #FFFFFF; background: var(--site-text); border-color: var(--site-text); }
+.site-showcase-bar { position: absolute; left: 16px; right: 16px; bottom: 5px; height: 2px; border-radius: 1px; overflow: hidden; opacity: 0; }
+.site-showcase-tabs .is-on .site-showcase-bar { opacity: 1; background: rgba(255, 255, 255, .2); }
+.site-showcase-bar i { display: block; height: 100%; background: #FFFFFF; transform: scaleX(0); transform-origin: 0 50%; }
+.site-showcase-bar i.is-running { animation: site-fill linear forwards; }
+@keyframes site-fill { to { transform: scaleX(1); } }
+.site-showcase-text { max-width: 640px; min-height: 3.2em; text-align: center; font-size: 18px; line-height: 1.55; color: var(--site-text-2); }
+.site-showcase-also { font-size: 13px; color: var(--site-text-3); }
+
+/* A session, step by step */
+.site-steps { list-style: none; margin: 0 0 40px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; counter-reset: site-step; }
+.site-steps li { display: grid; grid-template-columns: 30px 1fr; column-gap: 12px; row-gap: 4px; align-content: start; }
+.site-steps li::before { counter-increment: site-step; content: counter(site-step); grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--site-mono); color: #FFFFFF; background: var(--site-accent); }
+.site-steps b { font-size: 16px; font-weight: 600; }
+.site-steps span { font-size: 14px; line-height: 1.5; color: var(--site-text-2); }
+
 /* How it works: three steps, each with an instrument screen */
 .site-loop { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .site-step { display: grid; grid-template-rows: auto auto 1fr auto auto; gap: 10px; padding: 28px 24px 22px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 1px 0 var(--site-hair), 0 24px 60px rgba(20, 30, 90, .07); }
@@ -300,6 +329,7 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-hero-grid { grid-template-columns: 1fr; gap: 56px; }
   .site-hero-ring { max-width: 640px; }
   .site-loop { grid-template-columns: 1fr; max-width: 560px; margin-inline: auto; }
+  .site-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 28px; }
   .site-flow { grid-template-columns: 1fr; }
   .site-flow-link { height: 96px; }
   .site-flow-wire { left: 50%; right: auto; top: 0; bottom: 0; border-top: 0; border-left: 1px dashed var(--site-hair-2); }
@@ -315,6 +345,14 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
   .site-hero { padding-block: 48px 88px; }
   .site-hero-ring { grid-template-columns: 1fr; justify-items: center; gap: 24px; }
   .site-hero-ring-dial { max-width: 320px; }
+  .site-band#app { padding-top: 16px; }
+  .site-mac-lid { border-radius: 12px 12px 0 0; }
+  .site-mac-base { height: 9px; }
+  .site-showcase-tabs { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; width: calc(100% + 32px); margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+  .site-showcase-tabs::-webkit-scrollbar { display: none; }
+  .site-showcase-tabs button { flex: none; }
+  .site-showcase-text { font-size: 16px; min-height: 4.8em; }
+  .site-steps { grid-template-columns: 1fr; }
   .site-hero-measures { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; }
   .site-hero-measures dd { font-size: 21px; }
   .site-hero-ring figcaption { text-align: center; }
@@ -344,7 +382,7 @@ html:has(.site), body:has(.site) { background: #FFFFFF; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-rv, .site-step-layer, .site-path::after, .site-path li::before { transition: none !important; }
+  .site-rv, .site-step-layer, .site-path::after, .site-path li::before, .site-mac-screen img { transition: none !important; }
   .site-rv.is-pre { opacity: 1; transform: none; filter: none; }
   .site-why-art, .site-hero-ring .site-dial-arc, .site-flow *::before, .site-flow *::after { animation: none !important; }
 }

@@ -14,7 +14,7 @@
 // After a UI change, rerun all three and check that the numbers quoted in
 // src/web/landing/LandingPage.jsx (DEMO_DAY) still match the Lab screenshot.
 // The page.evaluate callbacks below run in the browser.
-/* global document, location, localStorage, scrollX, scrollY */
+/* global document, location, localStorage, scrollX, scrollY, window */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { webkit } from 'playwright-core'
 
@@ -80,6 +80,14 @@ async function tidy() {
     for (const element of document.querySelectorAll('*')) {
       if (element.childElementCount === 0 && /vdev/.test(element.textContent)) element.style.visibility = 'hidden'
     }
+    // The amber dot on Protection means the dev build has no companion running.
+    for (const link of document.querySelectorAll('button, a')) {
+      if (!/^\s*Protection\s*$/.test(link.textContent || '')) continue
+      for (const dot of link.querySelectorAll('*')) {
+        const box = dot.getBoundingClientRect()
+        if (box.width > 0 && box.width <= 10 && box.height <= 10 && !dot.querySelector('*') && !(dot.textContent || '').trim()) dot.style.visibility = 'hidden'
+      }
+    }
   })
 }
 
@@ -127,6 +135,8 @@ await shot('lab-score', { clip: pad(await panelBox('Focus score'), 0) })
 await page.getByText('View week').click()
 await settle()
 await shot('week-review', { fullPage: true, clip: await panelBox('Week in review') })
+await tidy()
+await shot('mac-week')
 
 // Session planner, with a name typed in.
 await page.getByText('Session', { exact: true }).first().click()
@@ -149,6 +159,13 @@ await tidy()
 // The rules only; the status row above them reports the dev build's missing
 // companion, which no installed app shows.
 await shot('protection', { clip: { x: 500, y: 300, width: 880, height: 500 } })
+// The whole window for the website's Mac, without that dev-only status row.
+await page.getByText('Companion not connected').first().evaluate(node => {
+  let row = node
+  while (row.parentElement && row.parentElement.getBoundingClientRect().height < 140) row = row.parentElement
+  row.style.display = 'none'
+})
+await shot('mac-protection')
 // Protection edits a draft; save it so leaving the screen isn't held up.
 await page.getByRole('button', { name: 'Save setup' }).click()
 await settle(800)
@@ -161,6 +178,8 @@ await settle(2000)
 await shot('best-hours', { fullPage: true, clip: pad(await panelBox('Time of day', { minWidth: 1000, minHeight: 300 }), 28) })
 await page.getByText('Overview', { exact: true }).first().click()
 await settle()
+await page.evaluate(() => window.scrollTo(0, 0))
+await settle(400)
 await tidy()
 await shot('analytics')
 const reportTask = seeded.today[1]
@@ -177,6 +196,11 @@ await shot('session-report', {
   fullPage: true,
   clip: { x: lapses.x - 4, y: title.y - 60, width: lapses.width + 8, height: lapses.y + lapses.height - title.y + 64 },
 })
+// The report as a whole window, scrolled to its title, for the website's Mac.
+await page.evaluate(y => window.scrollTo(0, y - 110), title.y)
+await settle(600)
+await tidy()
+await shot('mac-report')
 
 await browser.close()
 console.log(`screenshots in ${OUT}/`)

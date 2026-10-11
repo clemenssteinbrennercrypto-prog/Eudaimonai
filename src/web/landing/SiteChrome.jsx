@@ -9,6 +9,7 @@ export function SiteHeader() {
           <span className="site-word">Eudaimonai</span>
         </a>
         <nav className="site-header-nav" aria-label="Main">
+          <a href="/#app">The app</a>
           <a href="/#how">How it works</a>
           <a href="/#privacy">Privacy</a>
           <a href="/#faq">Questions</a>
