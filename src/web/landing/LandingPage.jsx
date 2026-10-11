@@ -3,7 +3,9 @@ import RequestAccessForm from '../RequestAccessForm'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import HeroRing from './HeroRing'
 import AppShowcase from './AppShowcase'
-import SessionWalkthrough from './SessionWalkthrough'
+import HowItWorks from './HowItWorks'
+import AnalyticsDetail from './AnalyticsDetail'
+import WhySection from './WhySection'
 import PrivacyMap from './PrivacyMap'
 import { useReveal, useSeen } from './motion'
 import './landing.css'
@@ -11,7 +13,7 @@ import './landing.css'
 // The public landing page: product first, with the idea as its climax.
 //   Hero        what it is, the request form, the ring drawing a real day
 //   The app     a Mac growing into place, showing each part of the app
-//   How         one sample session, read moment by moment
+//   How         five scenes: plan, work, the camera's focus zones, the score, sound
 //   Why         the thesis, on ultramarine
 //   Privacy     what the camera does with a frame, and where each kind of data lives
 //   Access      the four steps to the app, the form again, the questions
@@ -95,6 +97,7 @@ export default function LandingPage({ api }) {
               <p>Sessions, live measurement, reports and your history over weeks. Here is what’s inside.</p>
             </div>
             <AppShowcase />
+            <AnalyticsDetail />
           </div>
         </section>
 
@@ -102,39 +105,15 @@ export default function LandingPage({ api }) {
           <div className="site-wrap">
             <div className="site-head site-rv">
               <p className="site-label">How it works</p>
-              <h2>What happens during a session.</h2>
-              <p>One sample session of 75 minutes, the way Eudaimonai reads it. Every moment below is something the app measures on your Mac.</p>
+              <h2>From plan to score, in five steps.</h2>
+              <p>What happens when you start a session, and how the camera on your Mac turns where you look into a number.</p>
             </div>
-            <SessionWalkthrough />
+            <HowItWorks />
           </div>
         </section>
 
         <section className="site-band is-ultra" id="why">
-          <svg className="site-why-art" viewBox="0 0 400 400" aria-hidden="true">
-            <circle cx="200" cy="200" r="172" />
-            <circle cx="200" cy="200" r="146" />
-            <circle cx="200" cy="200" r="120" />
-          </svg>
-          <div className="site-wrap site-why">
-            <p className="site-label">Why</p>
-            <h2 className="site-rv">Everything worth doing takes deep focus.</h2>
-            <div className="site-why-body site-rv">
-              <p>
-                A company, a thesis, a piece of music, a hard problem in code. Whatever the field, the work that matters
-                gets done in long, unbroken stretches of attention, repeated day after day. The ability to stay with
-                something deeply, and for long, is what turns effort into results.
-              </p>
-              <p>
-                It is also the hardest thing to see. Sleep has a score. Training has a load. Focus only has a feeling.
-                Eudaimonai makes it visible, so you can protect it and build on it.
-              </p>
-            </div>
-            <figure className="site-why-name site-rv">
-              <p><span lang="grc">εὐδαιμονία</span> · eudaimonia</p>
-              <blockquote>“For one swallow does not make a summer, nor does one day; and so too one day, or a short time, does not make a man blessed and happy.”</blockquote>
-              <figcaption>Aristotle, <cite>Nicomachean Ethics</cite> I.7, on the highest good: not a feeling but an activity, sustained over a complete life. Tr. W. D. Ross.</figcaption>
-            </figure>
-          </div>
+          <WhySection />
         </section>
 
         <section className="site-band" id="privacy">

@@ -52,6 +52,23 @@ const trace = await page.evaluate(task => {
 }, seeded.today[1])
 writeFileSync(new URL('../../src/web/landing/assets/demo-session.json', import.meta.url), `${JSON.stringify(trace)}\n`)
 
+// Analytics in detail: average attention per session in order (the "Focus by
+// session" chart) and per time of day (the Details clock).
+const analytics = await page.evaluate(() => {
+  const sessions = JSON.parse(localStorage.getItem('eudaimonia_sessions') || '[]')
+    .filter(item => Number.isFinite(item.sessionEfficiency))
+    .sort((a, b) => a.startedAt - b.startedAt)
+  const periods = [['Early morning', 6, 9], ['Late morning', 9, 12], ['Midday', 12, 15], ['Afternoon', 15, 18], ['Evening', 18, 22]]
+  return {
+    sessions: sessions.map(item => item.sessionEfficiency),
+    periods: periods.map(([label, from, to]) => {
+      const inPeriod = sessions.filter(item => { const hour = new Date(item.startedAt).getHours(); return hour >= from && hour < to })
+      return { label, from, to, count: inPeriod.length, attention: inPeriod.length ? Math.round(inPeriod.reduce((sum, item) => sum + item.sessionEfficiency, 0) / inPeriod.length) : null }
+    }),
+  }
+})
+writeFileSync(new URL('../../src/web/landing/assets/demo-analytics.json', import.meta.url), `${JSON.stringify(analytics)}\n`)
+
 
 // The unreleased "AI Companion · Soon" item and the dev build tag are not
 // product, so they stay out of the pictures.

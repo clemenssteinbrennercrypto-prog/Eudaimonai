@@ -58,15 +58,18 @@ describe('Website routes', () => {
 })
 
 describe('the landing page explains the app', () => {
-  it('lets the visitor pick a part of the app and reads a sample session moment by moment', () => {
+  it('lets the visitor pick a part of the app, and walks through a session in five steps', () => {
     render(<Website api={{ configured: true, joinWaitlist: vi.fn() }} pathname="/" />)
     const tabs = screen.getAllByRole('tab')
     expect(tabs.map(tab => tab.textContent)).toEqual(['Lab', 'Sessions', 'Reports', 'Weekly review', 'History', 'Workspace', 'Protection'])
     fireEvent.click(screen.getByRole('tab', { name: 'Reports' }))
     expect(screen.getByRole('tab', { name: 'Reports' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('img', { name: 'Eudaimonai, Reports' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: 'You check your phone' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: 'A look at your second screen' })).toBeInTheDocument()
+    for (const step of ['Plan the session', 'Work on your task', 'The camera reads your focus', 'Your score builds itself', 'Sound that keeps you in it']) {
+      expect(screen.getByRole('heading', { level: 3, name: step })).toBeInTheDocument()
+    }
+    // Students are a core audience; the idea names studying.
+    expect(document.body.textContent).toMatch(/Studying for an exam/)
   })
 })
 

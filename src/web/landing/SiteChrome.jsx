@@ -1,3 +1,5 @@
+import LogoMark from './LogoMark'
+
 // Header and footer shared by the landing page and the legal pages. The
 // funnel pages (/activate, /download, /admin) keep their own WebShell.
 export function SiteHeader() {
@@ -5,7 +7,7 @@ export function SiteHeader() {
     <header className="site-header">
       <div className="site-header-bar">
         <a className="site-brand" href="/">
-          <img src="/apple-touch-icon.png" alt="" width="24" height="24" />
+          <LogoMark size={26} tone="ink" />
           <span className="site-word">Eudaimonai</span>
         </a>
         <nav className="site-header-nav" aria-label="Main">
@@ -23,7 +25,7 @@ export function SiteHeader() {
 export function SiteFooter() {
   return (
     <footer className="site-footer">
-      <span className="site-word">Eudaimonai</span>
+      <span className="site-footer-brand"><LogoMark size={36} /><span className="site-word">Eudaimonai</span></span>
       <nav aria-label="Footer">
         <a href="/activate">Activate</a>
         <a href="/download">Download</a>
