@@ -127,8 +127,16 @@ describe('the download page off a Mac', () => {
     expect(isNotAMac('Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 0)).toBe(true)
     expect(isNotAMac('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 5)).toBe(true)
     expect(isNotAMac('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 0)).toBe(false)
-    render(<DownloadPage notMac />)
+    render(<DownloadPage notMac loadRelease={() => Promise.resolve(null)} />)
     expect(screen.getByRole('note')).toHaveTextContent('Open this page on your Mac')
     expect(screen.getByRole('link', { name: 'Download for Apple Silicon' })).toBeInTheDocument()
+  })
+
+  it('switches to the newest production release once GitHub answers', async () => {
+    const { default: DownloadPage } = await import('./DownloadPage')
+    const url = 'https://github.com/clemenssteinbrennercrypto-prog/Eudaimonai/releases/download/release-v0.3.0/Eudaimonai-0.3.0-aarch64.dmg'
+    render(<DownloadPage notMac={false} loadRelease={() => Promise.resolve({ version: '0.3.0', url, pinned: false })} />)
+    expect(await screen.findByText(/Version 0\.3\.0\./)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Download for Apple Silicon' })).toHaveAttribute('href', url)
   })
 })

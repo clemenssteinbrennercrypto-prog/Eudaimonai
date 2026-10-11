@@ -146,7 +146,7 @@ Vercel (this website) and GitHub (the app download and the update check) may pro
   },
   {
     heading: 'This website',
-    body: `This website is delivered by the hosting provider Vercel Inc. (USA). When you visit it, Vercel processes technically necessary connection data such as IP address, time, page requested and browser identifier in order to deliver the site and protect it from abuse. The app file itself is provided for download by GitHub (USA), which also receives your IP address and standard connection data.
+    body: `This website is delivered by the hosting provider Vercel Inc. (USA). When you visit it, Vercel processes technically necessary connection data such as IP address, time, page requested and browser identifier in order to deliver the site and protect it from abuse. The app file itself is provided for download by GitHub (USA), which also receives your IP address and standard connection data. When you open the download page, your browser also asks GitHub which app version is current, so GitHub receives the same connection data then.
 
 If you request beta access or activate an invitation here, the data described under “Closed beta” is sent to our beta backend. Apart from the anonymous visitor statistics described under “Website statistics”, the website collects no session, camera or activity data. The legal basis for delivering the site is our legitimate interest in providing it securely and reliably (Art. 6(1)(f) GDPR).`,
   },
