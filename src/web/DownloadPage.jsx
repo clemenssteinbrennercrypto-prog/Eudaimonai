@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import WebShell from './WebShell'
 import { DOWNLOAD_URL } from '../lib/downloadLinks'
 import { CONTACT_EMAIL } from './contact'
@@ -28,18 +29,46 @@ const STEPS = [
   },
 ]
 
-export default function DownloadPage() {
+// A phone, a tablet (iPadOS reports a Mac with touch) or a Windows or Linux PC
+// can't run the app; those visitors get the page link to open on their Mac.
+export function isNotAMac(userAgent = navigator.userAgent, touchPoints = navigator.maxTouchPoints) {
+  if (/iPhone|iPad|iPod|Android|Windows|CrOS|Linux/i.test(userAgent)) return true
+  return /Macintosh/i.test(userAgent) && touchPoints > 1
+}
+
+function OpenOnMac() {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
   return (
-    <WebShell note="Closed beta">
+    <div className="web-message is-info" role="note">
+      <strong>Eudaimonai runs on a Mac.</strong> Open this page on your Mac to download it.{' '}
+      <button type="button" className="web-link-button" onClick={copy}>{copied ? 'Link copied' : 'Copy link'}</button>
+    </div>
+  )
+}
+
+export default function DownloadPage({ notMac = isNotAMac() }) {
+  return (
+    <WebShell site>
       <span className="web-kicker">Download</span>
       <h1 className="web-title">Get Eudaimonai for your Mac</h1>
       <p className="web-lead">
-        Eudaimonai is in a closed beta. Install it in a minute; the steps below say exactly what your Mac will ask.
+        Eudaimonai is in a closed beta. Install it in a minute, then sign in to the app with the email address you
+        used for beta access. The steps below say exactly what your Mac will ask.
       </p>
+
+      {notMac && <OpenOnMac />}
 
       <div className="web-card">
         <a className="web-button" href={DOWNLOAD_URL}>Download for Apple Silicon</a>
-        <p className="web-note">Requires an M1 chip or newer, macOS 11 or later and a camera. Intel Macs are not supported.</p>
+        <p className="web-note">Requires an M1 chip or newer, macOS 11 or later and a camera. Intel Macs are not supported. Signed and notarized by Apple.</p>
       </div>
 
       <h2 className="web-section-title">Install</h2>

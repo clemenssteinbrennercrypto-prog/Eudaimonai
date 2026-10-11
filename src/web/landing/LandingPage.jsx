@@ -157,7 +157,7 @@ export default function LandingPage({ api }) {
         </section>
       </main>
 
-      <SiteFooter />
+      <SiteFooter sampleNote />
     </div>
   )
 }

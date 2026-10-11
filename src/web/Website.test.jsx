@@ -119,3 +119,16 @@ describe('the app and the website stay separate', () => {
     expect(main).not.toMatch(/import Website from/)
   })
 })
+
+describe('the download page off a Mac', () => {
+  it('tells phone and PC visitors to open the page on their Mac', async () => {
+    const { default: DownloadPage, isNotAMac } = await import('./DownloadPage')
+    expect(isNotAMac('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', 5)).toBe(true)
+    expect(isNotAMac('Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 0)).toBe(true)
+    expect(isNotAMac('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 5)).toBe(true)
+    expect(isNotAMac('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 0)).toBe(false)
+    render(<DownloadPage notMac />)
+    expect(screen.getByRole('note')).toHaveTextContent('Open this page on your Mac')
+    expect(screen.getByRole('link', { name: 'Download for Apple Silicon' })).toBeInTheDocument()
+  })
+})

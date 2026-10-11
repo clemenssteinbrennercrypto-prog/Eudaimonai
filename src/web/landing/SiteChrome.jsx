@@ -22,17 +22,17 @@ export function SiteHeader() {
   )
 }
 
-export function SiteFooter() {
+export function SiteFooter({ sampleNote = false }) {
   return (
     <footer className="site-footer">
-      <span className="site-footer-brand"><LogoMark size={36} /><span className="site-word">Eudaimonai</span></span>
+      <span className="site-footer-brand"><LogoMark size={28} tone="ink" /><span className="site-word">Eudaimonai</span></span>
       <nav aria-label="Footer">
         <a href="/activate">Activate</a>
         <a href="/download">Download</a>
         <a href="/legal">Legal Notice</a>
         <a href="/privacy">Privacy Policy</a>
       </nav>
-      <p className="site-footer-note">Graphics and product screens show sample data.</p>
+      {sampleNote && <p className="site-footer-note">Graphics and product screens show sample data.</p>}
     </footer>
   )
 }

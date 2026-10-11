@@ -35,6 +35,11 @@ export default function RequestAccessForm({ api, onOpenPrivacy, privacyHref, sea
       setStatus('done')
       return
     }
+    // The browser's own check normally stops an empty field; this is the fallback.
+    if (!email.trim()) {
+      setError('invalid_email')
+      return
+    }
     setStatus('submitting')
     const { error: code } = await api.joinWaitlist(email.trim(), attributionFromSearch(search))
     if (code) {
@@ -74,7 +79,9 @@ export default function RequestAccessForm({ api, onOpenPrivacy, privacyHref, sea
           onChange={event => setEmail(event.target.value)}
           disabled={status === 'submitting'}
         />
-        <button className="web-button" type="submit" disabled={status === 'submitting' || !email.trim()}>
+        {/* Never greyed out when empty: the primary call to action must look
+            available. The required email field lets the browser explain. */}
+        <button className="web-button" type="submit" disabled={status === 'submitting'}>
           {status === 'submitting' ? 'Sending…' : 'Request beta access'}
         </button>
       </div>

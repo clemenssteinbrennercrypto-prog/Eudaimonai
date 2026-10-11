@@ -50,7 +50,7 @@ export default function ActivatePage({ api, search = window.location.search }) {
 
   if (!api?.configured) {
     return (
-      <WebShell>
+      <WebShell site>
         <h1 className="web-title">Activation isn’t open yet</h1>
         <p className="web-lead">Beta activation is not available right now. Please try again later.</p>
       </WebShell>
@@ -60,6 +60,11 @@ export default function ActivatePage({ api, search = window.location.search }) {
   const sendCode = async event => {
     event?.preventDefault()
     setError(null)
+    // The browser's own check normally stops an empty field; this is the fallback.
+    if (!email.trim()) {
+      setError('invalid_email')
+      return
+    }
     setBusy(true)
     const { error: requestError } = await api.requestCode(email.trim(), { createUser: true })
     setBusy(false)
@@ -108,7 +113,7 @@ export default function ActivatePage({ api, search = window.location.search }) {
   }
 
   return (
-    <WebShell note="Closed beta">
+    <WebShell site>
       {step === 'email' && (
         <>
           <span className="web-kicker">Closed beta</span>
@@ -130,7 +135,7 @@ export default function ActivatePage({ api, search = window.location.search }) {
                 disabled={busy}
               />
             </label>
-            <button className="web-button" type="submit" disabled={busy || !email.trim()}>
+            <button className="web-button" type="submit" disabled={busy}>
               {busy ? 'Sending…' : 'Send code'}
             </button>
             {error && <p className="web-message is-error" role="alert">{REQUEST_ERRORS[error]}</p>}
@@ -198,7 +203,7 @@ function Outcome({ result }) {
           {result.until
             ? <>Your beta access runs until <strong>{formatDate(result.until)}</strong>.</>
             : <>Your access has no end date.</>}
-          {' '}Next, download Eudaimonai for your Mac.
+          {' '}Next, download Eudaimonai for your Mac and sign in to the app with this same email address.
         </p>
         <a className="web-button" href="/download">Download Eudaimonai</a>
         <p className="web-note">For your privacy, this website doesn’t keep you signed in.</p>
@@ -211,7 +216,8 @@ function Outcome({ result }) {
         <h1 className="web-title">This beta place has been used</h1>
         <p className="web-lead">
           This address already activated its free beta place, and that access has ended. Each address can
-          activate the free beta once. If you think this is a mistake, write to{' '}
+          activate the free beta once. Your history stays on your Mac and stays readable in the app. If you think
+          this is a mistake, write to{' '}
           <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: 'inherit' }}>{CONTACT_EMAIL}</a>.
         </p>
       </>

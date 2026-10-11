@@ -9,12 +9,12 @@ import { createBetaApi } from './betaApi'
 import { getSupabase } from './supabaseClient'
 import './web.css'
 
-// The landing and legal pages are light; the funnel and admin pages are dark.
-const LIGHT = '#FFFFFF'
+// The landing and legal pages are silver; the funnel and admin pages are dark.
+const LIGHT = '#EEF0F3'
 const DARK = '#080A0F'
 
 const PAGES = {
-  '/': { title: 'Eudaimonai · Focus sessions for Mac', index: true, theme: LIGHT },
+  '/': { title: 'Eudaimonai · The focus instrument for Mac', index: true, theme: LIGHT },
   '/activate': { title: 'Activate your beta access · Eudaimonai', index: false, theme: DARK },
   '/download': { title: 'Download · Eudaimonai', index: true, theme: DARK },
   '/admin': { title: 'Beta admin · Eudaimonai', index: false, theme: DARK },

@@ -15,7 +15,7 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
   --site-hair-2: rgba(0, 0, 0, .14);
   --site-text: #0B0C10;
   --site-text-2: #555A66;
-  --site-text-3: #7C818D;
+  --site-text-3: #676C78;
   --site-accent: #2C46FF;
   --site-accent-deep: #1426B8;
   --site-sky: #9AA8FF;
@@ -49,7 +49,8 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
 .site p { margin: 0; }
 .site-wrap { max-width: 1160px; margin: 0 auto; padding-inline: 32px; }
 
-.site-label { font: 600 11px var(--site-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--site-text-3); }
+/* Section kickers: one style everywhere, sentence case. */
+.site-label { font: 600 15px var(--site-sans); letter-spacing: -0.01em; color: var(--site-text-2); }
 .site-label-accent { color: var(--site-accent); }
 .site-fine { margin-top: 16px; font-size: 13px; line-height: 1.5; color: var(--site-text-3); }
 .site-fine a { color: var(--site-accent); }
@@ -299,7 +300,7 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
 .site-where li { display: grid; gap: 2px; }
 .site-where li b { font-size: 15px; font-weight: 600; }
 .site-where li span { font-size: 14px; line-height: 1.45; color: var(--site-text-2); }
-.site-where-mac { grid-row: span 2; background: #FFFFFF; }
+.site-where-mac { grid-row: span 2; align-self: start; background: #FFFFFF; }
 .site-pmap + .site-perm { margin-top: 36px; }
 .site-where-mac h3 { color: var(--site-ink); }
 .site-where-mac ul { gap: 16px; }
@@ -372,7 +373,7 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
 .site-hero .request-form { margin: 0 auto; }
 
 /* Questions */
-.site-faq { max-width: 820px; margin: 0 auto; }
+.site-faq { max-width: 820px; }
 .site-qa { margin-top: 18px; border-top: 1px solid var(--site-hair); }
 .site-qa details { border-bottom: 1px solid var(--site-hair); }
 .site-qa summary { list-style: none; cursor: pointer; padding: 20px 0; font-size: 17px; font-weight: 500; display: flex; justify-content: space-between; gap: 16px; }
@@ -395,6 +396,33 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
 .site-legal h1 { font-size: clamp(34px, 4vw, 46px); font-weight: 700; letter-spacing: -0.04em; margin-bottom: 12px; }
 .site-legal h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-top: 36px; margin-bottom: 8px; }
 .site-legal p { font-size: 16px; line-height: 1.65; color: #333336; white-space: pre-line; }
+
+/* Funnel pages (/activate, /download) in the site's silver look. Their markup
+   and logic are the funnel's own (web.css classes); only the dress changes. */
+.site-shell-main { max-width: 640px; padding-block: 88px 120px; }
+.site-shell .web-kicker { font: 600 15px var(--site-sans); letter-spacing: -0.01em; text-transform: none; color: var(--site-text-2); }
+.site-shell .web-title { font-size: clamp(36px, 5vw, 56px); letter-spacing: -0.045em; line-height: 1.02; color: var(--site-text); }
+.site-shell .web-lead { font-size: 18px; line-height: 1.55; color: var(--site-text-2); }
+.site-shell .web-lead strong { color: var(--site-text); }
+.site-shell .web-card { background: #FFFFFF; border: 0; border-radius: 22px; padding: 28px; box-shadow: 0 1px 0 var(--site-hair), 0 24px 60px rgba(11, 12, 16, .08); }
+.site-shell .web-field { color: var(--site-text); }
+.site-shell .web-input { height: 50px; border-radius: 14px; border: 1px solid var(--site-hair-2); background: #FFFFFF; color: var(--site-text); }
+.site-shell .web-input:focus { border-color: var(--site-ink); box-shadow: 0 0 0 3px rgba(11, 12, 16, .1); outline: none; }
+.site-shell .web-button { height: 50px; border-radius: 999px; border: 0; background: var(--site-ink); color: #FFFFFF; font-weight: 500; box-shadow: none; }
+.site-shell .web-button:hover:not(:disabled) { background: #2A2D35; box-shadow: none; transform: none; }
+.site-shell .web-button:disabled { opacity: .35; }
+.site-shell .web-button.is-secondary { background: transparent; color: var(--site-text); box-shadow: inset 0 0 0 1px var(--site-hair-2); }
+.site-shell .web-note { color: var(--site-text-3); }
+.site-shell .web-note a, .site-shell .web-link-button { color: var(--site-ink) !important; text-decoration: underline; text-transform: none; letter-spacing: 0; font-size: inherit; }
+.site-shell .web-section-title { margin-top: 56px; font-size: 22px; letter-spacing: -0.02em; text-transform: none; color: var(--site-text); }
+.site-shell .web-lead { margin-bottom: 28px; }
+.site-shell .web-steps li { background: #FFFFFF; border: 0; border-radius: 16px; box-shadow: 0 1px 0 var(--site-hair); }
+.site-shell .web-steps li::before { color: var(--site-text-3); }
+.site-shell .web-steps p { color: var(--site-text-2); }
+.site-shell .web-message.is-error { border-color: rgba(204, 30, 60, .25); background: rgba(255, 77, 106, .07); color: #9B1630; }
+.site-shell .web-message.is-success { border-color: rgba(23, 138, 99, .3); background: rgba(47, 227, 168, .1); color: #0E5E43; }
+.site-shell .web-message.is-info { border-color: var(--site-hair-2); background: #FFFFFF; color: var(--site-text-2); margin-bottom: 16px; }
+.site-shell .web-message.is-info strong { color: var(--site-text); }
 
 @media (max-width: 1080px) {
   .site-story { grid-template-columns: 1fr; gap: 24px; }
@@ -448,6 +476,7 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
   .site .request-form-row .web-button { width: 100%; }
   .site-faq { margin-top: 88px; }
   .site .site-footer { padding-inline: 16px; }
+  .site-shell-main { padding-block: 56px 88px; }
 }
 
 @media (max-width: 380px) {

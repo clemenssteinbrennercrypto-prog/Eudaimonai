@@ -1,10 +1,25 @@
 import { useState } from 'react'
 import LegalModal from '../components/LegalModal'
+import { SiteFooter, SiteHeader } from './landing/SiteChrome'
+import './landing/landing.css'
 
 // Frame for the funnel and admin pages: wordmark home link, content, legal
 // footer. The landing page keeps its own full-bleed layout.
-export default function WebShell({ children, wide = false, note = null }) {
+//
+// `site` dresses a funnel page (/activate, /download) in the public site's
+// silver look, with the site's header and footer; the page's own markup and
+// logic stay the same. The admin console keeps the dark frame.
+export default function WebShell({ children, wide = false, note = null, site = false }) {
   const [legalTab, setLegalTab] = useState(null)
+  if (site) {
+    return (
+      <div className="site site-shell">
+        <SiteHeader />
+        <main className="site-wrap site-shell-main">{children}</main>
+        <SiteFooter />
+      </div>
+    )
+  }
   return (
     <div className="web-page">
       <header className="web-header">
