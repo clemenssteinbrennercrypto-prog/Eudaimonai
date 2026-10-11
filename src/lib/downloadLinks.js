@@ -2,9 +2,12 @@
 // the production beta backend (test-channel builds talk to staging).
 //
 // The file name follows companion-release.yml's releaseAssetNamePattern
-// '[name]-[version]-[arch][ext]'. It is a prediction until the release is
-// published: verify it resolves (HTTP 200) before anyone is invited, and
-// update the version here with every production release.
+// '[name]-[version]-[arch][ext]'.
+//
+// The website's download page finds the newest production release on GitHub
+// by itself (src/web/latestRelease.js); this pinned release is only its
+// fallback when GitHub can't be reached. Bumping it is optional, but keep it
+// pointing at a release that exists.
 //
 // Never fall back to the historical unsigned `latest` release.
 export const RELEASE_VERSION = '0.2.0'

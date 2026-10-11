@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import WebShell from './WebShell'
-import { DOWNLOAD_URL } from '../lib/downloadLinks'
+import { PINNED_RELEASE, fetchLatestRelease } from './latestRelease'
 import { CONTACT_EMAIL } from './contact'
 import { EVENTS, trackEvent } from './analytics'
 
@@ -55,7 +55,21 @@ function OpenOnMac() {
   )
 }
 
-export default function DownloadPage({ notMac = isNotAMac() }) {
+// Starts from the pinned release and switches to the newest production
+// release GitHub reports (latestRelease.js), so a new app version needs no
+// website change.
+function useLatestRelease(loadRelease) {
+  const [release, setRelease] = useState(PINNED_RELEASE)
+  useEffect(() => {
+    let cancelled = false
+    loadRelease().then(found => { if (!cancelled && found) setRelease(found) })
+    return () => { cancelled = true }
+  }, [loadRelease])
+  return release
+}
+
+export default function DownloadPage({ notMac = isNotAMac(), loadRelease = fetchLatestRelease }) {
+  const release = useLatestRelease(loadRelease)
   return (
     <WebShell site>
       <span className="web-kicker">Download</span>
@@ -68,8 +82,8 @@ export default function DownloadPage({ notMac = isNotAMac() }) {
       {notMac && <OpenOnMac />}
 
       <div className="web-card">
-        <a className="web-button" href={DOWNLOAD_URL} onClick={() => trackEvent(EVENTS.downloadStarted, { device: notMac ? 'not-mac' : 'mac' })}>Download for Apple Silicon</a>
-        <p className="web-note">Requires an M1 chip or newer, macOS 11 or later and a camera. Intel Macs are not supported. Signed and notarized by Apple.</p>
+        <a className="web-button" href={release.url} onClick={() => trackEvent(EVENTS.downloadStarted, { device: notMac ? 'not-mac' : 'mac', version: release.version })}>Download for Apple Silicon</a>
+        <p className="web-note">Version {release.version}. Requires an M1 chip or newer, macOS 11 or later and a camera. Intel Macs are not supported. Signed and notarized by Apple.</p>
       </div>
 
       <h2 className="web-section-title">Install</h2>
