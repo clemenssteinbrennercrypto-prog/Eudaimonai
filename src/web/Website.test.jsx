@@ -61,7 +61,7 @@ describe('the landing page explains the app', () => {
   it('lets the visitor pick a part of the app, and walks through a session in five steps', () => {
     render(<Website api={{ configured: true, joinWaitlist: vi.fn() }} pathname="/" />)
     const tabs = screen.getAllByRole('tab')
-    expect(tabs.map(tab => tab.textContent)).toEqual(['Lab', 'Sessions', 'Reports', 'Weekly review', 'History', 'Workspace', 'Protection'])
+    expect(tabs.map(tab => tab.textContent)).toEqual(['Lab', 'Sessions', 'Reports', 'Weekly review', 'Analytics', 'Best hours', 'History', 'Workspace', 'Protection'])
     fireEvent.click(screen.getByRole('tab', { name: 'Reports' }))
     expect(screen.getByRole('tab', { name: 'Reports' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('img', { name: 'Eudaimonai, Reports' })).toBeInTheDocument()

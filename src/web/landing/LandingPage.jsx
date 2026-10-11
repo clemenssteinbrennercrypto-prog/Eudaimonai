@@ -4,7 +4,6 @@ import { SiteFooter, SiteHeader } from './SiteChrome'
 import HeroRing from './HeroRing'
 import AppShowcase from './AppShowcase'
 import HowItWorks from './HowItWorks'
-import AnalyticsDetail from './AnalyticsDetail'
 import WhySection from './WhySection'
 import PrivacyMap from './PrivacyMap'
 import { useReveal, useSeen } from './motion'
@@ -97,7 +96,6 @@ export default function LandingPage({ api }) {
               <p>Sessions, live measurement, reports and your history over weeks. Here is what’s inside.</p>
             </div>
             <AppShowcase />
-            <AnalyticsDetail />
           </div>
         </section>
 

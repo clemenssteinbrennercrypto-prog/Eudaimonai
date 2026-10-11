@@ -23,6 +23,8 @@ WIDTHS = {
     'analytics': 2000,
     'workspace': 2000,
     'mac-protection': 2000,
+    'mac-analytics': 2000,
+    'mac-best-hours': 2000,
     # Crops.
     'lab-score': 1400,
 }
