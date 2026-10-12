@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@mediapipe/face_mesh": "^0.4.1633559619",
-    "@supabase/supabase-js": "^2.117.2",
+    "@supabase/supabase-js": "^2.117.3",
     "@vercel/analytics": "2.0.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
@@ -42,7 +42,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "jsdom": "^30.1.2",
-    "vite": "^8.3.2",
+    "vite": "^8.3.4",
     "vitest": "^5.0.3"
   }
 }
