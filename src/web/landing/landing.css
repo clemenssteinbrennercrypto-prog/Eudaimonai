@@ -367,7 +367,11 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
 .site .request-form-row .web-button:hover:not(:disabled) { background: #2A2D35; box-shadow: none; transform: none; }
 .site .request-form-row .web-button:disabled { opacity: .35; }
 .site .request-form-row .web-button:disabled { opacity: .45; }
-.site .request-form .web-note { color: var(--site-text-3); font-size: 13px; }
+/* Clear space under the button, so the eye lands on it and the fine print reads
+   as a footnote. `.site p` would otherwise zero the margin. */
+.site .request-form .web-note { margin-top: 28px; color: var(--site-text-3); font-size: 13px; }
+.site .site-access-form .site-fine { margin-top: 6px; }
+.site .request-form .web-message { margin-top: 16px; }
 .site .request-form .web-note a { color: var(--site-ink); text-decoration: underline; }
 .is-night .request-form-row .web-input { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .2); color: #FFFFFF; }
 .is-night .request-form-row .web-input::placeholder { color: rgba(255, 255, 255, .45); }
