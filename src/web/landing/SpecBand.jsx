@@ -5,11 +5,13 @@ import { useProgress, useSeen } from './motion'
 // true of the code: NATIVE_CAMERA_MAX_FPS in native_camera/capture.rs, the
 // 478-point face mesh checked in cameraMeasurement.js, frames analysed in
 // memory and discarded, and one Focus Score per day. Change them together.
+// Ordered from largest to smallest, so the row counts down and ends on the
+// zero: nothing stored.
 const SPECS = [
-  { value: 15, unit: 'per second', label: 'Camera frames read, on your Mac' },
   { value: 478, unit: 'points', label: 'Tracked on your face in every frame' },
-  { value: 0, unit: 'frames', label: 'Ever stored or uploaded' },
+  { value: 15, unit: 'per second', label: 'Camera frames read, on your Mac' },
   { value: 1, unit: 'number', label: 'For your whole day' },
+  { value: 0, unit: 'frames', label: 'Ever stored or uploaded' },
 ]
 
 export default function SpecBand() {

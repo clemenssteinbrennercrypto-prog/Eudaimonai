@@ -54,6 +54,7 @@ function useMacScale(macRef) {
 export default function AppShowcase() {
   const macRef = useRef(null)
   const rootRef = useRef(null)
+  const tabsRef = useRef(null)
   const onScreen = useOnScreen(rootRef, 0.35)
   const [active, setActive] = useState(0)
   const [held, setHeld] = useState(false)
@@ -64,6 +65,18 @@ export default function AppShowcase() {
     const timer = window.setTimeout(() => setActive(index => (index + 1) % PARTS.length), STEP_MS)
     return () => window.clearTimeout(timer)
   }, [active, onScreen, held])
+
+  // On a phone the tabs are a strip wider than the screen: keep the current one
+  // in view as the parts move on. Only the strip scrolls, never the page.
+  useEffect(() => {
+    const strip = tabsRef.current
+    const tab = strip?.children[active]
+    if (!tab || strip.scrollWidth <= strip.clientWidth) return
+    const stripBox = strip.getBoundingClientRect()
+    const tabBox = tab.getBoundingClientRect()
+    const offset = tabBox.left + tabBox.width / 2 - (stripBox.left + stripBox.width / 2)
+    strip.scrollTo?.({ left: strip.scrollLeft + offset, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }, [active])
 
   const running = onScreen && !held
   const part = PARTS[active]
@@ -90,7 +103,7 @@ export default function AppShowcase() {
         <div className="site-mac-base" />
       </div>
 
-      <div className="site-showcase-tabs" role="tablist" aria-label="Parts of the app">
+      <div className="site-showcase-tabs" ref={tabsRef} role="tablist" aria-label="Parts of the app">
         {PARTS.map((item, index) => (
           <button
             key={item.id}
