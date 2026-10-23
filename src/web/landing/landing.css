@@ -460,7 +460,10 @@ html:has(.site), body:has(.site) { background: #E9ECF0; }
   .site-band.is-faq { padding-top: 88px; }
   .site-mac-lid { border-radius: 12px 12px 0 0; }
   .site-mac-base { height: 9px; }
-  .site-showcase-tabs { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; width: calc(100% + 32px); margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+  /* A strip that runs to both screen edges and scrolls sideways only: overflow-x
+     alone would make overflow-y auto too, and max-width would stop it at the
+     gutter. */
+  .site-showcase-tabs { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; width: calc(100% + 32px); max-width: none; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; scrollbar-width: none; }
   .site-showcase-tabs::-webkit-scrollbar { display: none; }
   .site-showcase-tabs button { flex: none; }
   .site-showcase-text { font-size: 16px; min-height: 4.8em; }
